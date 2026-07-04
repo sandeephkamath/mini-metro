@@ -1,32 +1,73 @@
-# React + TypeScript + Vite
+# Mini Metro Clone
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A Mini Metro-style resource routing game built with React, TypeScript, Vite, and HTML5 canvas.
 
-Currently, two official plugins are available:
+## Getting Started
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+bun install
+bun run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Folder Structure
+
+```
+mini-metro/
+├── specs/                    # Behavior specs (plain English, no code)
+│   ├── core/logic.md         # Theme-neutral game mechanics — source of truth for game behavior
+│   ├── themes/metro.md       # Metro terminology, config values, render order, bug log
+│   ├── DEBUG.md              # Debug overlay and dev controls
+│   └── memo.md               # Backlog of undecided/future work
+│
+├── src/
+│   ├── types/game.ts         # Shared types (GameState, Station, Train, MetroLine, Passenger, ...)
+│   ├── config/gameConfig.ts  # Tunable constants (speeds, capacities, intervals, colors)
+│   │
+│   ├── logic/                # Pure game logic, no DOM/canvas access
+│   │   ├── gameLoop.ts       # Main tick
+│   │   ├── stations.ts
+│   │   ├── trains.ts
+│   │   ├── lines.ts
+│   │   ├── passengers.ts
+│   │   ├── delivery.ts
+│   │   └── overflow.ts
+│   │
+│   ├── render/                  # Canvas drawing, one file per layer
+│   │   ├── renderer.ts          # Composes layers in draw order
+│   │   ├── renderStations.ts
+│   │   ├── renderLines.ts
+│   │   ├── renderTrains.ts
+│   │   ├── renderPassengers.ts
+│   │   └── renderDebug.ts
+│   │
+│   ├── hooks/                   # React glue
+│   │   ├── useGameLoop.ts       # Drives the requestAnimationFrame loop
+│   │   ├── useGameState.ts      # Syncs mutable game state to React state (~10Hz)
+│   │   └── useMouseInput.ts     # Wires canvas input to input/mouseHandler.ts
+│   │
+│   ├── input/mouseHandler.ts
+│   │
+│   ├── components/              # Screens/UI
+│   │   ├── StartScreen.tsx
+│   │   ├── HUD.tsx
+│   │   ├── GameCanvas.tsx
+│   │   ├── DeliveryModal.tsx
+│   │   └── GameOverScreen.tsx
+│   │
+│   ├── assets/
+│   ├── App.tsx
+│   └── main.tsx
+│
+└── public/
+```
+
+## Orientation
+
+Read specs in this order before changing game rules:
+
+1. `specs/core/logic.md` — theme-neutral mechanics (nodes, resources, routes, carriers, scoring, overflow, delivery events)
+2. `specs/themes/metro.md` — metro-specific terminology, config values, rendering order, screen states, bug log
+3. `specs/DEBUG.md` — debug overlay and controls
+4. `specs/memo.md` — backlog of deferred/undecided work
+
+See `CLAUDE.md` for architecture constraints and conventions.
