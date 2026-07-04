@@ -1,7 +1,7 @@
 # Core Logic Specification
 
-**Version**: 1.0
-**Last updated**: 2026-07-04
+**Version**: 1.1
+**Last updated**: 2026-07-05
 
 This document defines the game's mechanics in theme-neutral terms. Themes extend this document by mapping these abstract concepts to named entities and providing configuration values.
 
@@ -88,8 +88,6 @@ Boarding happens just before the Carrier departs, not on arrival. This separatio
 
 After every game tick, each Node is checked. If any Node's queue length exceeds its maximum capacity, the game ends immediately.
 
-A visual warning appears on Nodes that are at or near capacity.
-
 ### Delivery Events
 
 At regular time intervals a delivery event fires automatically:
@@ -98,7 +96,7 @@ At regular time intervals a delivery event fires automatically:
 - One locked Route is unlocked (if any remain).
 - The busiest Carrier gains additional capacity.
 
-The event is instantaneous — the game does not pause. A brief notification appears.
+The event is instantaneous — the game does not pause.
 
 ### Scoring
 
@@ -106,7 +104,7 @@ One point is awarded per Resource delivered. Score accumulates throughout the se
 
 ### Win / Loss
 
-There is no win condition. The game ends when any Node overflows. The final score is displayed.
+There is no win condition. The game ends when any Node overflows, and the final score is recorded.
 
 ---
 

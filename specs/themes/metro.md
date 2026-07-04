@@ -1,7 +1,7 @@
 # Metro Theme Specification
 
-**Version**: 1.2
-**Last updated**: 2026-07-04
+**Version**: 1.3
+**Last updated**: 2026-07-05
 **Extends**: `../core/logic.md`
 
 This document defines the Metro theme. It maps core abstract concepts to metro terminology, specifies metro-specific entities and visual rules, and provides all configuration values. Game mechanics not mentioned here follow core/logic.md exactly.
@@ -70,6 +70,8 @@ The delivery is instantaneous — the game does not pause. A brief toast notific
 ---
 
 ## 5. Configuration Values
+
+These are the concrete values for the tunable parameters defined abstractly in `../core/progression.md` — see that document for the rules and formulas behind them (spawn decay curve, unlock schedule, effective waiting budget).
 
 | Parameter | Value | Notes |
 |-----------|-------|-------|

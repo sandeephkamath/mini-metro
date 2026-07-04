@@ -6,13 +6,14 @@ A Mini Metro-style resource routing game. Inherits stack/workflow defaults from 
 
 Before touching game rules, read the specs in this order:
 
-1. **`specs/core/logic.md`** — theme-neutral mechanics (Nodes, Resources, Routes, Carriers, scoring, overflow, delivery events). This is the source of truth for *how the game behaves*, independent of naming/skin.
-2. **`specs/themes/metro.md`** — maps core terms to metro terminology (Station/Line/Train/Passenger), plus all concrete config values, rendering order, screen states, and the bug log. Read this for anything metro-specific or to find a tunable number.
-3. **`specs/DEBUG.md`** — debug-mode overlay, spawn/speed controls, manual station/passenger injection. Only relevant when testing or adding debug tooling.
-4. **`specs/testing.md`** — behavior spec for the automated testing agent/harness (flows covered, bug classification rules, report format). Read this before running or extending `testing/`.
-5. **`memo.md`** — backlog of undecided/unimplemented future work (styling, scoring, levels, analytics, mobile, persistence, onboarding). Check here before assuming a gap is unintentional, and add to it rather than solving ad hoc if a request expands scope.
+1. **`specs/core/logic.md`** — theme-neutral mechanics (Nodes, Resources, Routes, Carriers, scoring, overflow, delivery events). This is the source of truth for *how the game behaves*, independent of naming/skin. Contains no rendering/UI references.
+2. **`specs/core/progression.md`** — theme-neutral pacing/difficulty knobs (Node/Resource spawn rate curves, effective waiting budget, Route/Carrier unlock schedule). The tuning layer between fixed mechanics and each theme's concrete numbers. Read this before changing difficulty or progression pacing.
+3. **`specs/themes/metro.md`** — maps core terms to metro terminology (Station/Line/Train/Passenger), plus all concrete config values (including the progression parameters from `core/progression.md`), rendering order, screen states, and the bug log. Read this for anything metro-specific or to find a tunable number.
+4. **`specs/DEBUG.md`** — debug-mode overlay, spawn/speed controls, manual station/passenger injection. Only relevant when testing or adding debug tooling.
+5. **`specs/testing.md`** — behavior spec for the automated testing agent/harness (flows covered, bug classification rules, report format). Read this before running or extending `testing/`.
+6. **`memo.md`** — backlog of undecided/unimplemented future work (styling, scoring, levels, analytics, mobile, persistence, onboarding). Check here before assuming a gap is unintentional, and add to it rather than solving ad hoc if a request expands scope.
 
-Rule of thumb: if a change affects *game rules or entity relationships*, update `core/logic.md`. If it's *metro-flavored* (colors, shapes, config numbers, terminology), update `themes/metro.md`. Don't duplicate the same rule in both — core stays abstract, themes only add mappings/values/visuals.
+Rule of thumb: if a change affects *game rules or entity relationships*, update `core/logic.md`. If it changes *pacing or difficulty* (spawn rates, unlock schedules), update `core/progression.md`. If it's *metro-flavored* (colors, shapes, config numbers, terminology), update `themes/metro.md`. Don't duplicate the same rule across documents — core stays abstract, themes only add mappings/values/visuals.
 
 ## Code Map
 
