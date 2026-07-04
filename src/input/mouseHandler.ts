@@ -1,6 +1,6 @@
 import type { GameState, StationShape, Vec2 } from '../types/game';
 import { getStationAt, trySpawnStationAt } from '../logic/stations';
-import { getAvailableLine, getLineForStation, addStationToLine, getSegmentAt, insertStationIntoLine } from '../logic/lines';
+import { getAvailableLine, getLineEndpointAt, addStationToLine, getSegmentAt, insertStationIntoLine } from '../logic/lines';
 import { CONFIG } from '../config/gameConfig';
 
 // Debug popup: 3 shape buttons in a row, each BUTTON_W × BUTTON_H
@@ -92,6 +92,21 @@ export function onMouseDown(state: GameState, canvasX: number, canvasY: number):
     return;
   }
 
+  // Grabbing a line's end tab extends that specific line, even if other lines
+  // also terminate at the same station (e.g. a station with several route ends).
+  const endpoint = getLineEndpointAt(state, { x: canvasX, y: canvasY });
+  if (endpoint) {
+    state.drawing.isDrawing = true;
+    state.drawing.startStationId = endpoint.stationId;
+    state.drawing.insertAfterIndex = null;
+    state.drawing.grabPos = null;
+    state.drawing.mousePos = { x: canvasX, y: canvasY };
+    state.drawing.lineId = endpoint.lineId;
+    return;
+  }
+
+  // Clicking a station's body (not a specific line's end tab) always starts a
+  // fresh route — a station is never "owned" by a color.
   const station = getStationAt(state, { x: canvasX, y: canvasY });
   if (station) {
     state.drawing.isDrawing = true;
@@ -99,7 +114,7 @@ export function onMouseDown(state: GameState, canvasX: number, canvasY: number):
     state.drawing.insertAfterIndex = null;
     state.drawing.grabPos = null;
     state.drawing.mousePos = { x: canvasX, y: canvasY };
-    state.drawing.lineId = getLineForStation(state, station.id)?.id ?? null;
+    state.drawing.lineId = null;
     return;
   }
 

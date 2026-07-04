@@ -112,8 +112,9 @@ There is no win condition. The game ends when any Node overflows. The final scor
 
 ## 4. Route Drawing Interaction
 
-- Clicking on a Node that already belongs to a Route begins extending that Route from the clicked end.
-- Clicking on a Node not on any Route begins a new Route using the next available unlocked Route color/identifier.
+- Each end of a Route (once it has 2+ Nodes) has its own end marker, drawn as a short tab projecting from the terminal Node. A Node can host several end markers at once — one per Route ending there — and each is an independent drag target.
+- Clicking a Route's end marker begins extending that specific Route from that end. Which Route gets extended is determined by which end marker was grabbed, not by which Node — a Node is never associated with a single color.
+- Clicking a Node's body (anywhere that isn't a specific Route's end marker) always begins a new Route using the next available unlocked Route color/identifier, even if the Node already belongs to one or more Routes.
 - Releasing on a different Node completes the segment, subject to:
   - Target Node must not already be on the same Route.
   - Source Node must be at one of the Route's two ends.

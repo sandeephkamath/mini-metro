@@ -20,13 +20,7 @@ function drawShape(ctx: CanvasRenderingContext2D, station: Station): void {
   }
 }
 
-function getBorderColor(station: Station, state: GameState): string {
-  for (const lineId of station.lineIds) {
-    const line = state.lines[lineId];
-    if (line) return line.color;
-  }
-  return '#999999';
-}
+const STATION_BORDER_COLOR = '#333333';
 
 export function renderStations(ctx: CanvasRenderingContext2D, state: GameState, now: number): void {
   for (const station of Object.values(state.stations)) {
@@ -45,7 +39,7 @@ export function renderStations(ctx: CanvasRenderingContext2D, state: GameState, 
     drawShape(ctx, station);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
-    ctx.strokeStyle = (isNearFull && flashOn) ? '#e74c3c' : getBorderColor(station, state);
+    ctx.strokeStyle = (isNearFull && flashOn) ? '#e74c3c' : STATION_BORDER_COLOR;
     ctx.lineWidth = isNearFull ? 4 : 3;
     ctx.stroke();
 

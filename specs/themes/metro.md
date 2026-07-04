@@ -1,6 +1,6 @@
 # Metro Theme Specification
 
-**Version**: 1.1
+**Version**: 1.2
 **Last updated**: 2026-07-04
 **Extends**: `../core/logic.md`
 
@@ -88,6 +88,8 @@ The delivery is instantaneous — the game does not pause. A brief toast notific
 | Week duration | 60 000 ms | Game time |
 | Initial lines unlocked | 3 of 7 | |
 | Frame dt cap | 100 ms | Prevents spiral-of-death |
+| End marker tab length | 20 px | Projects past the terminal station |
+| End marker hit radius | 10 px | For grabbing a specific Line's end |
 
 ---
 
@@ -97,14 +99,15 @@ Drawn back to front each frame:
 
 1. Background fill (`#f5f0e8`)
 2. Line strokes (colored, thick)
-3. Drag preview (dashed line to cursor, only while drawing)
-4. Station shapes (white fill, colored border — border color = first line the station belongs to)
-5. Overflow warning ring (pulsing red glow on at-capacity stations)
-6. Station labels (C1, T2… above each station)
-7. Passenger icons waiting at stations (small black destination shapes)
-8. Train rectangles (dark fill, colored border, rotated to direction of travel)
-9. Passenger icons inside trains (tiny black destination shapes)
-10. Debug overlay (when debug mode is active)
+3. Line end markers (colored tab + perpendicular crossbar at each Line terminus — one per Line ending at a Node, independently draggable)
+4. Drag preview (dashed line to cursor, only while drawing)
+5. Station shapes (white fill, neutral dark border — a Station is never colored by the Lines it belongs to)
+6. Overflow warning ring (pulsing red glow on at-capacity stations)
+7. Station labels (C1, T2… above each station)
+8. Passenger icons waiting at stations (small black destination shapes)
+9. Train rectangles (dark fill, colored border, rotated to direction of travel)
+10. Passenger icons inside trains (tiny black destination shapes)
+11. Debug overlay (when debug mode is active)
 
 ---
 
@@ -142,3 +145,5 @@ Drawn back to front each frame:
 | B3 | Station positions distorted on spawn | Module-level ID counters reset on React re-render, causing ID collisions | ID counters in game state — see core §6 Architecture |
 | B4 | Passengers re-board the train that just transferred them | Disembark and board both ran on arrival in the same tick | Board on departure, disembark on arrival — see core §3 Disembarkation |
 | B5 | Passengers bounce between two transfer stations | Boarding BFS was unbounded; both endpoints matched via multi-hop | One-hop transfer limit + anti-bounce check — see core §3 Routing |
+| B6 | Extending a Route from a Station with multiple Route ends always extended the wrong one (and Stations visually looked "owned" by one color) | `getLineForStation` picked the first Line in iteration order that touched the Station, ignoring which end the player actually dragged from; Station border was tinted by that same first Line | Per-Line end markers with independent hit-testing (`getLineEndpointAt`) — see core §4 Route Drawing Interaction; Station border is now a neutral color |
+| B7 (open) | Debug overlay panel and HUD bar overlap, both semi-transparent, producing garbled/unreadable text in the shared top-right area whenever debug mode is on | Canvas-drawn debug panel (`renderDebug.ts`) and the DOM `HUD` bar (`HUD.tsx`) are positioned and drawn by unrelated systems with no coordination between them | Not yet fixed — recommended fix is to start the debug panel below the HUD bar's height, or give the HUD bar a solid (non-transparent) background |

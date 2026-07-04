@@ -47,11 +47,63 @@ export function getAvailableLine(state: GameState): MetroLine | null {
   return null;
 }
 
-export function getLineForStation(state: GameState, stationId: string): MetroLine | null {
+export interface LineEndpoint {
+  lineId: string;
+  stationId: string;
+  handlePos: Vec2;
+}
+
+// Handle position for one end of a line: projected past the terminal station,
+// continuing the direction of the line's last segment (the little draggable stub/tab).
+function endpointHandle(state: GameState, lineId: string, endId: string, neighborId: string): LineEndpoint | null {
+  const end = state.stations[endId]?.pos;
+  const neighbor = state.stations[neighborId]?.pos;
+  if (!end || !neighbor) return null;
+
+  const dx = end.x - neighbor.x;
+  const dy = end.y - neighbor.y;
+  const len = Math.hypot(dx, dy) || 1;
+  return {
+    lineId,
+    stationId: endId,
+    handlePos: {
+      x: end.x + (dx / len) * CONFIG.ENDPOINT_HANDLE_LENGTH,
+      y: end.y + (dy / len) * CONFIG.ENDPOINT_HANDLE_LENGTH,
+    },
+  };
+}
+
+// One entry per end of every line with >=2 stations. A station can appear in
+// multiple entries if several lines terminate there — each is a separate target.
+export function getLineEndpoints(state: GameState): LineEndpoint[] {
+  const endpoints: LineEndpoint[] = [];
   for (const line of Object.values(state.lines)) {
-    if (line.stationIds.includes(stationId)) return line;
+    if (line.stationIds.length < 2) continue;
+    const firstId = line.stationIds[0];
+    const lastId = line.stationIds[line.stationIds.length - 1];
+
+    const front = endpointHandle(state, line.id, firstId, line.stationIds[1]);
+    const back = endpointHandle(state, line.id, lastId, line.stationIds[line.stationIds.length - 2]);
+    if (front) endpoints.push(front);
+    if (back) endpoints.push(back);
   }
-  return null;
+  return endpoints;
+}
+
+// Finds the closest line-end handle to a click position, for extending a specific
+// line when a station has multiple lines terminating at it.
+export function getLineEndpointAt(state: GameState, pos: Vec2): LineEndpoint | null {
+  let closest: LineEndpoint | null = null;
+  let closestDist: number = CONFIG.ENDPOINT_HANDLE_HIT_RADIUS;
+
+  for (const ep of getLineEndpoints(state)) {
+    const d = Math.hypot(pos.x - ep.handlePos.x, pos.y - ep.handlePos.y);
+    if (d <= closestDist) {
+      closest = ep;
+      closestDist = d;
+    }
+  }
+  return closest;
 }
 
 // Append a station to the end of a line (internal helper — no validation)
