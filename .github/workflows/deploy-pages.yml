@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, mini-metro-original-parity] # TEMP: deploying this branch for testing pre-merge, remove before/at merge
   workflow_dispatch: {}
 
 permissions:
