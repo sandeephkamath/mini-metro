@@ -30,11 +30,18 @@ async function canvasLocator(page: Page): Promise<Locator> {
   return page.locator('canvas');
 }
 
-async function canvasPoint(page: Page, x: number, y: number) {
+// Scales logical 800x600 canvas coordinates by the CSS box's actual on-screen size,
+// so this works whether the game stage is rendered at 1:1 (desktop/default Playwright
+// viewport) or scaled down to fit a smaller/mobile viewport (GameCanvas.tsx's
+// stageScale) — a no-op when box.width/height already equal CANVAS_WIDTH/HEIGHT.
+export async function canvasPoint(page: Page, x: number, y: number) {
   const canvas = await canvasLocator(page);
   const box = await canvas.boundingBox();
   if (!box) throw new Error('canvas not found');
-  return { x: box.x + x, y: box.y + y };
+  return {
+    x: box.x + (x / CANVAS_WIDTH) * box.width,
+    y: box.y + (y / CANVAS_HEIGHT) * box.height,
+  };
 }
 
 export async function startGame(page: Page) {
