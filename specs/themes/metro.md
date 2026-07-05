@@ -216,13 +216,13 @@ The game-over screen additionally shows this session's contribution to the curre
 
 | Feature | Original | This version |
 |---------|----------|-------------|
-| Station shapes | 7+ shapes | 3 shapes |
+| Station shapes | 7+ shapes | 6 shapes (circle/triangle/square from start; star/hexagon/plus unlock by week — §2) |
 | Map | Multiple cities | One fixed map |
 | River / tunnels | Yes | No |
 | Sound | Yes | No |
-| Line deletion | Yes | No |
 | Mobile support | Yes | No |
 | High score | Persistent leaderboard | None |
+| Creative Mode (post-Game-Over sandbox) | Yes | No |
 
 ---
 

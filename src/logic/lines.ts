@@ -378,3 +378,35 @@ export function addCarriageToTrain(state: GameState, trainId: string): boolean {
   train.carriageCount += 1;
   return true;
 }
+
+// Deletes an entire Line: removes its Trains (and whatever Passengers they were
+// carrying — they're gone, not returned to any Station queue) and detaches every
+// Station that was only reachable via this Line. The Line color stays unlocked
+// and immediately reusable for a fresh Route, matching the original's "hold the
+// Line's own legend swatch to purge it" gesture — see
+// specs/mini_metro_original_analysis_2_ui_timing.md §5.
+export function removeLine(state: GameState, lineId: string): boolean {
+  const line = state.lines[lineId];
+  if (!line || line.stationIds.length === 0) return false;
+
+  if (state.drawing.lineId === lineId) {
+    state.drawing = {
+      isDrawing: false, lineId: null, startStationId: null,
+      insertAfterIndex: null, grabPos: null, mousePos: state.drawing.mousePos,
+    };
+  }
+
+  for (const trainId of line.trainIds) {
+    delete state.trains[trainId];
+  }
+
+  for (const stationId of line.stationIds) {
+    const station = state.stations[stationId];
+    if (station) station.lineIds = station.lineIds.filter(id => id !== lineId);
+  }
+
+  line.stationIds = [];
+  line.trainIds = [];
+  line.drawOrder = null;
+  return true;
+}

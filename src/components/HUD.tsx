@@ -1,10 +1,15 @@
+import { useRef, useState } from 'react';
 import type { ReserveItemKind } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
 
 interface LineSlot {
+  id: string;
   color: string;
   isUnlocked: boolean;
+  hasStations: boolean;
 }
+
+const DELETE_HOLD_MS = 600;
 
 interface HUDProps {
   score: number;
@@ -25,6 +30,7 @@ interface HUDProps {
   onPause: () => void;
   onPlayNormal: () => void;
   onFastForward: () => void;
+  onDeleteLine: (lineId: string) => void;
 }
 
 // The clock badge doubles as the original's global danger cue: it recolors solid
@@ -107,9 +113,35 @@ export function HUD({
   reserveCarriers, reserveCarriages, selectedReserveItem,
   onSelectReserveCarrier, onSelectReserveCarriage,
   overflowRiskActive, playerPaused, playerSpeedMultiplier, onPause, onPlayNormal, onFastForward,
+  onDeleteLine,
 }: HUDProps) {
   const toastVisible = milestoneAge < 3000 && milestoneMessage;
   const toastOpacity = toastVisible ? Math.min(1, Math.max(0, 1 - (milestoneAge - 2000) / 1000)) : 0;
+
+  // Hold-to-delete on a Line's own legend swatch — grows into a red circle with an
+  // X over DELETE_HOLD_MS; releasing early cancels. Matches the original's gesture
+  // (specs/mini_metro_original_analysis_2_ui_timing.md §5). Pure UI feedback state —
+  // the actual deletion is a single onDeleteLine call once the hold completes.
+  const [holdingLineId, setHoldingLineId] = useState<string | null>(null);
+  const holdTimerRef = useRef<number | null>(null);
+
+  function startHold(lineId: string, hasStations: boolean) {
+    if (!hasStations) return;
+    setHoldingLineId(lineId);
+    holdTimerRef.current = window.setTimeout(() => {
+      onDeleteLine(lineId);
+      holdTimerRef.current = null;
+      setHoldingLineId(null);
+    }, DELETE_HOLD_MS);
+  }
+
+  function cancelHold() {
+    if (holdTimerRef.current !== null) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    setHoldingLineId(null);
+  }
 
   function depotButtonStyle(count: number, selected: boolean) {
     return {
@@ -185,19 +217,39 @@ export function HUD({
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {lineSlots.map((slot, i) => (
-            slot.isUnlocked ? (
-              <div key={i} style={{
-                width: 20, height: 20, borderRadius: '50%',
-                background: slot.color, border: '1px solid rgba(255,255,255,0.3)',
-              }} />
-            ) : (
-              <div key={i} style={{
-                width: 8, height: 8, borderRadius: '50%',
-                background: '#666',
-              }} />
-            )
-          ))}
+          {lineSlots.map((slot, i) => {
+            if (!slot.isUnlocked) {
+              return <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#666' }} />;
+            }
+            const holding = holdingLineId === slot.id;
+            return (
+              <div
+                key={i}
+                data-testid={`hud-line-swatch-${slot.id}`}
+                onMouseDown={() => startHold(slot.id, slot.hasStations)}
+                onMouseUp={cancelHold}
+                onMouseLeave={cancelHold}
+                title={slot.hasStations ? 'Hold to delete this line' : undefined}
+                style={{
+                  width: holding ? 34 : 20,
+                  height: holding ? 34 : 20,
+                  borderRadius: '50%',
+                  background: holding ? '#e74c3c' : slot.color,
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  transition: `width ${DELETE_HOLD_MS}ms linear, height ${DELETE_HOLD_MS}ms linear, background ${DELETE_HOLD_MS}ms linear`,
+                  cursor: slot.hasStations ? 'pointer' : 'default',
+                  pointerEvents: 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  userSelect: 'none',
+                }}
+              >
+                {holding && <span style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', lineHeight: 1 }}>×</span>}
+              </div>
+            );
+          })}
         </div>
 
         <button

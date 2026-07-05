@@ -5,6 +5,7 @@ import { useGameState } from '../hooks/useGameState';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useMouseInput } from '../hooks/useMouseInput';
 import { resolveMilestoneChoice } from '../logic/milestone';
+import { removeLine } from '../logic/lines';
 import { HUD } from './HUD';
 import { HomeScreen } from './HomeScreen';
 import { StartScreen } from './StartScreen';
@@ -28,7 +29,12 @@ export function GameCanvas() {
     : 99999;
   const lineSlots = Object.keys(state.lines)
     .sort((a, b) => parseInt(a.slice(1), 10) - parseInt(b.slice(1), 10))
-    .map(id => ({ color: state.lines[id].color, isUnlocked: state.lines[id].isUnlocked }));
+    .map(id => ({
+      id,
+      color: state.lines[id].color,
+      isUnlocked: state.lines[id].isUnlocked,
+      hasStations: state.lines[id].stationIds.length > 0,
+    }));
   // Derived, not synced state — cheap to recompute each render and only needs to be
   // as fresh as the ~10Hz syncReactState tick that already drives a re-render here.
   const overflowRiskActive = Object.values(state.stations).some(s => s.riskTimer !== null);
@@ -41,6 +47,9 @@ export function GameCanvas() {
   }
   function chooseMilestoneBonus(kind: MilestoneBonusKind) {
     resolveMilestoneChoice(state, kind);
+  }
+  function deleteLine(lineId: string) {
+    removeLine(state, lineId);
   }
 
   return (
@@ -72,6 +81,7 @@ export function GameCanvas() {
           onPause={() => setPlayerPaused(true)}
           onPlayNormal={() => setPlayerSpeedMultiplier(1)}
           onFastForward={() => setPlayerSpeedMultiplier(2)}
+          onDeleteLine={deleteLine}
         />
       )}
 
