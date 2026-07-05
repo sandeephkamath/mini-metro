@@ -1,6 +1,6 @@
 import type { GameState, Vec2 } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
-import { getLineEndpoints } from '../logic/lines';
+import { getLineEndpoints, getSegmentElbow } from '../logic/lines';
 import { computeBentSegment } from '../logic/geometry';
 
 export function renderLines(ctx: CanvasRenderingContext2D, state: GameState): void {
@@ -23,7 +23,7 @@ export function renderLines(ctx: CanvasRenderingContext2D, state: GameState): vo
     for (let i = 0; i < positions.length - 1; i++) {
       const a = positions[i];
       const b = positions[i + 1];
-      const seg = computeBentSegment(a, b, CONFIG.LINE_BEND_RADIUS);
+      const seg = computeBentSegment(a, b, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(state, line, i));
       if (seg) {
         // Straight leg into the bend, a short rounded curve at the corner, straight leg
         // out — the segment as a whole stays straight, only the corner itself is smoothed.

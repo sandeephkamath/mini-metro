@@ -5,6 +5,80 @@ import { buildSegmentShape, computeElbow, distToSegment } from './geometry';
 
 const SEGMENT_HIT_SAMPLES = 10; // sub-divisions used to hit-test the (mostly straight, corner-rounded) segment shape
 
+// Below this angle, two lines' legs departing the same station read as visually
+// overlapping rather than merely close — only worth fixing when it's this tight.
+const BEND_CONFLICT_ANGLE = Math.PI / 6; // 30°
+
+function legDirection(from: Vec2, to: Vec2): Vec2 {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.hypot(dx, dy) || 1;
+  return { x: dx / len, y: dy / len };
+}
+
+function angleBetween(u: Vec2, v: Vec2): number {
+  const dot = Math.max(-1, Math.min(1, u.x * v.x + u.y * v.y));
+  return Math.acos(dot);
+}
+
+// Direction each OTHER line departs `stationId` toward its neighbor(s) there — a proxy
+// for "which way that track visually runs near this station", used to judge whether our
+// own bend would overlap it. Ignores this line so it never conflicts with itself.
+function otherDepartureDirections(state: GameState, stationId: string, excludeLineId: string): Vec2[] {
+  const station = state.stations[stationId];
+  if (!station) return [];
+  const dirs: Vec2[] = [];
+  for (const other of Object.values(state.lines)) {
+    if (other.id === excludeLineId) continue;
+    const idx = other.stationIds.indexOf(stationId);
+    if (idx === -1) continue;
+    for (const ni of [idx - 1, idx + 1]) {
+      const neighborPos = state.stations[other.stationIds[ni]]?.pos;
+      if (neighborPos) dirs.push(legDirection(station.pos, neighborPos));
+    }
+  }
+  return dirs;
+}
+
+function minAngleTo(dir: Vec2, others: Vec2[]): number {
+  let min = Math.PI;
+  for (const o of others) min = Math.min(min, angleBetween(dir, o));
+  return min;
+}
+
+// Smallest departure-angle clearance this elbow choice gives at either endpoint against
+// other lines already using that station — the thing we're trying to keep large.
+function elbowClearance(elbow: Vec2, a: Vec2, b: Vec2, otherDirsA: Vec2[], otherDirsB: Vec2[]): number {
+  return Math.min(
+    minAngleTo(legDirection(a, elbow), otherDirsA),
+    minAngleTo(legDirection(b, elbow), otherDirsB),
+  );
+}
+
+// A bend can round the corner either "near a" (diagonal leg by a, flat leg by b) or
+// mirrored (flat leg by a, diagonal leg by b) — computeElbow(a,b) gives the former,
+// computeElbow(b,a) the latter. Both are equally valid tracks; we only prefer the
+// mirror when the default one would visually overlap another line at a shared station,
+// and only when the mirror is actually less crowded (never distort for no gain).
+export function getSegmentElbow(state: GameState, line: MetroLine, index: number): Vec2 | null {
+  const a = state.stations[line.stationIds[index]]?.pos;
+  const b = state.stations[line.stationIds[index + 1]]?.pos;
+  if (!a || !b) return null;
+
+  const defaultElbow = computeElbow(a, b);
+  if (!defaultElbow) return null; // straight segment — nothing to choose between
+
+  const otherDirsA = otherDepartureDirections(state, line.stationIds[index], line.id);
+  const otherDirsB = otherDepartureDirections(state, line.stationIds[index + 1], line.id);
+  const defaultClearance = elbowClearance(defaultElbow, a, b, otherDirsA, otherDirsB);
+  if (defaultClearance >= BEND_CONFLICT_ANGLE) return defaultElbow;
+
+  const mirroredElbow = computeElbow(b, a);
+  if (!mirroredElbow) return defaultElbow;
+  const mirroredClearance = elbowClearance(mirroredElbow, a, b, otherDirsA, otherDirsB);
+  return mirroredClearance > defaultClearance ? mirroredElbow : defaultElbow;
+}
+
 // Finds a line segment (between two consecutive stations) near a point, for mid-line insertion drags.
 // Hit-tests against the same shape rendering draws (straight legs with a short rounded corner at the
 // bend, via buildSegmentShape), not a direct station-to-station line, so clicks land where the line looks like it is.
@@ -15,7 +89,7 @@ export function getSegmentAt(state: GameState, pos: Vec2): { lineId: string; aft
       const a = state.stations[line.stationIds[i]]?.pos;
       const b = state.stations[line.stationIds[i + 1]]?.pos;
       if (!a || !b) continue;
-      const shape = buildSegmentShape(a, b, CONFIG.LINE_BEND_RADIUS);
+      const shape = buildSegmentShape(a, b, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(state, line, i));
 
       let hit = false;
       let prev = a;
@@ -58,15 +132,22 @@ export interface LineEndpoint {
 
 // Handle position for one end of a line: projected past the terminal station,
 // continuing the direction of the line's last segment (the little draggable stub/tab).
-function endpointHandle(state: GameState, lineId: string, endId: string, neighborId: string): LineEndpoint | null {
+// `isFront` says whether `end` is the earlier station of the pair in stationIds order —
+// the elbow must be computed in that same a→b order the renderer used for this segment
+// (computeElbow is direction-dependent, not symmetric), or the tab points somewhere the
+// drawn track never actually goes.
+function endpointHandle(state: GameState, lineId: string, endId: string, neighborId: string, isFront: boolean): LineEndpoint | null {
   const end = state.stations[endId]?.pos;
   const neighbor = state.stations[neighborId]?.pos;
-  if (!end || !neighbor) return null;
+  const line = state.lines[lineId];
+  if (!end || !neighbor || !line) return null;
 
   // The segment only curves right at the bend point — near the station itself the track is
   // always straight, so the tab direction is just the straight leg into the station: from the
-  // elbow (if the segment bends) or the neighbor (if it doesn't).
-  const elbow = computeElbow(neighbor, end);
+  // elbow (if the segment bends) or the neighbor (if it doesn't). Goes through getSegmentElbow
+  // (not a raw computeElbow call) so the tab matches whichever bend orientation got rendered.
+  const index = isFront ? 0 : line.stationIds.length - 2;
+  const elbow = getSegmentElbow(state, line, index);
   const from = elbow ?? neighbor;
   const dx = end.x - from.x;
   const dy = end.y - from.y;
@@ -90,8 +171,8 @@ export function getLineEndpoints(state: GameState): LineEndpoint[] {
     const firstId = line.stationIds[0];
     const lastId = line.stationIds[line.stationIds.length - 1];
 
-    const front = endpointHandle(state, line.id, firstId, line.stationIds[1]);
-    const back = endpointHandle(state, line.id, lastId, line.stationIds[line.stationIds.length - 2]);
+    const front = endpointHandle(state, line.id, firstId, line.stationIds[1], true);
+    const back = endpointHandle(state, line.id, lastId, line.stationIds[line.stationIds.length - 2], false);
     if (front) endpoints.push(front);
     if (back) endpoints.push(back);
   }

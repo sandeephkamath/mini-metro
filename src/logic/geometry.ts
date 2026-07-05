@@ -19,15 +19,22 @@ export function distToSegment(p: Vec2, a: Vec2, b: Vec2): number {
   return dist(p, { x: a.x + t * dx, y: a.y + t * dy });
 }
 
+// Below this ratio of the shorter axis to the longer one, a pair is "close enough" to
+// axis-aligned that a 45° detour would look like an exaggerated hook for no visual gain —
+// draw a direct line instead. Only genuinely diagonal-ish pairs get the elbow treatment.
+const MIN_BEND_AXIS_RATIO = 0.3;
+
 // Control point between two stations, mimicking classic Mini Metro routing: a diagonal
 // run then a straight run, rather than one direct diagonal between the two stations.
-// Returns null when the direct path is already straight or 45° (no bend needed).
+// Returns null when the direct path is already straight, 45°, or close enough to either
+// that bending would just be a disproportionate sideways hook (no bend needed).
 export function computeElbow(a: Vec2, b: Vec2): Vec2 | null {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const adx = Math.abs(dx);
   const ady = Math.abs(dy);
   if (adx < 2 || ady < 2 || Math.abs(adx - ady) < 2) return null;
+  if (Math.min(adx, ady) / Math.max(adx, ady) < MIN_BEND_AXIS_RATIO) return null;
   const d = Math.min(adx, ady);
   return { x: a.x + Math.sign(dx) * d, y: a.y + Math.sign(dy) * d };
 }
@@ -77,8 +84,10 @@ export interface BentSegment {
   straightLen2: number;
 }
 
-export function computeBentSegment(a: Vec2, b: Vec2, radius: number): BentSegment | null {
-  const elbow = computeElbow(a, b);
+// `elbow` defaults to the natural a→b bend, but callers can pass a precomputed one
+// (e.g. the mirrored a↔b bend from getSegmentElbow) to avoid overlapping another
+// line's approach at a shared station — see getSegmentElbow in logic/lines.ts.
+export function computeBentSegment(a: Vec2, b: Vec2, radius: number, elbow: Vec2 | null = computeElbow(a, b)): BentSegment | null {
   if (!elbow) return null;
   const legA = dist(a, elbow);
   const legB = dist(elbow, b);
@@ -132,8 +141,8 @@ export interface SegmentShape {
   tangentAt(t: number): Vec2;
 }
 
-export function buildSegmentShape(a: Vec2, b: Vec2, cornerRadius: number): SegmentShape {
-  const seg = computeBentSegment(a, b, cornerRadius);
+export function buildSegmentShape(a: Vec2, b: Vec2, cornerRadius: number, elbow?: Vec2 | null): SegmentShape {
+  const seg = computeBentSegment(a, b, cornerRadius, elbow);
   if (!seg) {
     return {
       length: dist(a, b),
