@@ -40,7 +40,7 @@ export function GameOverScreen({ score, level, onRestart }: GameOverScreenProps)
             fontFamily: 'monospace',
           }}
         >
-          Play Again
+          Back to Home
         </button>
       </div>
     </div>

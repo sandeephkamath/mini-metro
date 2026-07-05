@@ -127,7 +127,9 @@ async function main() {
           break;
         }
         case 'start-game': {
-          await page.locator('button').first().click();
+          const playButton = page.getByText('Play', { exact: true });
+          if (await playButton.isVisible().catch(() => false)) await playButton.click();
+          await page.getByText('Start Game').click();
           log('ok start-game');
           break;
         }

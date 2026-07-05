@@ -28,8 +28,9 @@ Each flow below is a scenario the harness can run headlessly. "Trigger" is the i
 
 | Flow | Trigger | Expected (spec ref) |
 |------|---------|---------------------|
-| Boot to Start Screen | Load the app | Start screen with instructions and Start button (`themes/metro.md` §7) |
-| Start to Playing | Click Start | Phase becomes `playing`; canvas + HUD visible, score 0, week 0 (`themes/metro.md` §7) |
+| Boot to Home Screen | Load the app | Home screen with title and Play button (`themes/home_screen.md`) |
+| Home to Start | Click Play | Phase becomes `start`; instructions overlay with Start Game button (`themes/home_screen.md`, `themes/metro.md` §7) |
+| Start to Playing | Click Start Game | Phase becomes `playing`; canvas + HUD visible, score 0, week 0 (`themes/metro.md` §7) |
 | Draw a Line | Drag from one station to another | A line is created; once a 2nd station is added, a train appears (`core/logic.md` §2 Route, §2 Carrier) |
 | Extend a Line | Drag from an end-station of an existing line to a new station | Station is appended/prepended to that line (`core/logic.md` §2 Route, §4) |
 | Mid-Line Insertion | Drag from a point along a line's segment to a station not on that line | Station is inserted between the segment's two stations (`core/logic.md` §2 Route, §4) |
@@ -40,7 +41,7 @@ Each flow below is a scenario the harness can run headlessly. "Trigger" is the i
 | Line Unlock by Station Count | Debug-spawn stations until the Line unlock step threshold is crossed | Next locked Line unlocks immediately, independent of the Weekly Upgrade timer (`core/progression.md` §4, `themes/metro.md` §3) |
 | Station Overflow / Game Over | Debug-add passengers to a station past its max capacity, then advance time past the Risk Timer duration without relieving it | Station enters "at risk" the instant capacity is reached (pulsing glow + countdown arc); phase becomes `gameover` only after the Risk Timer expires while still over capacity (`core/logic.md` §3 Node Overflow) |
 | Overflow Recovery | Debug-add passengers to trigger Station at Risk, then relieve the queue below capacity before the Risk Timer expires | Risk Timer is discarded and the Station returns to normal; game does not end (`core/logic.md` §3 Node Overflow) |
-| Restart | Click restart on the Game Over screen | Phase returns to `playing` with a fresh game state (score 0, week 0) |
+| Restart | Click "Back to Home" on the Game Over screen | Phase returns to `home` with a fresh game state (score 0, week 0); Play → Start Game returns to `playing` (`themes/home_screen.md`) |
 | Debug Mode Toggle | Press `D` | Debug overlay appears/disappears; turning off clears the event log and resets spawn toggles and speed to 1x (`DEBUG.md` Activation, Rules) |
 | Spawn Controls | Press `S` / `P` in debug mode | Station/passenger auto-spawn pause independently; timers still advance (`DEBUG.md` Spawn Controls) |
 | Speed Controls | Press `0`/`1`/`2`/`3` in debug mode | dt multiplier changes accordingly, capped at 4x (`DEBUG.md` Speed Control) |

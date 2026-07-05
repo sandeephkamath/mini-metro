@@ -1,7 +1,7 @@
 export type StationShape = 'circle' | 'triangle' | 'square' | 'star' | 'hexagon' | 'plus';
 export type TrainState = 'moving' | 'stopped';
 export type TrainDirection = 1 | -1;
-export type GamePhase = 'start' | 'playing' | 'gameover';
+export type GamePhase = 'home' | 'start' | 'playing' | 'gameover';
 export type MilestoneBonusMode = 'auto' | 'choice';
 export type MilestoneBonusKind = 'carrier' | 'carriage' | 'grace';
 export type ReserveItemKind = 'carrier' | 'carriage';

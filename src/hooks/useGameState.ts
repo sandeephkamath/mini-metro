@@ -8,7 +8,7 @@ import { createInitialCamera } from '../logic/camera';
 
 function createInitialState(): GameState {
   const state: GameState = {
-    phase: 'start',
+    phase: 'home',
     score: 0,
     gameTimeMs: 0,
     weekNumber: 0,
@@ -62,7 +62,7 @@ export function useGameState() {
   }
 
   const [score, setScore] = useState(0);
-  const [phase, setPhase] = useState<GamePhase>('start');
+  const [phase, setPhase] = useState<GamePhase>('home');
   const [weekNumber, setWeekNumber] = useState(0);
   const [level, setLevel] = useState(0);
   const [weekProgress, setWeekProgress] = useState(0); // 0..1 fraction of the current week elapsed, for the HUD clock
@@ -92,10 +92,7 @@ export function useGameState() {
     setSelectedReserveItemState(kind);
   }, []);
 
-  function startGame() {
-    stateRef.current = createInitialState();
-    stateRef.current.phase = 'playing';
-    setPhase('playing');
+  function resetReactState() {
     setScore(0);
     setWeekNumber(0);
     setLevel(0);
@@ -106,9 +103,27 @@ export function useGameState() {
     setSelectedReserveItemState(null);
   }
 
+  function startGame() {
+    stateRef.current = createInitialState();
+    stateRef.current.phase = 'playing';
+    setPhase('playing');
+    resetReactState();
+  }
+
+  function goToStart() {
+    stateRef.current!.phase = 'start';
+    setPhase('start');
+  }
+
+  function goHome() {
+    stateRef.current = createInitialState();
+    setPhase('home');
+    resetReactState();
+  }
+
   return {
     stateRef: stateRef as MutableRefObject<GameState>,
     score, phase, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending, selectedReserveItem,
-    startGame, syncReactState, setSelectedReserveItem,
+    startGame, goToStart, goHome, syncReactState, setSelectedReserveItem,
   };
 }

@@ -36,16 +36,21 @@ async function canvasPoint(page: Page, x: number, y: number) {
 }
 
 export async function startGame(page: Page) {
+  if (await page.getByText('Play').isVisible().catch(() => false)) {
+    await page.getByText('Play', { exact: true }).click();
+  }
   await page.getByText('Start Game').click();
 }
 
 export async function restartGame(page: Page) {
-  await page.getByText('Play Again').click();
+  await page.getByText('Back to Home').click();
+  await startGame(page);
 }
 
-export async function getPhase(page: Page): Promise<'start' | 'playing' | 'gameover'> {
+export async function getPhase(page: Page): Promise<'home' | 'start' | 'playing' | 'gameover'> {
+  if (await page.getByText('Play', { exact: true }).isVisible().catch(() => false)) return 'home';
   if (await page.getByText('Start Game').isVisible().catch(() => false)) return 'start';
-  if (await page.getByText('Play Again').isVisible().catch(() => false)) return 'gameover';
+  if (await page.getByText('Back to Home').isVisible().catch(() => false)) return 'gameover';
   return 'playing';
 }
 

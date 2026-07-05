@@ -165,11 +165,12 @@ Drawn back to front each frame, with items 2–10 subject to the Camera transfor
 
 | Phase | What the player sees |
 |-------|---------------------|
-| start | Welcome screen with instructions and Start button, plus Best Level Reached, the current Picture (partially revealed), and a "View Collection" control — see §9 |
+| home | Top-level landing phase shown before a run begins — see `home_screen.md` |
+| start | Welcome/instructions overlay with a Start button, shown over the fixed starting stations |
 | playing | Full canvas + HUD bar (score, Level number, day-of-week/clock indicator showing progress through the current week, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) |
 | gameover | Canvas dimmed, game over overlay with final score, Level reached, and restart button, plus Best Level / Picture progress — see §9 |
 
-The Collection gallery is not a distinct phase — it is an overlay opened from the `start` phase (see §9) and closes back to it.
+Best Level Reached, the current Picture, and the Collection gallery entry point (§9) live on the `home` phase, not the `start` overlay — see `home_screen.md`.
 
 ---
 
@@ -184,7 +185,7 @@ Metro's concrete instantiation of `../core/meta_progression.md`.
 
 ### 9.2 Best Level Reached
 
-- Shown on the start screen: "Best: Level 12".
+- Shown on the home screen: "Best: Level 12".
 - Shown on the game-over screen: "You reached Level 8 — Personal Best is Level 12".
 - If the just-finished session's Final Level exceeds the previous Best Level Reached, the game-over screen instead shows a distinct "New Best!" callout.
 
@@ -194,7 +195,7 @@ Metro's Collectible Reward (core/meta_progression.md §3) is a **Picture**: a re
 
 - Tiles reveal in a fixed order (left-to-right, top-to-bottom) as Accumulated Progress crosses each tile's share of the Required Progress: tile K of T total tiles reveals once Accumulated Progress ≥ Required Progress × (K / T).
 - Pictures are drawn from a curated, finite image pool. Once the Picture sequence advances past the pool's size, images repeat in the same order (Collectible Reward index N uses image `(N - 1) mod pool size`) — later Pictures are distinguished by how hard they are to complete, not by image novelty.
-- A completed Picture moves into the permanent Collection gallery, viewable from the start screen; the next Picture begins accumulating immediately, starting from any surplus per core/meta_progression.md §3.
+- A completed Picture moves into the permanent Collection gallery, viewable from the home screen; the next Picture begins accumulating immediately, starting from any surplus per core/meta_progression.md §3.
 
 Configuration values:
 

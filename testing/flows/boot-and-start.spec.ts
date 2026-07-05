@@ -1,8 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { getPhase, getScoreAndWeek, startGame } from '../helpers/gameDriver';
 
-test('boot shows the start screen', async ({ page }) => {
+test('boot shows the home screen', async ({ page }) => {
   await page.goto('/');
+  await expect(page.getByText('Play', { exact: true })).toBeVisible();
+  expect(await getPhase(page)).toBe('home');
+});
+
+test('home transitions to the start instructions overlay', async ({ page }) => {
+  await page.goto('/');
+  await page.getByText('Play', { exact: true }).click();
   await expect(page.getByText('Start Game')).toBeVisible();
   expect(await getPhase(page)).toBe('start');
 });

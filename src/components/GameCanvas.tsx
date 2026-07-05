@@ -6,6 +6,7 @@ import { useGameLoop } from '../hooks/useGameLoop';
 import { useMouseInput } from '../hooks/useMouseInput';
 import { resolveMilestoneChoice } from '../logic/milestone';
 import { HUD } from './HUD';
+import { HomeScreen } from './HomeScreen';
 import { StartScreen } from './StartScreen';
 import { GameOverScreen } from './GameOverScreen';
 import { MilestoneChoiceModal } from './MilestoneChoiceModal';
@@ -14,7 +15,7 @@ export function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const {
     stateRef, score, phase, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending,
-    selectedReserveItem, startGame, syncReactState, setSelectedReserveItem,
+    selectedReserveItem, startGame, goToStart, goHome, syncReactState, setSelectedReserveItem,
   } = useGameState();
 
   useGameLoop({ stateRef, canvasRef, syncReactState });
@@ -68,10 +69,12 @@ export function GameCanvas() {
         <MilestoneChoiceModal level={level} onChoose={chooseMilestoneBonus} />
       )}
 
+      {phase === 'home' && <HomeScreen onPlay={goToStart} />}
+
       {phase === 'start' && <StartScreen onStart={startGame} />}
 
       {phase === 'gameover' && (
-        <GameOverScreen score={score} level={level} onRestart={startGame} />
+        <GameOverScreen score={score} level={level} onRestart={goHome} />
       )}
     </div>
   );
