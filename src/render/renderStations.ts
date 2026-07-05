@@ -45,13 +45,15 @@ export function renderStations(ctx: CanvasRenderingContext2D, state: GameState, 
       ctx.restore();
     }
 
-    // Station label (e.g. C1, T2, S3)
-    ctx.save();
-    ctx.fillStyle = '#555';
-    ctx.font = 'bold 10px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(station.label, station.pos.x, station.pos.y - CONFIG.STATION_RADIUS - 4);
-    ctx.restore();
+    // Station label (e.g. C1, T2, S3) — debug mode only
+    if (state.debugMode) {
+      ctx.save();
+      ctx.fillStyle = '#555';
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(station.label, station.pos.x, station.pos.y - CONFIG.STATION_RADIUS - 4);
+      ctx.restore();
+    }
 
     // Passenger dots (no save needed — uses absolute coords only)
     renderPassengerDots(ctx, station);
