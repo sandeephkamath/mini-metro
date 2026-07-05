@@ -76,7 +76,7 @@ Clicking anywhere outside the popup cancels the action.
 
 **How**: Press **`A`** while in debug mode. The cursor hint changes. Then click any empty area of the canvas.
 
-**Result**: A shape-picker popup appears at the click location showing all three shapes. Clicking a shape places a new station of that shape at the click position (skipping the distance check). The station is assigned the next sequential label for its shape (e.g. T3).
+**Result**: A shape-picker popup appears at the click location showing all shapes, including any not yet unlocked by the current week (debug bypasses the unlock gate — see `core/progression.md`). Clicking a shape places a new station of that shape at the click position (skipping the distance check). The station is assigned the next sequential label for its shape (e.g. T3).
 
 Pressing `Escape` or `A` again cancels placement mode.
 

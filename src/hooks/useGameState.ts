@@ -12,9 +12,11 @@ function createInitialState(): GameState {
     score: 0,
     gameTimeMs: 0,
     weekNumber: 0,
+    level: 0,
     nextStationSpawnTime: CONFIG.STATION_SPAWN_INTERVAL_MS,
     nextPassengerSpawnTime: CONFIG.BASE_PASSENGER_SPAWN_MS,
     nextWeekTime: CONFIG.WEEK_DURATION_MS,
+    nextMilestoneTime: CONFIG.WEEK_DURATION_MS * CONFIG.MILESTONE_EVENT_WEEKS,
     stations: {},
     lines: {},
     trains: {},
@@ -36,7 +38,7 @@ function createInitialState(): GameState {
     milestoneAutoIndex: 0,
     milestoneChoicePending: false,
     selectedReserveItem: null,
-    nextIds: { station: 0, passenger: 0, train: 0 },
+    nextIds: { station: 0, passenger: 0, train: 0, lineDraw: 0 },
     debugMode: false,
     debugSpeed: 1,
     debugLog: [],
@@ -62,6 +64,7 @@ export function useGameState() {
   const [score, setScore] = useState(0);
   const [phase, setPhase] = useState<GamePhase>('start');
   const [weekNumber, setWeekNumber] = useState(0);
+  const [level, setLevel] = useState(0);
   const [weekProgress, setWeekProgress] = useState(0); // 0..1 fraction of the current week elapsed, for the HUD clock
   const [reserveCarriers, setReserveCarriers] = useState(0);
   const [reserveCarriages, setReserveCarriages] = useState(0);
@@ -74,6 +77,7 @@ export function useGameState() {
     setScore(s.score);
     setPhase(s.phase);
     setWeekNumber(s.weekNumber);
+    setLevel(s.level);
     setWeekProgress(Math.max(0, Math.min(0.9999, 1 - (s.nextWeekTime - s.gameTimeMs) / CONFIG.WEEK_DURATION_MS)));
     setReserveCarriers(s.reserveCarriers);
     setReserveCarriages(s.reserveCarriages);
@@ -94,6 +98,7 @@ export function useGameState() {
     setPhase('playing');
     setScore(0);
     setWeekNumber(0);
+    setLevel(0);
     setWeekProgress(0);
     setReserveCarriers(0);
     setReserveCarriages(0);
@@ -103,7 +108,7 @@ export function useGameState() {
 
   return {
     stateRef: stateRef as MutableRefObject<GameState>,
-    score, phase, weekNumber, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending, selectedReserveItem,
+    score, phase, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending, selectedReserveItem,
     startGame, syncReactState, setSelectedReserveItem,
   };
 }

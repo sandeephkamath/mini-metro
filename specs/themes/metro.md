@@ -30,17 +30,20 @@ This document defines the Metro theme. It maps core abstract concepts to metro t
 
 ## 2. Station Shapes
 
-Stations have one of three shapes. A Passenger's destination shape must differ from the shape of the Station where they are waiting.
+Stations have one of six shapes. A Passenger's destination shape must differ from the shape of the Station where they are waiting. Only the first three shapes are available at session start — the rest unlock gradually by week number (`core/progression.md` §1.1) so new shapes don't all appear at once.
 
-| Shape | Symbol | Label prefix |
-|-------|--------|-------------|
-| Circle | ● | C (e.g. C1, C2) |
-| Triangle | ▲ | T (e.g. T1, T2) |
-| Square | ■ | S (e.g. S1, S2) |
+| Shape | Symbol | Label prefix | Unlock week |
+|-------|--------|--------------|-------------|
+| Circle | ● | C (e.g. C1, C2) | 0 (start) |
+| Triangle | ▲ | T (e.g. T1, T2) | 0 (start) |
+| Square | ■ | S (e.g. S1, S2) | 0 (start) |
+| Star | ★ | X (e.g. X1, X2) | 1 |
+| Hexagon | ⬡ | H (e.g. H1, H2) | 2 |
+| Plus | ➕ | U (e.g. U1, U2) | 3 |
 
 Station labels (C1, T2, S3…) are assigned sequentially within each shape in order of creation and are displayed above the station on the canvas.
 
-The first three stations are always placed at fixed positions: one circle, one triangle, one square.
+The first three stations are always placed at fixed positions: one circle, one triangle, one square. New stations spawned after that draw their shape from whichever shapes are currently unlocked, balanced by count (core §2 Node) — see `core/progression.md` §1.1 for the unlock rule and §7 for the per-shape unlock-week values.
 
 ---
 
@@ -64,7 +67,7 @@ Each Line has a distinct color drawn as a thick stroke on the canvas. Lines are 
 
 ## 4. Weekly Upgrade
 
-Every 60 seconds of game time a Weekly Upgrade fires, granting exactly one of three bonus kinds (`core/logic.md` §3 Milestone Events, `core/progression.md` §6):
+Every 5 Weeks (300 seconds of game time) a Weekly Upgrade fires, granting exactly one of three bonus kinds (`core/logic.md` §3 Milestone Events, `core/progression.md` §6). The Week counter itself still advances every 60 seconds — it drives Passenger spawn decay and the HUD's day/clock indicator independently of the Weekly Upgrade.
 
 - **New Train** — adds a Depot Train.
 - **New Carriage** — adds a Depot Carriage.
@@ -101,12 +104,20 @@ These are the concrete values for the tunable parameters defined abstractly in `
 | Station edge margin | 70 px | From canvas edges |
 | Max stations | 20 | |
 | Initial station count | 3 | The fixed starting cluster |
-| Station spawn area, starting size | 700 × 500 px | Rectangle centered on the map a new Station can appear in, right after the initial cluster |
-| Station spawn area, full size | Full map minus edge margin | Reached once Station count approaches Max stations — grows linearly with Station count in between |
-| Passenger spawn base | 7 000 ms | |
-| Passenger spawn decay | 15% per week | Multiplied by 0.85 each week |
-| Passenger spawn floor | 2 500 ms | |
-| Week duration | 60 000 ms | Game time; also the Weekly Upgrade (Milestone Event) interval |
+| Station spawn area, starting size | 520 × 360 px | Rectangle centered on the map a new Station can appear in, right after the initial cluster |
+| Station spawn area, full size | Full map minus edge margin | Reached only as Station count approaches Max stations — grows on an ease-in curve (squared) with Station count in between, so the area stays tight through most of the spawn budget and only widens sharply near the end |
+| Initial unlocked station shape count | 3 | Circle, Triangle, Square |
+| Star unlock week | 1 | |
+| Hexagon unlock week | 2 | |
+| Plus unlock week | 3 | Must land before the ~4.25-week point Max stations (20) stops new spawns, or a later shape never gets placed |
+| Passenger spawn base | 5 000 ms | Tick interval at week 0 |
+| Passenger spawn decay | 15% per week | Tick interval multiplied by 0.85 each week |
+| Passenger spawn floor | 1 800 ms | Minimum tick interval |
+| Passenger spawn batch base fraction | 10% | Share of eligible stations spawned to per tick, at week 0 |
+| Passenger spawn batch growth | 18% per week | Batch fraction multiplied by 1.18 each week |
+| Passenger spawn batch max fraction | 75% | Maximum share of eligible stations spawned to per tick |
+| Week duration | 60 000 ms | Game time |
+| Weekly Upgrade (Milestone Event) interval | 5 weeks (300 000 ms) | |
 | Initial lines unlocked | 3 of 7 | |
 | Line unlock step | 3 stations | Additional Stations required to unlock each subsequent Line |
 | Risk Timer base duration | 8 000 ms | How long a Station stays "at risk" before overflow ends the game |

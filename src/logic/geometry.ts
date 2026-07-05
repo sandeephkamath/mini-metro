@@ -24,19 +24,33 @@ export function distToSegment(p: Vec2, a: Vec2, b: Vec2): number {
 // draw a direct line instead. Only genuinely diagonal-ish pairs get the elbow treatment.
 const MIN_BEND_AXIS_RATIO = 0.3;
 
-// Control point between two stations, mimicking classic Mini Metro routing: a diagonal
-// run then a straight run, rather than one direct diagonal between the two stations.
-// Returns null when the direct path is already straight, 45°, or close enough to either
-// that bending would just be a disproportionate sideways hook (no bend needed).
-export function computeElbow(a: Vec2, b: Vec2): Vec2 | null {
+// The elbow point itself, with no opinion on whether bending is a good idea stylistically —
+// just "straight or already 45°" is a hard no (there's no corner to speak of). Exported so
+// callers with a stronger reason to bend (e.g. avoiding overlap at a shared station, see
+// getSegmentElbow in logic/lines.ts) can bypass the aesthetic ratio gate below.
+export function computeElbowRaw(a: Vec2, b: Vec2): Vec2 | null {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const adx = Math.abs(dx);
   const ady = Math.abs(dy);
   if (adx < 2 || ady < 2 || Math.abs(adx - ady) < 2) return null;
-  if (Math.min(adx, ady) / Math.max(adx, ady) < MIN_BEND_AXIS_RATIO) return null;
   const d = Math.min(adx, ady);
   return { x: a.x + Math.sign(dx) * d, y: a.y + Math.sign(dy) * d };
+}
+
+// Control point between two stations, mimicking classic Mini Metro routing: a diagonal
+// run then a straight run, rather than one direct diagonal between the two stations.
+// Returns null when the direct path is already straight, 45°, or close enough to either
+// that bending would just be a disproportionate sideways hook (no bend needed).
+export function computeElbow(a: Vec2, b: Vec2): Vec2 | null {
+  const raw = computeElbowRaw(a, b);
+  if (!raw) return null;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const adx = Math.abs(dx);
+  const ady = Math.abs(dy);
+  if (Math.min(adx, ady) / Math.max(adx, ady) < MIN_BEND_AXIS_RATIO) return null;
+  return raw;
 }
 
 // Point at parameter t (0..1) along the quadratic bezier from a to b with control point e.

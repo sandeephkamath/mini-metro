@@ -1,9 +1,11 @@
 import type { GameState, StationShape } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
+import { ALL_SHAPES } from '../logic/shapes';
 
-const SYM: Record<string, string> = { circle: '●', triangle: '▲', square: '■' };
+const SYM: Record<string, string> = {
+  circle: '●', triangle: '▲', square: '■', star: '★', hexagon: 'H', plus: '+',
+};
 const DIR: Record<number, string> = { 1: '→', [-1]: '←' };
-const ALL_SHAPES: StationShape[] = ['circle', 'triangle', 'square'];
 
 const BUTTON_W = 30;
 const BUTTON_H = 24;

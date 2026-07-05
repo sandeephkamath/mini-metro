@@ -13,7 +13,7 @@ import { MilestoneChoiceModal } from './MilestoneChoiceModal';
 export function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const {
-    stateRef, score, phase, weekNumber, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending,
+    stateRef, score, phase, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending,
     selectedReserveItem, startGame, syncReactState, setSelectedReserveItem,
   } = useGameState();
 
@@ -51,6 +51,7 @@ export function GameCanvas() {
         <HUD
           score={score}
           weekNumber={weekNumber}
+          level={level}
           weekProgress={weekProgress}
           lineSlots={lineSlots}
           milestoneMessage={state.lastMilestoneMessage}
@@ -64,13 +65,13 @@ export function GameCanvas() {
       )}
 
       {phase === 'playing' && milestoneChoicePending && (
-        <MilestoneChoiceModal weekNumber={weekNumber} onChoose={chooseMilestoneBonus} />
+        <MilestoneChoiceModal level={level} onChoose={chooseMilestoneBonus} />
       )}
 
       {phase === 'start' && <StartScreen onStart={startGame} />}
 
       {phase === 'gameover' && (
-        <GameOverScreen score={score} weekNumber={weekNumber} onRestart={startGame} />
+        <GameOverScreen score={score} level={level} onRestart={startGame} />
       )}
     </div>
   );

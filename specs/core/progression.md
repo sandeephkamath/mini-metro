@@ -15,7 +15,7 @@ Use this document when you want to reason about or change the game's difficulty 
 New Nodes appear on a fixed timer, at a random valid position, until a maximum count is reached.
 
 - A position is valid if it is at least the minimum spacing away from every existing Node and at least the edge margin away from the map bounds.
-- New Node types are distributed to keep type counts roughly balanced (see core §2 Node).
+- New Node types are distributed to keep type counts roughly balanced, among whichever types are currently unlocked (§1.1) — see core §2 Node.
 
 | Parameter | Meaning |
 |-----------|---------|
@@ -24,19 +24,44 @@ New Nodes appear on a fixed timer, at a random valid position, until a maximum c
 | Node edge margin | Minimum allowed distance between a Node and the map edge |
 | Max Node count | Spawning stops once this many Nodes exist |
 
+### 1.1 Node Type Unlock
+
+A fixed set of Node types are available from session start. Additional Node types unlock gradually over time, each on its own week threshold, so a new type is never introduced faster than the player can absorb it.
+
+- Each additional Node type has an unlock week; it becomes eligible for new Node spawns (§1) once the current week number reaches that threshold.
+- Node type unlock is driven purely by elapsed week number — independent of Node count, Route unlocks (§4), and Milestone Events (§6).
+- Once unlocked, a type stays unlocked for the rest of the session; nothing in core reverses it.
+- Existing Nodes never change type after being placed — an unlock only affects the type pool future spawns are drawn from.
+
+| Parameter | Meaning |
+|-----------|---------|
+| Initial unlocked Node type count | Node types available at session start |
+| Node type unlock week (per additional type) | Week number at which that type joins the eligible pool |
+
 ---
 
 ## 2. Resource Spawn Rate
 
-Each Node independently spawns Resources on a repeating timer. The interval shrinks over time following a decay curve, bounded below by a floor so it never reaches zero.
+On each Resource spawn tick, a growing batch of eligible Nodes (not just one) each receive a new Resource. Two curves govern this, both driven by the current week number:
 
-Shape: `interval(week) = max(floor, base × decayRate ^ week)`
+- **Tick interval**: the time between spawn ticks shrinks over time following a decay curve, bounded below by a floor so it never reaches zero.
+
+  Shape: `interval(week) = max(floor, base × decayRate ^ week)`
+
+- **Batch fraction**: the share of eligible Nodes that receive a Resource on a given tick grows over time following a growth curve, bounded above by a ceiling so it never spawns to more than that share of Nodes at once. At least one eligible Node always receives a Resource on a tick, even if the fraction rounds down to zero.
+
+  Shape: `fraction(week) = min(maxFraction, baseFraction × growthRate ^ week)`
+
+A Node is eligible for a given tick only if its queue has room; each eligible Node picked in the batch is evaluated independently for a valid destination type.
 
 | Parameter | Meaning |
 |-----------|---------|
-| Resource spawn base interval | Interval at week 0 |
-| Resource spawn decay rate | Multiplier applied to the interval once per week (< 1 shortens it) |
-| Resource spawn floor | Minimum interval the decay curve will not cross |
+| Resource spawn base interval | Tick interval at week 0 |
+| Resource spawn decay rate | Multiplier applied to the tick interval once per week (< 1 shortens it) |
+| Resource spawn floor | Minimum tick interval the decay curve will not cross |
+| Resource spawn batch base fraction | Share of eligible Nodes spawned to per tick, at week 0 |
+| Resource spawn batch growth rate | Multiplier applied to the batch fraction once per week (> 1 grows it) |
+| Resource spawn batch max fraction | Maximum share of eligible Nodes the batch fraction will not cross |
 
 If a Node has no valid destination type anywhere on the map, its spawn attempt is skipped (see core §2 Resource) rather than deferred or queued.
 
@@ -118,9 +143,14 @@ All parameters named above, in one place. A theme fills these in as concrete val
 | Node min spacing | Map density |
 | Node edge margin | Playable map area |
 | Max Node count | Session length ceiling before Node spawning stops |
+| Initial unlocked Node type count | Starting type variety the player must learn |
+| Node type unlock week (per type) | How quickly new type variety is introduced |
 | Resource spawn base interval | Starting Resource pressure per Node |
 | Resource spawn decay rate | How quickly Resource pressure ramps up |
-| Resource spawn floor | Maximum Resource pressure at late game |
+| Resource spawn floor | Maximum Resource pressure at late game (tick frequency) |
+| Resource spawn batch base fraction | Starting Resource pressure per tick (how many Nodes at once) |
+| Resource spawn batch growth rate | How quickly Resource pressure per tick ramps up |
+| Resource spawn batch max fraction | Maximum Resource pressure per tick at late game |
 | Initial unlocked Route count | Starting player capability |
 | Total Route count | Ceiling on player capability |
 | Route unlock step | How quickly Route access scales with map growth |
@@ -135,7 +165,7 @@ All parameters named above, in one place. A theme fills these in as concrete val
 
 ## 8. Tuning Guidance
 
-- **Easier**: increase Node capacity, increase Grace Duration (base) or its increment, increase Resource spawn base interval/floor or slow the decay rate, increase initial unlocked Routes or lower the Route unlock step, shorten the Milestone Event interval, raise the Reserve Carriage capacity bonus.
-- **Harder**: the inverse of the above — lower Node capacity, shorter/no Grace Duration growth, faster Resource spawn decay, fewer starting Routes or a higher Route unlock step, longer Milestone Event interval.
+- **Easier**: increase Node capacity, increase Grace Duration (base) or its increment, increase Resource spawn base interval/floor or slow the decay rate, lower the batch base/max fraction or slow the batch growth rate, push Node type unlock weeks later (or raise the initial unlocked count so there's less to learn later), increase initial unlocked Routes or lower the Route unlock step, shorten the Milestone Event interval, raise the Reserve Carriage capacity bonus.
+- **Harder**: the inverse of the above — lower Node capacity, shorter/no Grace Duration growth, faster Resource spawn decay, higher batch base/max fraction or faster batch growth rate, pull Node type unlock weeks earlier, fewer starting Routes or a higher Route unlock step, longer Milestone Event interval.
 - Auto mode is generally the gentler, more predictable pacing choice; Choice mode adds strategic depth (and a pause point) but puts bonus-allocation judgment on the player, which can be harder for a first-time player under time pressure.
 - Changing any single lever shifts the effective waiting budget (§3) or the Grace Period (§5) rather than the game's win/loss rules — the mechanics in `logic.md` stay fixed regardless of how these values are tuned.

@@ -1,6 +1,7 @@
 import type { GameState } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
 import { computeTrainAngle } from '../logic/trains';
+import { traceShapePath } from './shapePaths';
 
 function darken(hex: string, amount = 0.3): string {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -57,18 +58,7 @@ export function renderTrains(ctx: CanvasRenderingContext2D, state: GameState): v
       for (let i = 0; i < maxIcons; i++) {
         const shape = inCarriage[i].destinationShape;
         const px = cx - w / 2 + 3 + i * ((w - 6) / maxIcons) + (w - 6) / (maxIcons * 2);
-        const r = 2;
-        ctx.beginPath();
-        if (shape === 'circle') {
-          ctx.arc(px, 0, r, 0, Math.PI * 2);
-        } else if (shape === 'triangle') {
-          ctx.moveTo(px, -r * 1.1);
-          ctx.lineTo(px + r, r * 0.7);
-          ctx.lineTo(px - r, r * 0.7);
-          ctx.closePath();
-        } else {
-          ctx.rect(px - r * 0.9, -r * 0.9, r * 1.8, r * 1.8);
-        }
+        traceShapePath(ctx, px, 0, shape, 2);
         ctx.fillStyle = '#111';
         ctx.fill();
       }

@@ -1,23 +1,9 @@
 import type { GameState, Station } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
+import { traceShapePath } from './shapePaths';
 
 function drawShape(ctx: CanvasRenderingContext2D, station: Station): void {
-  const { x, y } = station.pos;
-  const r = CONFIG.STATION_RADIUS;
-
-  ctx.beginPath();
-  if (station.shape === 'circle') {
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-  } else if (station.shape === 'triangle') {
-    const h = r * 1.8;
-    ctx.moveTo(x, y - h * 0.65);
-    ctx.lineTo(x + h * 0.6, y + h * 0.35);
-    ctx.lineTo(x - h * 0.6, y + h * 0.35);
-    ctx.closePath();
-  } else {
-    const s = r * 1.3;
-    ctx.rect(x - s, y - s, s * 2, s * 2);
-  }
+  traceShapePath(ctx, station.pos.x, station.pos.y, station.shape, CONFIG.STATION_RADIUS);
 }
 
 const STATION_BORDER_COLOR = '#333333';
@@ -72,19 +58,8 @@ export function renderStations(ctx: CanvasRenderingContext2D, state: GameState, 
   }
 }
 
-function drawPassengerIcon(ctx: CanvasRenderingContext2D, x: number, y: number, shape: string): void {
-  const s = 4; // icon half-size
-  ctx.beginPath();
-  if (shape === 'circle') {
-    ctx.arc(x, y, s, 0, Math.PI * 2);
-  } else if (shape === 'triangle') {
-    ctx.moveTo(x, y - s * 1.1);
-    ctx.lineTo(x + s, y + s * 0.7);
-    ctx.lineTo(x - s, y + s * 0.7);
-    ctx.closePath();
-  } else {
-    ctx.rect(x - s * 0.9, y - s * 0.9, s * 1.8, s * 1.8);
-  }
+function drawPassengerIcon(ctx: CanvasRenderingContext2D, x: number, y: number, shape: Station['shape']): void {
+  traceShapePath(ctx, x, y, shape, 4);
   ctx.fillStyle = '#111';
   ctx.fill();
   ctx.strokeStyle = 'rgba(0,0,0,0.3)';

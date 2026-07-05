@@ -4,12 +4,12 @@ import { getAvailableLine, getLineEndpointAt, addStationToLine, getSegmentAt, in
 import { getTrainAt } from '../logic/trains';
 import { screenToWorld, panCameraByScreenDelta, zoomAtScreenPoint } from '../logic/camera';
 import { CONFIG } from '../config/gameConfig';
+import { ALL_SHAPES } from '../logic/shapes';
 
-// Debug popup: 3 shape buttons in a row, each BUTTON_W × BUTTON_H
+// Debug popup: one button per shape in a row, each BUTTON_W × BUTTON_H
 const BUTTON_W = 30;
 const BUTTON_H = 24;
 const BUTTON_GAP = 4;
-const ALL_SHAPES: StationShape[] = ['circle', 'triangle', 'square'];
 
 function getMenuShapes(state: GameState, stationId?: string): StationShape[] {
   if (!stationId) return ALL_SHAPES;

@@ -9,6 +9,7 @@ interface LineSlot {
 interface HUDProps {
   score: number;
   weekNumber: number;
+  level: number;
   weekProgress: number; // 0..1 fraction of the current week elapsed
   lineSlots: LineSlot[];
   milestoneMessage: string;
@@ -56,7 +57,7 @@ function ClockBadge({ weekProgress }: { weekProgress: number }) {
 }
 
 export function HUD({
-  score, weekNumber, weekProgress, lineSlots, milestoneMessage, milestoneAge,
+  score, weekNumber, level, weekProgress, lineSlots, milestoneMessage, milestoneAge,
   reserveCarriers, reserveCarriages, selectedReserveItem,
   onSelectReserveCarrier, onSelectReserveCarriage,
 }: HUDProps) {
@@ -95,7 +96,10 @@ export function HUD({
         pointerEvents: 'none',
         zIndex: 10,
       }}>
-        <span data-testid="hud-week">Week {weekNumber}</span>
+        <span>
+          <span data-testid="hud-week">Week {weekNumber}</span>
+          <span style={{ opacity: 0.6 }}> · Level {level}</span>
+        </span>
         <span style={{ opacity: 0.6, fontSize: '12px' }}>drag between stations to draw lines</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <ClockBadge weekProgress={weekProgress} />

@@ -38,6 +38,11 @@ export function tick(state: GameState, dt: number): void {
   if (state.gameTimeMs >= state.nextWeekTime) {
     state.weekNumber++;
     state.nextWeekTime = state.gameTimeMs + CONFIG.WEEK_DURATION_MS;
+  }
+
+  if (state.gameTimeMs >= state.nextMilestoneTime) {
+    state.level++;
+    state.nextMilestoneTime = state.gameTimeMs + CONFIG.WEEK_DURATION_MS * CONFIG.MILESTONE_EVENT_WEEKS;
     fireMilestoneEvent(state);
   }
 }

@@ -1,7 +1,7 @@
 import type { MilestoneBonusKind } from '../types/game';
 
 interface MilestoneChoiceModalProps {
-  weekNumber: number;
+  level: number;
   onChoose: (kind: MilestoneBonusKind) => void;
 }
 
@@ -11,7 +11,7 @@ const OPTIONS: Array<{ kind: MilestoneBonusKind; label: string; desc: string }> 
   { kind: 'grace', label: 'More Time', desc: 'Extends every station’s Risk Timer, immediately' },
 ];
 
-export function MilestoneChoiceModal({ weekNumber, onChoose }: MilestoneChoiceModalProps) {
+export function MilestoneChoiceModal({ level, onChoose }: MilestoneChoiceModalProps) {
   return (
     <div style={{
       position: 'absolute',
@@ -30,7 +30,7 @@ export function MilestoneChoiceModal({ weekNumber, onChoose }: MilestoneChoiceMo
         textAlign: 'center',
         minWidth: 320,
       }}>
-        <h3 style={{ margin: '0 0 4px', fontFamily: 'monospace' }}>Level {weekNumber}!</h3>
+        <h3 style={{ margin: '0 0 4px', fontFamily: 'monospace' }}>Level {level}!</h3>
         <p style={{ color: '#666', margin: '0 0 20px', fontSize: '13px' }}>Pick one upgrade</p>
         <div style={{ display: 'flex', gap: 12 }}>
           {OPTIONS.map(opt => (

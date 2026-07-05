@@ -21,7 +21,7 @@ function grantBonus(state: GameState, kind: MilestoneBonusKind): string {
 }
 
 function announce(state: GameState, msg: string): void {
-  state.lastMilestoneMessage = `Level ${state.weekNumber}! ${msg}`;
+  state.lastMilestoneMessage = `Level ${state.level}! ${msg}`;
   state.lastMilestoneTime = state.gameTimeMs;
 }
 

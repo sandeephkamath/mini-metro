@@ -1,6 +1,8 @@
 import type { GameState, Station, StationShape, Vec2 } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
 import { getMapCenter } from './camera';
+import { distToSegment } from './geometry';
+import { getUnlockedShapes } from './shapes';
 
 function distance(a: Vec2, b: Vec2): number {
   const dx = a.x - b.x;
@@ -8,7 +10,23 @@ function distance(a: Vec2, b: Vec2): number {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-const SHAPE_PREFIX: Record<StationShape, string> = { circle: 'C', triangle: 'T', square: 'S' };
+// True if pos sits too close to any segment of any drawn Line — new Stations shouldn't
+// spawn on top of an existing route.
+function tooCloseToAnyLine(state: GameState, pos: Vec2): boolean {
+  for (const line of Object.values(state.lines)) {
+    for (let i = 0; i < line.stationIds.length - 1; i++) {
+      const a = state.stations[line.stationIds[i]]?.pos;
+      const b = state.stations[line.stationIds[i + 1]]?.pos;
+      if (!a || !b) continue;
+      if (distToSegment(pos, a, b) < CONFIG.MIN_LINE_CLEARANCE) return true;
+    }
+  }
+  return false;
+}
+
+const SHAPE_PREFIX: Record<StationShape, string> = {
+  circle: 'C', triangle: 'T', square: 'S', star: 'X', hexagon: 'H', plus: 'U',
+};
 
 function nextLabel(state: GameState, shape: StationShape): string {
   const prefix = SHAPE_PREFIX[shape];
@@ -17,12 +35,12 @@ function nextLabel(state: GameState, shape: StationShape): string {
 }
 
 function pickShape(state: GameState): StationShape {
-  const shapes: StationShape[] = ['circle', 'triangle', 'square'];
-  const counts: Record<StationShape, number> = { circle: 0, triangle: 0, square: 0 };
+  const shapes = getUnlockedShapes(state.weekNumber);
+  const counts: Record<StationShape, number> = { circle: 0, triangle: 0, square: 0, star: 0, hexagon: 0, plus: 0 };
   for (const s of Object.values(state.stations)) {
     counts[s.shape]++;
   }
-  const minCount = Math.min(counts.circle, counts.triangle, counts.square);
+  const minCount = Math.min(...shapes.map(sh => counts[sh]));
   const candidates = shapes.filter(sh => counts[sh] === minCount);
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
@@ -51,7 +69,7 @@ export function trySpawnStation(state: GameState): void {
   const {
     WORLD_WIDTH, WORLD_HEIGHT, STATION_MARGIN, MIN_STATION_DISTANCE,
     STATION_MAX_COUNT, INITIAL_STATION_COUNT,
-    STATION_SPAWN_MIN_HALF_WIDTH, STATION_SPAWN_MIN_HALF_HEIGHT,
+    STATION_SPAWN_MIN_HALF_WIDTH, STATION_SPAWN_MIN_HALF_HEIGHT, STATION_SPAWN_GROWTH_EXPONENT,
   } = CONFIG;
   const center = getMapCenter();
   const maxHalfW = WORLD_WIDTH / 2 - STATION_MARGIN;
@@ -60,9 +78,12 @@ export function trySpawnStation(state: GameState): void {
   // Spawn extent grows from a tight box around the starting cluster out to the
   // full map as the station count climbs from INITIAL_STATION_COUNT to STATION_MAX_COUNT,
   // so new stations appear near the cluster first and only reach the map edges late.
-  const growth = Math.min(1, Math.max(0,
+  // Eased (rather than linear) so the box stays tight through most of the spawn
+  // budget and only widens sharply near STATION_MAX_COUNT.
+  const linearGrowth = Math.min(1, Math.max(0,
     (stationList.length - INITIAL_STATION_COUNT) / (STATION_MAX_COUNT - INITIAL_STATION_COUNT)
   ));
+  const growth = Math.pow(linearGrowth, STATION_SPAWN_GROWTH_EXPONENT);
   const halfW = STATION_SPAWN_MIN_HALF_WIDTH + (maxHalfW - STATION_SPAWN_MIN_HALF_WIDTH) * growth;
   const halfH = STATION_SPAWN_MIN_HALF_HEIGHT + (maxHalfH - STATION_SPAWN_MIN_HALF_HEIGHT) * growth;
 
@@ -73,6 +94,7 @@ export function trySpawnStation(state: GameState): void {
     };
 
     if (stationList.some(s => distance(s.pos, pos) < MIN_STATION_DISTANCE)) continue;
+    if (tooCloseToAnyLine(state, pos)) continue;
 
     const id = `s${++state.nextIds.station}`;
     const shape = pickShape(state);

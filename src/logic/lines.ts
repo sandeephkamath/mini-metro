@@ -1,7 +1,7 @@
 import type { GameState, MetroLine, Vec2 } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
 import { createTrain, redistributeTrains } from './trains';
-import { buildSegmentShape, computeElbow, distToSegment } from './geometry';
+import { buildSegmentShape, computeElbow, computeElbowRaw, distToSegment } from './geometry';
 
 const SEGMENT_HIT_SAMPLES = 10; // sub-divisions used to hit-test the (mostly straight, corner-rounded) segment shape
 
@@ -21,15 +21,19 @@ function angleBetween(u: Vec2, v: Vec2): number {
   return Math.acos(dot);
 }
 
-// Direction each OTHER line departs `stationId` toward its neighbor(s) there — a proxy
-// for "which way that track visually runs near this station", used to judge whether our
-// own bend would overlap it. Ignores this line so it never conflicts with itself.
-function otherDepartureDirections(state: GameState, stationId: string, excludeLineId: string): Vec2[] {
+// Direction each OTHER, earlier-drawn line departs `stationId` toward its neighbor(s)
+// there — a proxy for "which way that track visually runs near this station", used to
+// judge whether our own bend would overlap it. Only lines drawn before this one count:
+// a line adapts to what's already on the board when it's drawn, but once drawn it never
+// gets redrawn just because a later line shows up — otherwise every new line could ripple
+// changes through tracks the player already routed.
+function otherDepartureDirections(state: GameState, stationId: string, line: MetroLine): Vec2[] {
   const station = state.stations[stationId];
-  if (!station) return [];
+  if (!station || line.drawOrder == null) return [];
   const dirs: Vec2[] = [];
   for (const other of Object.values(state.lines)) {
-    if (other.id === excludeLineId) continue;
+    if (other.id === line.id) continue;
+    if (other.drawOrder == null || other.drawOrder >= line.drawOrder) continue;
     const idx = other.stationIds.indexOf(stationId);
     if (idx === -1) continue;
     for (const ni of [idx - 1, idx + 1]) {
@@ -65,18 +69,43 @@ export function getSegmentElbow(state: GameState, line: MetroLine, index: number
   const b = state.stations[line.stationIds[index + 1]]?.pos;
   if (!a || !b) return null;
 
+  const otherDirsA = otherDepartureDirections(state, line.stationIds[index], line);
+  const otherDirsB = otherDepartureDirections(state, line.stationIds[index + 1], line);
+
   const defaultElbow = computeElbow(a, b);
-  if (!defaultElbow) return null; // straight segment — nothing to choose between
+  if (defaultElbow) {
+    const defaultClearance = elbowClearance(defaultElbow, a, b, otherDirsA, otherDirsB);
+    if (defaultClearance >= BEND_CONFLICT_ANGLE) return defaultElbow;
 
-  const otherDirsA = otherDepartureDirections(state, line.stationIds[index], line.id);
-  const otherDirsB = otherDepartureDirections(state, line.stationIds[index + 1], line.id);
-  const defaultClearance = elbowClearance(defaultElbow, a, b, otherDirsA, otherDirsB);
-  if (defaultClearance >= BEND_CONFLICT_ANGLE) return defaultElbow;
+    const mirroredElbow = computeElbow(b, a);
+    if (!mirroredElbow) return defaultElbow;
+    const mirroredClearance = elbowClearance(mirroredElbow, a, b, otherDirsA, otherDirsB);
+    return mirroredClearance > defaultClearance ? mirroredElbow : defaultElbow;
+  }
 
-  const mirroredElbow = computeElbow(b, a);
-  if (!mirroredElbow) return defaultElbow;
-  const mirroredClearance = elbowClearance(mirroredElbow, a, b, otherDirsA, otherDirsB);
-  return mirroredClearance > defaultClearance ? mirroredElbow : defaultElbow;
+  // No naturally nice-looking bend here (straight, 45°, or too axis-aligned to be worth
+  // bending for style alone) — normally draw it straight. But if an earlier-drawn line's
+  // track departs one of these stations close enough to read as overlapping, force a bend
+  // anyway: better a short, stylistically-unwarranted kink than two lines drawn on top of
+  // each other. Only kept if it actually beats the straight line; otherwise fall through to
+  // straight (i.e. still intersects, same as before this line existed).
+  const straightClearance = Math.min(
+    minAngleTo(legDirection(a, b), otherDirsA),
+    minAngleTo(legDirection(b, a), otherDirsB),
+  );
+  if (straightClearance >= BEND_CONFLICT_ANGLE) return null;
+
+  let best: Vec2 | null = null;
+  let bestClearance = straightClearance;
+  for (const candidate of [computeElbowRaw(a, b), computeElbowRaw(b, a)]) {
+    if (!candidate) continue;
+    const clearance = elbowClearance(candidate, a, b, otherDirsA, otherDirsB);
+    if (clearance > bestClearance) {
+      bestClearance = clearance;
+      best = candidate;
+    }
+  }
+  return best;
 }
 
 // Finds a line segment (between two consecutive stations) near a point, for mid-line insertion drags.
@@ -113,6 +142,7 @@ export function createInitialLines(state: GameState): void {
       stationIds: [],
       trainIds: [],
       isUnlocked: i < CONFIG.INITIAL_LINES_UNLOCKED,
+      drawOrder: null,
     };
   }
 }
@@ -205,6 +235,7 @@ function appendStation(state: GameState, lineId: string, stationId: string): voi
   if (!station.lineIds.includes(lineId)) station.lineIds.push(lineId);
 
   if (line.stationIds.length === 2 && line.trainIds.length === 0) {
+    line.drawOrder = ++state.nextIds.lineDraw;
     const train = createTrain(lineId, state);
     state.trains[train.id] = train;
     line.trainIds.push(train.id);

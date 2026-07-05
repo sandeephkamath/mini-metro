@@ -1,4 +1,4 @@
-export type StationShape = 'circle' | 'triangle' | 'square';
+export type StationShape = 'circle' | 'triangle' | 'square' | 'star' | 'hexagon' | 'plus';
 export type TrainState = 'moving' | 'stopped';
 export type TrainDirection = 1 | -1;
 export type GamePhase = 'start' | 'playing' | 'gameover';
@@ -34,6 +34,7 @@ export interface MetroLine {
   stationIds: string[];
   trainIds: string[];
   isUnlocked: boolean;
+  drawOrder: number | null; // set once the line first connects 2 stations; null = not yet drawn
 }
 
 export interface Train {
@@ -73,9 +74,11 @@ export interface GameState {
   score: number;
   gameTimeMs: number;
   weekNumber: number;
+  level: number; // count of Milestone Events fired this session — see meta_progression.md §1
   nextStationSpawnTime: number;
   nextPassengerSpawnTime: number;
   nextWeekTime: number;
+  nextMilestoneTime: number;
   stations: Record<string, Station>;
   lines: Record<string, MetroLine>;
   trains: Record<string, Train>;
@@ -91,7 +94,7 @@ export interface GameState {
   milestoneChoicePending: boolean; // true while the Weekly Upgrade choice popup is open (freezes all timers)
   selectedReserveItem: ReserveItemKind | null; // player has clicked a Depot item and is now picking a target
   // ID counters live in state — never in module scope, to avoid re-render side-effects
-  nextIds: { station: number; passenger: number; train: number };
+  nextIds: { station: number; passenger: number; train: number; lineDraw: number };
   debugMode: boolean;
   debugSpeed: number; // 0=pause, 1=1x, 2=2x, 4=4x
   debugLog: string[]; // circular, capped at 30 entries

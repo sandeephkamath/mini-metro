@@ -1,10 +1,10 @@
 interface GameOverScreenProps {
   score: number;
-  weekNumber: number;
+  level: number;
   onRestart: () => void;
 }
 
-export function GameOverScreen({ score, weekNumber, onRestart }: GameOverScreenProps) {
+export function GameOverScreen({ score, level, onRestart }: GameOverScreenProps) {
   return (
     <div style={{
       position: 'absolute',
@@ -26,7 +26,7 @@ export function GameOverScreen({ score, weekNumber, onRestart }: GameOverScreenP
         <h2 style={{ margin: '0 0 4px', color: '#e74c3c', fontFamily: 'monospace', fontSize: '1.8rem' }}>Game Over</h2>
         <p style={{ color: '#666', margin: '0 0 16px' }}>A station overflowed</p>
         <div style={{ fontSize: '3rem', fontWeight: 'bold', fontFamily: 'monospace', marginBottom: 8 }}>{score}</div>
-        <div style={{ color: '#888', marginBottom: 24 }}>passengers delivered · Week {weekNumber}</div>
+        <div style={{ color: '#888', marginBottom: 24 }}>passengers delivered · Level {level}</div>
         <button
           onClick={onRestart}
           style={{
