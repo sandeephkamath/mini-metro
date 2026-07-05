@@ -95,6 +95,8 @@ export interface GameState {
   selectedReserveItem: ReserveItemKind | null; // player has clicked a Depot item and is now picking a target
   // ID counters live in state — never in module scope, to avoid re-render side-effects
   nextIds: { station: number; passenger: number; train: number; lineDraw: number };
+  playerPaused: boolean; // player-facing pause (Pause button) — independent of Milestone-choice pausing
+  playerSpeedMultiplier: 1 | 2; // player-facing Play/Fast-Forward toggle; ignored while debugMode overrides speed
   debugMode: boolean;
   debugSpeed: number; // 0=pause, 1=1x, 2=2x, 4=4x
   debugLog: string[]; // circular, capped at 30 entries

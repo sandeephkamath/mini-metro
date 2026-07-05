@@ -163,6 +163,10 @@ The map (the full space in which Nodes can spawn) is larger than the visible vie
 
 All timers use game time, not wall time. Game time advances only while the game is in the playing state. Pausing freezes all timers.
 
+Two independent things can pause the clock — a Milestone Event Choice being presented (§3) and the player's own Pause control — either one freezes every timer via the same mechanism; nothing else about the game (drawing/editing Routes, panning/zooming the camera) is blocked while paused.
+
+The player may also run the clock at a faster rate than normal (Fast-Forward) rather than only pausing it. Pause, normal speed, and Fast-Forward are three mutually exclusive states the player can select at any time during play — selecting a speed while paused resumes the clock at that speed. This is a normal, always-available player control, not a debug/QA-only feature.
+
 ---
 
 ## 7. Architecture Constraints

@@ -19,9 +19,18 @@ interface HUDProps {
   selectedReserveItem: ReserveItemKind | null;
   onSelectReserveCarrier: () => void;
   onSelectReserveCarriage: () => void;
+  overflowRiskActive: boolean; // true while any Station is in Overflow Risk — recolors the clock badge
+  playerPaused: boolean;
+  playerSpeedMultiplier: 1 | 2;
+  onPause: () => void;
+  onPlayNormal: () => void;
+  onFastForward: () => void;
 }
 
-function ClockBadge({ weekProgress }: { weekProgress: number }) {
+// The clock badge doubles as the original's global danger cue: it recolors solid
+// red while any Station is in Overflow Risk, reverting once every station recovers
+// (see specs/mini_metro_original_analysis_2_ui_timing.md §1).
+function ClockBadge({ weekProgress, overflowRiskActive }: { weekProgress: number; overflowRiskActive: boolean }) {
   const dayCount = CONFIG.DAY_NAMES.length;
   const dayIndex = Math.floor(weekProgress * dayCount) % dayCount;
   const hourAngle = weekProgress * 360; // one slow sweep per week
@@ -32,15 +41,18 @@ function ClockBadge({ weekProgress }: { weekProgress: number }) {
       <span style={{ fontSize: '12px', letterSpacing: '1px', opacity: 0.85 }}>
         {CONFIG.DAY_NAMES[dayIndex]}
       </span>
-      <div style={{
-        position: 'relative',
-        width: 24,
-        height: 24,
-        borderRadius: '50%',
-        background: '#b5675c',
-        border: '2px solid #8b4a42',
-        flexShrink: 0,
-      }}>
+      <div
+        data-testid="hud-overflow-clock"
+        style={{
+          position: 'relative',
+          width: 24,
+          height: 24,
+          borderRadius: '50%',
+          background: overflowRiskActive ? '#c0392b' : '#b5675c',
+          border: overflowRiskActive ? '2px solid #7a221a' : '2px solid #8b4a42',
+          flexShrink: 0,
+          transition: 'background 0.2s, border-color 0.2s',
+        }}>
         <div style={{
           position: 'absolute', top: '50%', left: '50%', width: 2, height: 8,
           background: '#fdf6ec', borderRadius: 1, transformOrigin: '50% 100%',
@@ -56,10 +68,45 @@ function ClockBadge({ weekProgress }: { weekProgress: number }) {
   );
 }
 
+// Player-facing Pause / Play / Fast-Forward — promoted from debug-only speed
+// controls to a normal in-game feature (see mini_metro_original_analysis_2_ui_timing.md §3).
+function SpeedControls({ playerPaused, playerSpeedMultiplier, onPause, onPlayNormal, onFastForward }: {
+  playerPaused: boolean;
+  playerSpeedMultiplier: 1 | 2;
+  onPause: () => void;
+  onPlayNormal: () => void;
+  onFastForward: () => void;
+}) {
+  function btnStyle(active: boolean) {
+    return {
+      background: active ? '#444' : 'transparent',
+      color: active ? '#fff' : '#999',
+      border: 'none',
+      borderRadius: '4px',
+      width: 22,
+      height: 22,
+      fontSize: '11px',
+      lineHeight: '22px',
+      padding: 0,
+      cursor: 'pointer',
+      pointerEvents: 'auto' as const,
+    };
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+      <button style={btnStyle(playerPaused)} onClick={onPause} title="Pause">II</button>
+      <button style={btnStyle(!playerPaused && playerSpeedMultiplier === 1)} onClick={onPlayNormal} title="Play">▶</button>
+      <button style={btnStyle(!playerPaused && playerSpeedMultiplier === 2)} onClick={onFastForward} title="Fast-forward">▶▶</button>
+    </div>
+  );
+}
+
 export function HUD({
   score, weekNumber, level, weekProgress, lineSlots, milestoneMessage, milestoneAge,
   reserveCarriers, reserveCarriages, selectedReserveItem,
   onSelectReserveCarrier, onSelectReserveCarriage,
+  overflowRiskActive, playerPaused, playerSpeedMultiplier, onPause, onPlayNormal, onFastForward,
 }: HUDProps) {
   const toastVisible = milestoneAge < 3000 && milestoneMessage;
   const toastOpacity = toastVisible ? Math.min(1, Math.max(0, 1 - (milestoneAge - 2000) / 1000)) : 0;
@@ -102,7 +149,14 @@ export function HUD({
         </span>
         <span style={{ opacity: 0.6, fontSize: '12px' }}>drag between stations to draw lines</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <ClockBadge weekProgress={weekProgress} />
+          <SpeedControls
+            playerPaused={playerPaused}
+            playerSpeedMultiplier={playerSpeedMultiplier}
+            onPause={onPause}
+            onPlayNormal={onPlayNormal}
+            onFastForward={onFastForward}
+          />
+          <ClockBadge weekProgress={weekProgress} overflowRiskActive={overflowRiskActive} />
           <span data-testid="hud-score" style={{ fontSize: '22px', fontWeight: 'bold' }}>{score}</span>
         </div>
       </div>

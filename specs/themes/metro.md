@@ -152,7 +152,7 @@ Drawn back to front each frame, with items 2–10 subject to the Camera transfor
 3. Line end markers (colored tab + perpendicular crossbar at each Line terminus — one per Line ending at a Node, independently draggable)
 4. Drag preview (dashed line to cursor, only while drawing)
 5. Station shapes (white fill, neutral dark border — a Station is never colored by the Lines it belongs to)
-6. Station at Risk indicator (pulsing red glow plus a shrinking countdown arc showing Risk Timer remaining)
+6. Station at Risk indicator (pulsing red glow plus a shrinking countdown arc showing Risk Timer remaining). The HUD's day-of-week clock badge doubles as a global version of this cue: it recolors solid red for as long as any Station anywhere is in Overflow Risk, independent of which Station(s) are currently visible on screen, and reverts as soon as none are.
 7. Station labels (C1, T2… above each station)
 8. Passenger icons waiting at stations (small black destination shapes)
 9. Train rectangles (dark fill, colored border, rotated to direction of travel)
@@ -167,7 +167,7 @@ Drawn back to front each frame, with items 2–10 subject to the Camera transfor
 |-------|---------------------|
 | home | Top-level landing phase shown before a run begins — see `home_screen.md` |
 | start | Welcome/instructions overlay with a Start button, shown over the fixed starting stations |
-| playing | Full canvas + HUD bar (score, Level number, day-of-week/clock indicator showing progress through the current week, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) |
+| playing | Full canvas + HUD bar (score, Level number, day-of-week/clock indicator showing progress through the current week, Pause/Play/Fast-Forward controls, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) |
 | gameover | Canvas dimmed, game over overlay with final score, Level reached, and restart button, plus Best Level / Picture progress — see §9 |
 
 Best Level Reached, the current Picture, and the Collection gallery entry point (§9) live on the `home` phase, not the `start` overlay — see `home_screen.md`.

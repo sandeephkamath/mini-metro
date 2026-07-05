@@ -15,7 +15,8 @@ export function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const {
     stateRef, score, phase, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending,
-    selectedReserveItem, startGame, goToStart, goHome, syncReactState, setSelectedReserveItem,
+    selectedReserveItem, playerPaused, playerSpeedMultiplier,
+    startGame, goToStart, goHome, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
   } = useGameState();
 
   useGameLoop({ stateRef, canvasRef, syncReactState });
@@ -28,6 +29,9 @@ export function GameCanvas() {
   const lineSlots = Object.keys(state.lines)
     .sort((a, b) => parseInt(a.slice(1), 10) - parseInt(b.slice(1), 10))
     .map(id => ({ color: state.lines[id].color, isUnlocked: state.lines[id].isUnlocked }));
+  // Derived, not synced state — cheap to recompute each render and only needs to be
+  // as fresh as the ~10Hz syncReactState tick that already drives a re-render here.
+  const overflowRiskActive = Object.values(state.stations).some(s => s.riskTimer !== null);
 
   function selectReserveCarrier() {
     setSelectedReserveItem(selectedReserveItem === 'carrier' ? null : 'carrier');
@@ -62,6 +66,12 @@ export function GameCanvas() {
           selectedReserveItem={selectedReserveItem}
           onSelectReserveCarrier={selectReserveCarrier}
           onSelectReserveCarriage={selectReserveCarriage}
+          overflowRiskActive={overflowRiskActive}
+          playerPaused={playerPaused}
+          playerSpeedMultiplier={playerSpeedMultiplier}
+          onPause={() => setPlayerPaused(true)}
+          onPlayNormal={() => setPlayerSpeedMultiplier(1)}
+          onFastForward={() => setPlayerSpeedMultiplier(2)}
         />
       )}
 
