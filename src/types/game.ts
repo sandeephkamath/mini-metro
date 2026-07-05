@@ -26,6 +26,7 @@ export interface Station {
   maxCapacity: number;
   lineIds: string[];
   riskTimer: number | null; // ms remaining before overflow ends the game; null = not at risk
+  spawnedAtMs: number; // state.gameTimeMs at creation — drives the spawn-in animation, freezes with the Game Clock
 }
 
 export interface MetroLine {

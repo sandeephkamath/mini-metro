@@ -20,6 +20,7 @@ export const CONFIG = {
   MIN_LINE_CLEARANCE: 45, // px a new Station must stay clear of any drawn Line segment
   STATION_INITIAL_CAPACITY: 6,
   STATION_RADIUS: 14,
+  STATION_SPAWN_ANIM_MS: 600, // spawn-in fade/scale duration for a newly-created Station
 
   // Additional station shapes unlock gradually by week number so new shapes don't
   // all appear at once — circle/triangle/square are available from week 0 (unlisted here).

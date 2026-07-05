@@ -9,7 +9,7 @@ See also `specs/mini_metro_original_analysis.md` — gameplay analysis of an ori
 ## Styling / Visual Polish
 
 - Only one visual theme exists (Metro). Decide if alternate themes (e.g. water pipes, blood vessels, airline routes) are worth building on top of `core/logic.md`.
-- No animations for station spawn, passenger boarding/alighting, or train arrival — everything pops in/out instantly. The original fades new stations in via a shrinking gray halo rather than an instant pop — see `mini_metro_original_analysis_2_ui_timing.md` §2 (correction note) for the confirmed frame sequence.
+- Station spawn now fades/scales in (matching the original's shrinking-gray-halo look, `mini_metro_original_analysis_2_ui_timing.md` §2) — implemented on the `mini-metro-original-parity` branch. Passenger boarding/alighting and train arrival still pop in/out instantly with no animation.
 - No sound effects or music (noted in metro.md divergences).
 - Canvas is a fixed 800×600 — no responsive scaling for different window/screen sizes.
 - Overflow warning is a pulsing red ring — consider whether near-capacity states need earlier/gentler visual cues. Two analysis passes looked for the original's per-station warning visual and couldn't pin one down conclusively at 360p (see `mini_metro_original_analysis_2_ui_timing.md` §1) — but did confirm a clean, cheap, high-confidence alternative: the pause-button icon in the HUD corner turns solid red while *any* station is in overflow risk, and reverts once resolved. That global cue is worth considering as a low-effort addition regardless of what (if anything) changes about the per-station visual.

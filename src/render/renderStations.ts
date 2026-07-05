@@ -2,14 +2,34 @@ import type { GameState, Station } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
 import { traceShapePath } from './shapePaths';
 
-function drawShape(ctx: CanvasRenderingContext2D, station: Station): void {
-  traceShapePath(ctx, station.pos.x, station.pos.y, station.shape, CONFIG.STATION_RADIUS);
+function drawShape(ctx: CanvasRenderingContext2D, station: Station, radius: number): void {
+  traceShapePath(ctx, station.pos.x, station.pos.y, station.shape, radius);
 }
 
 const STATION_BORDER_COLOR = '#333333';
 
+// Newly-created Stations fade/scale in over STATION_SPAWN_ANIM_MS instead of
+// popping in instantly — keyed to game time (not wall time) so it freezes with
+// the rest of the Game Clock while paused (core/logic.md §6).
+function renderSpawnHalo(ctx: CanvasRenderingContext2D, station: Station, spawnT: number): void {
+  const haloRadius = CONFIG.STATION_RADIUS + (1 - spawnT) * 26;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(station.pos.x, station.pos.y, haloRadius, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(120,120,120,${0.35 * (1 - spawnT)})`;
+  ctx.fill();
+  ctx.restore();
+}
+
 export function renderStations(ctx: CanvasRenderingContext2D, state: GameState, now: number): void {
   for (const station of Object.values(state.stations)) {
+    const age = state.gameTimeMs - station.spawnedAtMs;
+    const spawning = age < CONFIG.STATION_SPAWN_ANIM_MS;
+    const spawnT = spawning ? Math.max(0, Math.min(1, age / CONFIG.STATION_SPAWN_ANIM_MS)) : 1;
+    const radius = CONFIG.STATION_RADIUS * (0.3 + 0.7 * spawnT);
+
+    if (spawning) renderSpawnHalo(ctx, station, spawnT);
+
     ctx.save();
 
     const atRisk = station.riskTimer !== null;
@@ -22,7 +42,8 @@ export function renderStations(ctx: CanvasRenderingContext2D, state: GameState, 
       ctx.shadowBlur = atRisk ? 28 : 14;
     }
 
-    drawShape(ctx, station);
+    ctx.globalAlpha = spawnT;
+    drawShape(ctx, station, radius);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
     ctx.strokeStyle = ((atRisk || approaching) && flashOn) ? '#e74c3c' : STATION_BORDER_COLOR;

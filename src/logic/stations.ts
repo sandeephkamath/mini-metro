@@ -58,7 +58,7 @@ export function createInitialStations(state: GameState): void {
     const pos: Vec2 = { x: center.x + offset.x, y: center.y + offset.y };
     const id = `s${++state.nextIds.station}`;
     const label = nextLabel(state, shape);
-    state.stations[id] = { id, label, shape, pos, passengerQueue: [], maxCapacity: CONFIG.STATION_INITIAL_CAPACITY, lineIds: [], riskTimer: null };
+    state.stations[id] = { id, label, shape, pos, passengerQueue: [], maxCapacity: CONFIG.STATION_INITIAL_CAPACITY, lineIds: [], riskTimer: null, spawnedAtMs: state.gameTimeMs };
   }
 }
 
@@ -99,7 +99,7 @@ export function trySpawnStation(state: GameState): void {
     const id = `s${++state.nextIds.station}`;
     const shape = pickShape(state);
     const label = nextLabel(state, shape);
-    state.stations[id] = { id, label, shape, pos, passengerQueue: [], maxCapacity: CONFIG.STATION_INITIAL_CAPACITY, lineIds: [], riskTimer: null };
+    state.stations[id] = { id, label, shape, pos, passengerQueue: [], maxCapacity: CONFIG.STATION_INITIAL_CAPACITY, lineIds: [], riskTimer: null, spawnedAtMs: state.gameTimeMs };
     return;
   }
 }
@@ -108,7 +108,7 @@ export function trySpawnStation(state: GameState): void {
 export function trySpawnStationAt(state: GameState, pos: Vec2, shape: StationShape): void {
   const id = `s${++state.nextIds.station}`;
   const label = nextLabel(state, shape);
-  state.stations[id] = { id, label, shape, pos, passengerQueue: [], maxCapacity: CONFIG.STATION_INITIAL_CAPACITY, lineIds: [], riskTimer: null };
+  state.stations[id] = { id, label, shape, pos, passengerQueue: [], maxCapacity: CONFIG.STATION_INITIAL_CAPACITY, lineIds: [], riskTimer: null, spawnedAtMs: state.gameTimeMs };
 }
 
 export function getStationAt(state: GameState, pos: Vec2): Station | null {
