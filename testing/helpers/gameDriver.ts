@@ -1,8 +1,9 @@
 import type { Locator, Page } from '@playwright/test';
+import { ALL_SHAPES as GAME_ALL_SHAPES } from '../../src/logic/shapes';
 
-export type Shape = 'circle' | 'triangle' | 'square';
+export type Shape = 'circle' | 'triangle' | 'square' | 'star' | 'hexagon' | 'plus';
 
-const ALL_SHAPES: Shape[] = ['circle', 'triangle', 'square'];
+const ALL_SHAPES: Shape[] = GAME_ALL_SHAPES;
 const BUTTON_W = 30;
 const BUTTON_H = 24;
 const BUTTON_GAP = 4;
@@ -10,7 +11,8 @@ const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 600;
 
 // Fixed starting layout — mirrors src/logic/stations.ts initial placement.
-export const FIXED_STATIONS: Record<Shape, { x: number; y: number }> = {
+// Only the three starting shapes have fixed positions; star/hexagon/plus spawn dynamically later.
+export const FIXED_STATIONS: Record<'circle' | 'triangle' | 'square', { x: number; y: number }> = {
   circle: { x: 180, y: 280 },
   triangle: { x: 400, y: 180 },
   square: { x: 620, y: 320 },
