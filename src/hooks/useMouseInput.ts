@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import type { MutableRefObject } from 'react';
 import type { GameState } from '../types/game';
-import { onMouseDown, onMouseMove, onMouseUp } from '../input/mouseHandler';
+import { onMouseDown, onMouseMove, onMouseUp, onWheel } from '../input/mouseHandler';
 
 interface UseMouseInputOptions {
   canvasRef: MutableRefObject<HTMLCanvasElement | null>;
@@ -38,8 +38,18 @@ export function useMouseInput({ canvasRef, stateRef }: UseMouseInputOptions) {
       onMouseUp(stateRef.current, x, y);
     };
 
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const { x, y } = getCanvasPos(e);
+      onWheel(stateRef.current, x, y, e.deltaY);
+    };
+
     const handleKey = (e: KeyboardEvent) => {
       const s = stateRef.current;
+      if (e.key === 'Escape' && s.selectedReserveItem) {
+        s.selectedReserveItem = null;
+        return;
+      }
       if (e.key === 'd' || e.key === 'D') {
         s.debugMode = !s.debugMode;
         if (!s.debugMode) {
@@ -71,6 +81,7 @@ export function useMouseInput({ canvasRef, stateRef }: UseMouseInputOptions) {
     canvas.addEventListener('mousedown', handleDown);
     canvas.addEventListener('mousemove', handleMove);
     canvas.addEventListener('mouseup', handleUp);
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
     window.addEventListener('mouseup', handleUp);
     window.addEventListener('keydown', handleKey);
 
@@ -78,6 +89,7 @@ export function useMouseInput({ canvasRef, stateRef }: UseMouseInputOptions) {
       canvas.removeEventListener('mousedown', handleDown);
       canvas.removeEventListener('mousemove', handleMove);
       canvas.removeEventListener('mouseup', handleUp);
+      canvas.removeEventListener('wheel', handleWheel);
       window.removeEventListener('mouseup', handleUp);
       window.removeEventListener('keydown', handleKey);
     };

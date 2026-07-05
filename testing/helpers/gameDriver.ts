@@ -51,12 +51,11 @@ export async function getPhase(page: Page): Promise<'start' | 'playing' | 'gameo
 
 export async function getScoreAndWeek(page: Page): Promise<{ score: number | null; week: number | null }> {
   return page.evaluate(() => {
-    const spans = Array.from(document.querySelectorAll('span'));
-    const weekSpan = spans.find(s => /^Week \d+$/.test(s.textContent || ''));
-    const scoreSpan = weekSpan?.nextElementSibling as HTMLElement | null;
+    const weekEl = document.querySelector('[data-testid="hud-week"]');
+    const scoreEl = document.querySelector('[data-testid="hud-score"]');
     return {
-      week: weekSpan ? parseInt(weekSpan.textContent!.replace('Week ', ''), 10) : null,
-      score: scoreSpan ? parseInt(scoreSpan.textContent || '', 10) : null,
+      week: weekEl ? parseInt((weekEl.textContent || '').replace('Week ', ''), 10) : null,
+      score: scoreEl ? parseInt(scoreEl.textContent || '', 10) : null,
     };
   });
 }

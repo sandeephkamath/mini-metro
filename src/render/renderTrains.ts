@@ -28,34 +28,58 @@ export function renderTrains(ctx: CanvasRenderingContext2D, state: GameState): v
 
     const w = CONFIG.TRAIN_WIDTH;
     const h = CONFIG.TRAIN_HEIGHT;
+    const gap = CONFIG.CARRIAGE_GAP;
 
-    ctx.fillStyle = darken(line.color);
-    ctx.strokeStyle = line.color;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.roundRect(-w / 2, -h / 2, w, h, 3);
-    ctx.fill();
-    ctx.stroke();
+    // Per-carriage passenger capacity, front carriage first: base capacity, then
+    // one CARRIAGE_CAPACITY_BONUS slice per attached Depot Carriage.
+    const capacities = [CONFIG.TRAIN_INITIAL_CAPACITY];
+    for (let i = 1; i < train.carriageCount; i++) capacities.push(CONFIG.CARRIAGE_CAPACITY_BONUS);
 
-    // Passenger icons inside train — tiny destination shapes
-    const maxIcons = Math.min(train.passengers.length, 6);
-    for (let i = 0; i < maxIcons; i++) {
-      const shape = train.passengers[i].destinationShape;
-      const px = -w / 2 + 3 + i * ((w - 6) / maxIcons) + (w - 6) / (maxIcons * 2);
-      const r = 2;
-      ctx.beginPath();
-      if (shape === 'circle') {
-        ctx.arc(px, 0, r, 0, Math.PI * 2);
-      } else if (shape === 'triangle') {
-        ctx.moveTo(px, -r * 1.1);
-        ctx.lineTo(px + r, r * 0.7);
-        ctx.lineTo(px - r, r * 0.7);
-        ctx.closePath();
-      } else {
-        ctx.rect(px - r * 0.9, -r * 0.9, r * 1.8, r * 1.8);
+    let passengerCursor = 0;
+    for (let c = 0; c < train.carriageCount; c++) {
+      const cx = -c * (w + gap);
+
+      if (c > 0) {
+        // Link to the previous carriage
+        ctx.strokeStyle = darken(line.color, 0.1);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx + w / 2, 0);
+        ctx.lineTo(cx + w / 2 + gap, 0);
+        ctx.stroke();
       }
-      ctx.fillStyle = '#111';
+
+      ctx.fillStyle = darken(line.color);
+      ctx.strokeStyle = line.color;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(cx - w / 2, -h / 2, w, h, 3);
       ctx.fill();
+      ctx.stroke();
+
+      // Passenger icons inside this carriage — tiny destination shapes
+      const capacity = capacities[c];
+      const inCarriage = train.passengers.slice(passengerCursor, passengerCursor + capacity);
+      passengerCursor += capacity;
+      const maxIcons = Math.min(inCarriage.length, 6);
+      for (let i = 0; i < maxIcons; i++) {
+        const shape = inCarriage[i].destinationShape;
+        const px = cx - w / 2 + 3 + i * ((w - 6) / maxIcons) + (w - 6) / (maxIcons * 2);
+        const r = 2;
+        ctx.beginPath();
+        if (shape === 'circle') {
+          ctx.arc(px, 0, r, 0, Math.PI * 2);
+        } else if (shape === 'triangle') {
+          ctx.moveTo(px, -r * 1.1);
+          ctx.lineTo(px + r, r * 0.7);
+          ctx.lineTo(px - r, r * 0.7);
+          ctx.closePath();
+        } else {
+          ctx.rect(px - r * 0.9, -r * 0.9, r * 1.8, r * 1.8);
+        }
+        ctx.fillStyle = '#111';
+        ctx.fill();
+      }
     }
 
     ctx.restore();

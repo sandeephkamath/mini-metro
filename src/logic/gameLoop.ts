@@ -3,19 +3,27 @@ import { CONFIG } from '../config/gameConfig';
 import { trySpawnStation } from './stations';
 import { trySpawnPassenger, getPassengerSpawnInterval } from './passengers';
 import { tickTrains } from './trains';
-import { checkOverflow } from './overflow';
-import { processDelivery } from './delivery';
+import { updateOverflowRisk } from './overflow';
+import { fireMilestoneEvent } from './milestone';
+import { syncLineUnlocks } from './lines';
+import { updateCameraAutoFit } from './camera';
 
 export function tick(state: GameState, dt: number): void {
   if (state.phase !== 'playing') return;
+  // Presenting the Weekly Upgrade choice pauses every timer in the game — the
+  // same mechanism as the phase !== 'playing' guard above (core §6 Game Clock).
+  if (state.milestoneChoicePending) return;
 
   const cappedDt = Math.min(dt, CONFIG.MAX_DT);
   state.gameTimeMs += cappedDt;
+
+  updateCameraAutoFit(state, cappedDt);
 
   if (state.gameTimeMs >= state.nextStationSpawnTime) {
     if (!state.debugPauseStations) trySpawnStation(state);
     state.nextStationSpawnTime = state.gameTimeMs + CONFIG.STATION_SPAWN_INTERVAL_MS;
   }
+  syncLineUnlocks(state);
 
   if (state.gameTimeMs >= state.nextPassengerSpawnTime) {
     if (!state.debugPausePassengers) trySpawnPassenger(state);
@@ -24,12 +32,12 @@ export function tick(state: GameState, dt: number): void {
 
   tickTrains(state, cappedDt);
 
-  checkOverflow(state);
+  updateOverflowRisk(state, cappedDt);
   if ((state.phase as string) === 'gameover') return;
 
   if (state.gameTimeMs >= state.nextWeekTime) {
     state.weekNumber++;
     state.nextWeekTime = state.gameTimeMs + CONFIG.WEEK_DURATION_MS;
-    processDelivery(state);
+    fireMilestoneEvent(state);
   }
 }

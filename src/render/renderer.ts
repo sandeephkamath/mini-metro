@@ -12,8 +12,18 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState, now: num
   ctx.fillStyle = '#f5f0e8';
   ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
 
+  const { camera } = state;
+  ctx.save();
+  ctx.translate(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2);
+  ctx.scale(camera.zoom, camera.zoom);
+  ctx.translate(-camera.x, -camera.y);
+
   renderLines(ctx, state);
   renderStations(ctx, state, now);
   renderTrains(ctx, state);
+
+  ctx.restore();
+
+  // Debug overlay is screen-space UI, drawn unscaled on top
   renderDebug(ctx, state);
 }

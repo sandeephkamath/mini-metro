@@ -212,14 +212,33 @@ export function insertStationIntoLine(
   }
 }
 
-export function unlockNextLine(state: GameState): boolean {
+// Finds an active (unlocked, already has a Carrier) Line near a click point —
+// used for assigning a Reserve Carrier from the Depot (core §2 Reserve).
+export function getActiveLineAt(state: GameState, pos: Vec2): MetroLine | null {
+  const hit = getSegmentAt(state, pos);
+  if (!hit) return null;
+  const line = state.lines[hit.lineId];
+  if (!line || line.trainIds.length === 0) return null;
+  return line;
+}
+
+// Unlocks Lines based purely on total station count, per progression.md §4 —
+// re-checked every tick since it only reads current counts, never a schedule.
+// Monotonic: target only grows as stations spawn, so this never re-locks a Line.
+export function syncLineUnlocks(state: GameState): void {
+  const stationCount = Object.keys(state.stations).length;
+  const additional = Math.max(0, Math.floor(
+    (stationCount - CONFIG.INITIAL_STATION_COUNT) / CONFIG.LINE_UNLOCK_STEP
+  ));
+  const targetUnlocked = Math.min(CONFIG.MAX_LINES, CONFIG.INITIAL_LINES_UNLOCKED + additional);
+
+  let unlockedCount = 0;
   for (const line of Object.values(state.lines)) {
-    if (!line.isUnlocked) {
+    if (unlockedCount < targetUnlocked) {
       line.isUnlocked = true;
-      return true;
+      unlockedCount++;
     }
   }
-  return false;
 }
 
 export function addTrainToLine(state: GameState, lineId: string): boolean {
@@ -235,6 +254,7 @@ export function addTrainToLine(state: GameState, lineId: string): boolean {
 export function addCarriageToTrain(state: GameState, trainId: string): boolean {
   const train = state.trains[trainId];
   if (!train) return false;
-  train.maxCapacity += 2;
+  train.maxCapacity += CONFIG.CARRIAGE_CAPACITY_BONUS;
+  train.carriageCount += 1;
   return true;
 }

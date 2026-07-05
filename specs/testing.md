@@ -36,8 +36,10 @@ Each flow below is a scenario the harness can run headlessly. "Trigger" is the i
 | Passenger Direct Delivery | Debug-add a passenger whose destination shape is directly on a train's line | Passenger boards, rides, is dropped at matching-shape station, score +1 (`core/logic.md` §3 Routing/Disembarkation) |
 | Passenger One-Hop Transfer | Debug-add a passenger whose destination is only reachable via a connecting line at a transfer station | Passenger transfers at the transfer station and is not skipped (`core/logic.md` §3 Routing rule 3) |
 | Anti-Bounce | Debug-add a passenger at a station that already has a direct line to the destination shape | Passenger waits for that line, does not board the current train (`core/logic.md` §3 Routing rule 2) |
-| Weekly Delivery | Advance game time 60s of game time (use debug speed 3x to reach it quickly) | New train added to least-served line, one line unlocked if available, busiest train +2 capacity, toast shown (`themes/metro.md` §4) |
-| Station Overflow / Game Over | Debug-add passengers to a station past its max capacity | Phase becomes `gameover` immediately after the tick where capacity is exceeded (`core/logic.md` §3 Node Overflow) |
+| Weekly Upgrade | Advance game time 60s of game time (use debug speed 3x to reach it quickly) | Game pauses, choice popup shows New Train / New Carriage / More Time; picking one adds a Depot item or extends the Risk Timer, toast shown, game unpauses (`themes/metro.md` §4) |
+| Line Unlock by Station Count | Debug-spawn stations until the Line unlock step threshold is crossed | Next locked Line unlocks immediately, independent of the Weekly Upgrade timer (`core/progression.md` §4, `themes/metro.md` §3) |
+| Station Overflow / Game Over | Debug-add passengers to a station past its max capacity, then advance time past the Risk Timer duration without relieving it | Station enters "at risk" the instant capacity is reached (pulsing glow + countdown arc); phase becomes `gameover` only after the Risk Timer expires while still over capacity (`core/logic.md` §3 Node Overflow) |
+| Overflow Recovery | Debug-add passengers to trigger Station at Risk, then relieve the queue below capacity before the Risk Timer expires | Risk Timer is discarded and the Station returns to normal; game does not end (`core/logic.md` §3 Node Overflow) |
 | Restart | Click restart on the Game Over screen | Phase returns to `playing` with a fresh game state (score 0, week 0) |
 | Debug Mode Toggle | Press `D` | Debug overlay appears/disappears; turning off clears the event log and resets spawn toggles and speed to 1x (`DEBUG.md` Activation, Rules) |
 | Spawn Controls | Press `S` / `P` in debug mode | Station/passenger auto-spawn pause independently; timers still advance (`DEBUG.md` Spawn Controls) |
@@ -47,7 +49,7 @@ Each flow below is a scenario the harness can run headlessly. "Trigger" is the i
 
 ## 4. Free-Form Exploration
 
-Beyond the fixed flows above, the agent should spend part of each run improvising: combining debug-mode station/passenger injection in unusual orders (e.g. inserting into a line mid-drag while a delivery event fires, forcing two transfer stations to reference each other, rapid restart spamming) to surface edge cases the fixed flows don't cover. Any state that contradicts `core/logic.md` or `themes/metro.md` is a candidate finding.
+Beyond the fixed flows above, the agent should spend part of each run improvising: combining debug-mode station/passenger injection in unusual orders (e.g. inserting into a line mid-drag while a Weekly Upgrade choice popup is open, forcing two transfer stations to reference each other, rapid restart spamming) to surface edge cases the fixed flows don't cover. Any state that contradicts `core/logic.md` or `themes/metro.md` is a candidate finding.
 
 ---
 

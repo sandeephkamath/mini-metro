@@ -238,6 +238,17 @@ export function redistributeTrains(lineId: string, state: GameState): void {
   }
 }
 
+// Hit-test a click against in-service Trains, for attaching a Reserve Carriage
+// from the Depot (core §2 Reserve).
+export function getTrainAt(state: GameState, pos: Vec2): Train | null {
+  for (const train of Object.values(state.trains)) {
+    const bodyLength = CONFIG.TRAIN_WIDTH + (train.carriageCount - 1) * (CONFIG.TRAIN_WIDTH + CONFIG.CARRIAGE_GAP);
+    const hitRadius = CONFIG.TRAIN_WIDTH / 2 + bodyLength;
+    if (dist(train.pos, pos) <= hitRadius) return train;
+  }
+  return null;
+}
+
 export function createTrain(lineId: string, state: GameState): Train {
   const line = state.lines[lineId];
   const startPos = line?.stationIds[0]
@@ -249,6 +260,7 @@ export function createTrain(lineId: string, state: GameState): Train {
     lineId,
     passengers: [],
     maxCapacity: CONFIG.TRAIN_INITIAL_CAPACITY,
+    carriageCount: 1,
     pos: startPos,
     targetStationIndex: 1,
     direction: 1,

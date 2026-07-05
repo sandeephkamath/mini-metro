@@ -1,8 +1,8 @@
 # Metro Theme Specification
 
-**Version**: 1.3
+**Version**: 2.0
 **Last updated**: 2026-07-05
-**Extends**: `../core/logic.md`
+**Extends**: `../core/logic.md`, `../core/meta_progression.md`
 
 This document defines the Metro theme. It maps core abstract concepts to metro terminology, specifies metro-specific entities and visual rules, and provides all configuration values. Game mechanics not mentioned here follow core/logic.md exactly.
 
@@ -16,10 +16,15 @@ This document defines the Metro theme. It maps core abstract concepts to metro t
 | Route | Line |
 | Carrier | Train |
 | Resource | Passenger |
-| Delivery Event | Weekly Delivery |
+| Milestone Event | Weekly Upgrade |
 | Transfer Node | Transfer Station |
 | Node type | Station shape |
 | Resource destination type | Passenger destination shape |
+| Reserve | Depot |
+| Reserve Carrier | Depot Train |
+| Reserve Carriage | Depot Carriage |
+| Overflow Risk | Station at Risk |
+| Grace Timer | Risk Timer |
 
 ---
 
@@ -53,19 +58,25 @@ Each Line has a distinct color drawn as a thick stroke on the canvas. Lines are 
 | 6 | Teal | `#1abc9c` |
 | 7 | Dark orange | `#e67e22` |
 
-3 Lines are unlocked at game start. The remaining 4 unlock one per Weekly Delivery.
+3 Lines are unlocked at game start. Each remaining Line unlocks once the Station count grows by the Line unlock step (§5 Configuration Values; `core/progression.md` §4) — Line unlocking never depends on the Weekly Upgrade timer.
 
 ---
 
-## 4. Weekly Delivery
+## 4. Weekly Upgrade
 
-Every 60 seconds of game time a Weekly Delivery fires:
+Every 60 seconds of game time a Weekly Upgrade fires, granting exactly one of three bonus kinds (`core/logic.md` §3 Milestone Events, `core/progression.md` §6):
 
-1. One new Train is added to the active Line with the fewest Trains.
-2. One locked Line is unlocked (if any remain).
-3. The busiest Train gains +2 Passenger capacity.
+- **New Train** — adds a Depot Train.
+- **New Carriage** — adds a Depot Carriage.
+- **More Time** — extends the Risk Timer (§5 Configuration Values) by a fixed amount, immediately, for every Station.
 
-The delivery is instantaneous — the game does not pause. A brief toast notification appears in the HUD.
+Metro's Milestone bonus mode is **Choice mode**: the HUD pauses and presents all three as options; the player clicks one to resolve it, and the game unpauses immediately after. A brief toast notification then appears in the HUD, announcing the new Level number (core/meta_progression.md §1) alongside what was picked, e.g. "Level 8! New Train added to the Depot" — a Level-up moment rather than a generic notification.
+
+### 4.1 Assigning Depot Items
+
+- **Depot Train**: shown as an icon in a Depot tray in the HUD. The player drags it onto any unlocked Line that already has at least one Train to add it there; Trains on that Line re-space evenly per the existing multi-Train rule (`core/logic.md` §2 Carrier).
+- **Depot Carriage**: shown alongside Depot Trains in the same tray. The player drags it onto any Train currently in service on any Line to attach it, immediately adding the Depot Carriage capacity bonus (§5 Configuration Values) to that Train's capacity.
+- Both kinds of Depot item can be assigned at any time, not only right after being granted — they wait in the Depot tray indefinitely until placed.
 
 ---
 
@@ -75,36 +86,62 @@ These are the concrete values for the tunable parameters defined abstractly in `
 
 | Parameter | Value | Notes |
 |-----------|-------|-------|
-| Canvas size | 800 × 600 px | Fixed |
-| Station capacity | 6 passengers | Per station |
-| Train capacity | 6 passengers | Upgradeable via delivery |
+| Viewport size | 800 × 600 px | Fixed on-screen canvas size |
+| Map size | 2400 × 1800 px | Full space Stations can spawn across — see core §5 Map & Viewport |
+| Camera default/starting zoom | 1.0× | Also the ceiling for automatic zoom-out |
+| Camera min zoom | 0.3× | Roughly the level at which the whole map fits the viewport |
+| Camera max zoom | 2.5× | Manual zoom-in ceiling |
+| Camera auto-fit padding | 120 px | Margin kept around all Stations when auto-fitting |
+| Station capacity | 6 passengers | Per station; queue length that triggers Station at Risk |
+| Train capacity | 6 passengers | Base; upgradeable via Depot Carriage |
 | Train speed | 90 px/s | |
 | Station stop duration | 1 200 ms | |
 | Station spawn interval | 15 000 ms | First spawn at 15s |
 | Station min spacing | 90 px | Between any two stations |
 | Station edge margin | 70 px | From canvas edges |
 | Max stations | 20 | |
+| Initial station count | 3 | The fixed starting cluster |
+| Station spawn area, starting size | 700 × 500 px | Rectangle centered on the map a new Station can appear in, right after the initial cluster |
+| Station spawn area, full size | Full map minus edge margin | Reached once Station count approaches Max stations — grows linearly with Station count in between |
 | Passenger spawn base | 7 000 ms | |
 | Passenger spawn decay | 15% per week | Multiplied by 0.85 each week |
 | Passenger spawn floor | 2 500 ms | |
-| Week duration | 60 000 ms | Game time |
+| Week duration | 60 000 ms | Game time; also the Weekly Upgrade (Milestone Event) interval |
 | Initial lines unlocked | 3 of 7 | |
+| Line unlock step | 3 stations | Additional Stations required to unlock each subsequent Line |
+| Risk Timer base duration | 8 000 ms | How long a Station stays "at risk" before overflow ends the game |
+| Risk Timer increment ("More Time" bonus) | 4 000 ms | Added to the Risk Timer, immediately, for every Station, per bonus |
+| Depot Carriage capacity bonus | +2 passengers | Added to a Train's capacity once attached |
+| Milestone bonus mode | Choice | See `core/progression.md` §6.1 |
 | Frame dt cap | 100 ms | Prevents spiral-of-death |
 | End marker tab length | 20 px | Projects past the terminal station |
 | End marker hit radius | 10 px | For grabbing a specific Line's end |
 
 ---
 
-## 6. Rendering
+## 6. Camera Controls
 
-Drawn back to front each frame:
+Metro's concrete controls for the abstract Camera behavior in core §5 Map & Viewport.
+
+| Input | Effect |
+|-------|--------|
+| Scroll wheel / trackpad pinch | Zooms in or out, centered on the cursor position |
+| Drag on empty map space (not a Station, Line end, or Line segment) | Pans the Camera |
+
+Either input immediately and permanently disables the automatic keep-everything-in-view behavior for the rest of the session.
+
+---
+
+## 7. Rendering
+
+Drawn back to front each frame, with items 2–10 subject to the Camera transform (world space) and item 11 drawn unscaled on top (screen space):
 
 1. Background fill (`#f5f0e8`)
 2. Line strokes (colored, thick)
 3. Line end markers (colored tab + perpendicular crossbar at each Line terminus — one per Line ending at a Node, independently draggable)
 4. Drag preview (dashed line to cursor, only while drawing)
 5. Station shapes (white fill, neutral dark border — a Station is never colored by the Lines it belongs to)
-6. Overflow warning ring (pulsing red glow on at-capacity stations)
+6. Station at Risk indicator (pulsing red glow plus a shrinking countdown arc showing Risk Timer remaining)
 7. Station labels (C1, T2… above each station)
 8. Passenger icons waiting at stations (small black destination shapes)
 9. Train rectangles (dark fill, colored border, rotated to direction of travel)
@@ -113,21 +150,60 @@ Drawn back to front each frame:
 
 ---
 
-## 7. Screen States
+## 8. Screen States
 
 | Phase | What the player sees |
 |-------|---------------------|
-| start | Welcome screen with instructions and Start button |
-| playing | Full canvas + HUD bar (score, week number) |
-| gameover | Canvas dimmed, game over overlay with final score and restart button |
+| start | Welcome screen with instructions and Start button, plus Best Level Reached, the current Picture (partially revealed), and a "View Collection" control — see §9 |
+| playing | Full canvas + HUD bar (score, Level number, Depot tray) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) |
+| gameover | Canvas dimmed, game over overlay with final score, Level reached, and restart button, plus Best Level / Picture progress — see §9 |
+
+The Collection gallery is not a distinct phase — it is an overlay opened from the `start` phase (see §9) and closes back to it.
 
 ---
 
-## 8. Known Divergences from Original Mini Metro
+## 9. Levels & Collection
+
+Metro's concrete instantiation of `../core/meta_progression.md`.
+
+### 9.1 Level Display
+
+- The HUD's Level counter (§8) is the same count as Milestone Events fired this session — no separate mechanic, just the player-facing label (core/meta_progression.md §1).
+- The Weekly Upgrade toast announces it — see §4.
+
+### 9.2 Best Level Reached
+
+- Shown on the start screen: "Best: Level 12".
+- Shown on the game-over screen: "You reached Level 8 — Personal Best is Level 12".
+- If the just-finished session's Final Level exceeds the previous Best Level Reached, the game-over screen instead shows a distinct "New Best!" callout.
+
+### 9.3 Picture Collection
+
+Metro's Collectible Reward (core/meta_progression.md §3) is a **Picture**: a rectangular image divided into a fixed grid of tiles.
+
+- Tiles reveal in a fixed order (left-to-right, top-to-bottom) as Accumulated Progress crosses each tile's share of the Required Progress: tile K of T total tiles reveals once Accumulated Progress ≥ Required Progress × (K / T).
+- Pictures are drawn from a curated, finite image pool. Once the Picture sequence advances past the pool's size, images repeat in the same order (Collectible Reward index N uses image `(N - 1) mod pool size`) — later Pictures are distinguished by how hard they are to complete, not by image novelty.
+- A completed Picture moves into the permanent Collection gallery, viewable from the start screen; the next Picture begins accumulating immediately, starting from any surplus per core/meta_progression.md §3.
+
+Configuration values:
+
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| Picture base requirement | 50 Level-units | Required Progress for Picture 1 |
+| Picture requirement growth rate | 1.5 | Multiplier per subsequent Picture |
+| Picture tile grid | 5 × 4 (20 tiles) | Reveal granularity |
+| Picture image pool size | 10 (placeholder) | Repeats once exhausted; adjust once real images are sourced |
+
+### 9.4 Game-Over Reveal
+
+The game-over screen additionally shows this session's contribution to the current Picture, e.g. "+8 → Picture progress: 42/50". If this session's contribution completed the Picture, a "Picture Complete!" celebration is shown before the next Picture's (now-empty) progress is displayed.
+
+---
+
+## 10. Known Divergences from Original Mini Metro
 
 | Feature | Original | This version |
 |---------|----------|-------------|
-| Delivery choice | Player picks 1 of 3 options | Auto-assigned |
 | Station shapes | 7+ shapes | 3 shapes |
 | Map | Multiple cities | One fixed map |
 | River / tunnels | Yes | No |
@@ -138,14 +214,15 @@ Drawn back to front each frame:
 
 ---
 
-## 9. Bug Log
+## 11. Bug Log
 
 | ID | Symptom | Root Cause | Rule Fix |
 |----|---------|-----------|----------|
 | B1 | Only one train visible after delivery | New trains always spawn at same position (progress 0, start of line) | Train staggering rule — see core §3 Carrier |
-| B2 | Position jitter mid-game | Sync callback recreated each React render, restarting the RAF loop | Stable callback identity — see core §6 Architecture |
-| B3 | Station positions distorted on spawn | Module-level ID counters reset on React re-render, causing ID collisions | ID counters in game state — see core §6 Architecture |
+| B2 | Position jitter mid-game | Sync callback recreated each React render, restarting the RAF loop | Stable callback identity — see core §7 Architecture |
+| B3 | Station positions distorted on spawn | Module-level ID counters reset on React re-render, causing ID collisions | ID counters in game state — see core §7 Architecture |
 | B4 | Passengers re-board the train that just transferred them | Disembark and board both ran on arrival in the same tick | Board on departure, disembark on arrival — see core §3 Disembarkation |
 | B5 | Passengers bounce between two transfer stations | Boarding BFS was unbounded; both endpoints matched via multi-hop | One-hop transfer limit + anti-bounce check — see core §3 Routing |
 | B6 | Extending a Route from a Station with multiple Route ends always extended the wrong one (and Stations visually looked "owned" by one color) | `getLineForStation` picked the first Line in iteration order that touched the Station, ignoring which end the player actually dragged from; Station border was tinted by that same first Line | Per-Line end markers with independent hit-testing (`getLineEndpointAt`) — see core §4 Route Drawing Interaction; Station border is now a neutral color |
 | B7 (open) | Debug overlay panel and HUD bar overlap, both semi-transparent, producing garbled/unreadable text in the shared top-right area whenever debug mode is on | Canvas-drawn debug panel (`renderDebug.ts`) and the DOM `HUD` bar (`HUD.tsx`) are positioned and drawn by unrelated systems with no coordination between them | Not yet fixed — recommended fix is to start the debug panel below the HUD bar's height, or give the HUD bar a solid (non-transparent) background |
+| B8 | Station overflow could never end the game — the queue could reach exactly `maxCapacity` but the check required strictly exceeding it | Every code path that pushes into a Station's queue (`trySpawnPassenger`, the transfer branch of `disembarkPassengers`, the debug add-passenger handler) gated on `< maxCapacity`, so `checkOverflow`'s `> maxCapacity` test was unreachable | Replaced with the Overflow Risk / Grace Timer state machine — a Station at/over capacity starts a Grace Timer instead of ending the game instantly; expiry while still over capacity ends it — see core/logic.md §3 Node Overflow, core/progression.md §5 |

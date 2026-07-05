@@ -8,12 +8,13 @@ Before touching game rules, read the specs in this order:
 
 1. **`specs/core/logic.md`** — theme-neutral mechanics (Nodes, Resources, Routes, Carriers, scoring, overflow, delivery events). This is the source of truth for *how the game behaves*, independent of naming/skin. Contains no rendering/UI references.
 2. **`specs/core/progression.md`** — theme-neutral pacing/difficulty knobs (Node/Resource spawn rate curves, effective waiting budget, Route/Carrier unlock schedule). The tuning layer between fixed mechanics and each theme's concrete numbers. Read this before changing difficulty or progression pacing.
-3. **`specs/themes/metro.md`** — maps core terms to metro terminology (Station/Line/Train/Passenger), plus all concrete config values (including the progression parameters from `core/progression.md`), rendering order, screen states, and the bug log. Read this for anything metro-specific or to find a tunable number.
-4. **`specs/DEBUG.md`** — debug-mode overlay, spawn/speed controls, manual station/passenger injection. Only relevant when testing or adding debug tooling.
-5. **`specs/testing.md`** — behavior spec for the automated testing agent/harness (flows covered, bug classification rules, report format). Read this before running or extending `testing/`.
-6. **`memo.md`** — backlog of undecided/unimplemented future work (styling, scoring, levels, analytics, mobile, persistence, onboarding). Check here before assuming a gap is unintentional, and add to it rather than solving ad hoc if a request expands scope.
+3. **`specs/core/meta_progression.md`** — theme-neutral cross-session progress (Level, Best Level Reached, the unbounded Collectible Reward sequence). Distinct from `progression.md`: this governs what persists *between* sessions, not in-session difficulty. Read this before changing anything about levels, high scores, or collectible/trophy systems.
+4. **`specs/themes/metro.md`** — maps core terms to metro terminology (Station/Line/Train/Passenger), plus all concrete config values (including the progression parameters from `core/progression.md` and the meta-progression parameters from `core/meta_progression.md`), rendering order, screen states, and the bug log. Read this for anything metro-specific or to find a tunable number.
+5. **`specs/DEBUG.md`** — debug-mode overlay, spawn/speed controls, manual station/passenger injection. Only relevant when testing or adding debug tooling.
+6. **`specs/testing.md`** — behavior spec for the automated testing agent/harness (flows covered, bug classification rules, report format). Read this before running or extending `testing/`.
+7. **`memo.md`** — backlog of undecided/unimplemented future work (styling, scoring, analytics, mobile, persistence, onboarding). Check here before assuming a gap is unintentional, and add to it rather than solving ad hoc if a request expands scope.
 
-Rule of thumb: if a change affects *game rules or entity relationships*, update `core/logic.md`. If it changes *pacing or difficulty* (spawn rates, unlock schedules), update `core/progression.md`. If it's *metro-flavored* (colors, shapes, config numbers, terminology), update `themes/metro.md`. Don't duplicate the same rule across documents — core stays abstract, themes only add mappings/values/visuals.
+Rule of thumb: if a change affects *game rules or entity relationships*, update `core/logic.md`. If it changes *pacing or difficulty* (spawn rates, unlock schedules), update `core/progression.md`. If it changes *cross-session progress* (levels, high scores, collectibles), update `core/meta_progression.md`. If it's *metro-flavored* (colors, shapes, config numbers, terminology), update `themes/metro.md`. Don't duplicate the same rule across documents — core stays abstract, themes only add mappings/values/visuals.
 
 ## Code Map
 
@@ -27,7 +28,7 @@ Rule of thumb: if a change affects *game rules or entity relationships*, update 
 ## Architecture Constraints (see core/logic.md §6 for full detail)
 
 - Game state is one mutable object; UI reads a shallow synced copy — don't make logic depend on React re-renders.
-- Entity ID counters live inside `GameState`, never at module scope (caused a prior bug — see `themes/metro.md` §9 Bug Log, B3).
+- Entity ID counters live inside `GameState`, never at module scope (caused a prior bug — see `themes/metro.md` §10 Bug Log, B3).
 - The RAF/render loop must not restart on UI re-renders (prior bug B2 — keep sync callback identity stable).
 - All `src/logic/` functions must be pure.
 
@@ -48,5 +49,5 @@ There's an isolated Playwright harness at `testing/` (own `package.json`, never 
 ## When Extending
 
 - New game rule → check if it's theme-neutral (goes in core) or metro-specific (goes in theme) before writing code.
-- Fixed a non-obvious bug → add a row to the Bug Log in `themes/metro.md` §9, same format as existing entries.
+- Fixed a non-obvious bug → add a row to the Bug Log in `themes/metro.md` §10, same format as existing entries.
 - Noticed a gap or deferred feature → add it to `memo.md` instead of leaving it undocumented.

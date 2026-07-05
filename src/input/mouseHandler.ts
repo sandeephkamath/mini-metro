@@ -1,6 +1,8 @@
 import type { GameState, StationShape, Vec2 } from '../types/game';
 import { getStationAt, trySpawnStationAt } from '../logic/stations';
-import { getAvailableLine, getLineEndpointAt, addStationToLine, getSegmentAt, insertStationIntoLine } from '../logic/lines';
+import { getAvailableLine, getLineEndpointAt, addStationToLine, getSegmentAt, insertStationIntoLine, getActiveLineAt, addTrainToLine, addCarriageToTrain } from '../logic/lines';
+import { getTrainAt } from '../logic/trains';
+import { screenToWorld, panCameraByScreenDelta, zoomAtScreenPoint } from '../logic/camera';
 import { CONFIG } from '../config/gameConfig';
 
 // Debug popup: 3 shape buttons in a row, each BUTTON_W × BUTTON_H
@@ -31,6 +33,9 @@ function hitButton(
 }
 
 // ── Debug mouse handler ────────────────────────────────────────────────────
+// Popups are positioned in screen space (menuPos), but hit-testing/placement
+// against game entities must use world space (worldPos), since the camera
+// may be zoomed or panned away from identity.
 function onDebugMouseDown(state: GameState, x: number, y: number): void {
   const action = state.debugAction;
 
@@ -53,7 +58,7 @@ function onDebugMouseDown(state: GameState, x: number, y: number): void {
         }
       } else {
         // place_station_shape
-        trySpawnStationAt(state, action.menuPos, hit);
+        trySpawnStationAt(state, action.worldPos, hit);
       }
     }
     // Any click (hit or miss) closes the popup
@@ -64,12 +69,12 @@ function onDebugMouseDown(state: GameState, x: number, y: number): void {
   // Placing station mode: record click position and open shape picker
   if (state.debugPlacingStation) {
     state.debugPlacingStation = false;
-    state.debugAction = { type: 'pick_station_shape', menuPos: clampMenu(x, y) };
+    state.debugAction = { type: 'pick_station_shape', menuPos: clampMenu(x, y), worldPos: screenToWorld(state, { x, y }) };
     return;
   }
 
   // Click on a station → open passenger type picker
-  const station = getStationAt(state, { x, y });
+  const station = getStationAt(state, screenToWorld(state, { x, y }));
   if (station) {
     state.debugAction = { type: 'pick_passenger', stationId: station.id, menuPos: clampMenu(x, y - 40) };
   }
@@ -84,60 +89,107 @@ function clampMenu(x: number, y: number): Vec2 {
 }
 
 // ── Regular mouse handlers ─────────────────────────────────────────────────
+// Screen coordinates (raw canvas pixels) are converted to world coordinates
+// before hitting any game entity, since the camera may be zoomed/panned.
+// Clicking empty space (nothing hit) starts a camera pan instead.
 export function onMouseDown(state: GameState, canvasX: number, canvasY: number): void {
   if (state.phase !== 'playing') return;
+  if (state.milestoneChoicePending) return; // choice popup owns input until resolved
 
   if (state.debugMode) {
     onDebugMouseDown(state, canvasX, canvasY);
     return;
   }
 
+  const world = screenToWorld(state, { x: canvasX, y: canvasY });
+
+  // A Depot item is selected — this click assigns it (or misses and cancels
+  // the selection), taking priority over normal line-drawing (core §2 Reserve).
+  if (state.selectedReserveItem === 'carrier') {
+    const line = getActiveLineAt(state, world);
+    if (line) {
+      addTrainToLine(state, line.id);
+      state.reserveCarriers -= 1;
+    }
+    state.selectedReserveItem = null;
+    return;
+  }
+  if (state.selectedReserveItem === 'carriage') {
+    const train = getTrainAt(state, world);
+    if (train) {
+      addCarriageToTrain(state, train.id);
+      state.reserveCarriages -= 1;
+    }
+    state.selectedReserveItem = null;
+    return;
+  }
+
   // Grabbing a line's end tab extends that specific line, even if other lines
   // also terminate at the same station (e.g. a station with several route ends).
-  const endpoint = getLineEndpointAt(state, { x: canvasX, y: canvasY });
+  const endpoint = getLineEndpointAt(state, world);
   if (endpoint) {
     state.drawing.isDrawing = true;
     state.drawing.startStationId = endpoint.stationId;
     state.drawing.insertAfterIndex = null;
     state.drawing.grabPos = null;
-    state.drawing.mousePos = { x: canvasX, y: canvasY };
+    state.drawing.mousePos = world;
     state.drawing.lineId = endpoint.lineId;
     return;
   }
 
   // Clicking a station's body (not a specific line's end tab) always starts a
   // fresh route — a station is never "owned" by a color.
-  const station = getStationAt(state, { x: canvasX, y: canvasY });
+  const station = getStationAt(state, world);
   if (station) {
     state.drawing.isDrawing = true;
     state.drawing.startStationId = station.id;
     state.drawing.insertAfterIndex = null;
     state.drawing.grabPos = null;
-    state.drawing.mousePos = { x: canvasX, y: canvasY };
+    state.drawing.mousePos = world;
     state.drawing.lineId = null;
     return;
   }
 
-  const segment = getSegmentAt(state, { x: canvasX, y: canvasY });
+  const segment = getSegmentAt(state, world);
   if (segment) {
     state.drawing.isDrawing = true;
     state.drawing.startStationId = null;
     state.drawing.insertAfterIndex = segment.afterIndex;
-    state.drawing.grabPos = { x: canvasX, y: canvasY };
-    state.drawing.mousePos = { x: canvasX, y: canvasY };
+    state.drawing.grabPos = world;
+    state.drawing.mousePos = world;
     state.drawing.lineId = segment.lineId;
+    return;
   }
+
+  // Nothing hit — start panning the camera.
+  state.camera.isPanning = true;
+  state.camera.panLastScreen = { x: canvasX, y: canvasY };
 }
 
 export function onMouseMove(state: GameState, canvasX: number, canvasY: number): void {
+  if (state.camera.isPanning && state.camera.panLastScreen) {
+    const dx = canvasX - state.camera.panLastScreen.x;
+    const dy = canvasY - state.camera.panLastScreen.y;
+    panCameraByScreenDelta(state, dx, dy);
+    state.camera.panLastScreen = { x: canvasX, y: canvasY };
+    return;
+  }
+
   if (!state.drawing.isDrawing) return;
-  state.drawing.mousePos = { x: canvasX, y: canvasY };
+  state.drawing.mousePos = screenToWorld(state, { x: canvasX, y: canvasY });
 }
 
 export function onMouseUp(state: GameState, canvasX: number, canvasY: number): void {
+  if (state.camera.isPanning) {
+    state.camera.isPanning = false;
+    state.camera.panLastScreen = null;
+    return;
+  }
+
   if (!state.drawing.isDrawing) return;
 
-  const endStation = getStationAt(state, { x: canvasX, y: canvasY });
+  const world = screenToWorld(state, { x: canvasX, y: canvasY });
+  const endStation = getStationAt(state, world);
   const startId = state.drawing.startStationId;
   const insertAfterIndex = state.drawing.insertAfterIndex;
 
@@ -167,4 +219,11 @@ export function onMouseUp(state: GameState, canvasX: number, canvasY: number): v
   state.drawing.insertAfterIndex = null;
   state.drawing.grabPos = null;
   state.drawing.mousePos = { x: 0, y: 0 };
+}
+
+// Wheel/pinch zoom, centered on the cursor. Disables auto-fit permanently.
+export function onWheel(state: GameState, canvasX: number, canvasY: number, deltaY: number): void {
+  if (state.phase !== 'playing') return;
+  const factor = Math.pow(CONFIG.CAMERA_ZOOM_WHEEL_FACTOR, -deltaY);
+  zoomAtScreenPoint(state, { x: canvasX, y: canvasY }, factor);
 }

@@ -26,24 +26,38 @@ export function renderStations(ctx: CanvasRenderingContext2D, state: GameState, 
   for (const station of Object.values(state.stations)) {
     ctx.save();
 
-    const isNearFull = station.passengerQueue.length >= station.maxCapacity;
-    const isOverfull = station.passengerQueue.length > station.maxCapacity;
+    const atRisk = station.riskTimer !== null;
+    const approaching = !atRisk && station.passengerQueue.length >= station.maxCapacity - 1;
     const flashOn = Math.floor(now / CONFIG.OVERFLOW_FLASH_INTERVAL_MS) % 2 === 0;
 
-    // Warning / overflow glow
-    if (isNearFull) {
+    // Warning / at-risk glow
+    if (atRisk || approaching) {
       ctx.shadowColor = '#e74c3c';
-      ctx.shadowBlur = isOverfull ? 28 : 14;
+      ctx.shadowBlur = atRisk ? 28 : 14;
     }
 
     drawShape(ctx, station);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
-    ctx.strokeStyle = (isNearFull && flashOn) ? '#e74c3c' : STATION_BORDER_COLOR;
-    ctx.lineWidth = isNearFull ? 4 : 3;
+    ctx.strokeStyle = ((atRisk || approaching) && flashOn) ? '#e74c3c' : STATION_BORDER_COLOR;
+    ctx.lineWidth = (atRisk || approaching) ? 4 : 3;
     ctx.stroke();
 
     ctx.restore();
+
+    // Risk Timer countdown arc — shrinks clockwise from a full ring as the
+    // Grace Timer (core/logic.md §3 Node Overflow) counts down to zero.
+    if (atRisk) {
+      const frac = Math.max(0, Math.min(1, station.riskTimer! / state.graceDurationMs));
+      ctx.save();
+      ctx.strokeStyle = '#e74c3c';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      const startAngle = -Math.PI / 2;
+      ctx.arc(station.pos.x, station.pos.y, CONFIG.STATION_RADIUS + 8, startAngle, startAngle + frac * Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
 
     // Station label (e.g. C1, T2, S3)
     ctx.save();

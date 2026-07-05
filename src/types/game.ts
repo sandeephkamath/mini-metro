@@ -2,6 +2,9 @@ export type StationShape = 'circle' | 'triangle' | 'square';
 export type TrainState = 'moving' | 'stopped';
 export type TrainDirection = 1 | -1;
 export type GamePhase = 'start' | 'playing' | 'gameover';
+export type MilestoneBonusMode = 'auto' | 'choice';
+export type MilestoneBonusKind = 'carrier' | 'carriage' | 'grace';
+export type ReserveItemKind = 'carrier' | 'carriage';
 
 export interface Vec2 {
   x: number;
@@ -22,6 +25,7 @@ export interface Station {
   passengerQueue: Passenger[];
   maxCapacity: number;
   lineIds: string[];
+  riskTimer: number | null; // ms remaining before overflow ends the game; null = not at risk
 }
 
 export interface MetroLine {
@@ -37,6 +41,7 @@ export interface Train {
   lineId: string;
   passengers: Passenger[];
   maxCapacity: number;
+  carriageCount: number; // 1 = base train only; each Depot Carriage attached adds one
   pos: Vec2;
   targetStationIndex: number;
   direction: TrainDirection;
@@ -54,6 +59,15 @@ export interface DrawingState {
   mousePos: Vec2;
 }
 
+export interface CameraState {
+  x: number; // world x at the center of the viewport
+  y: number; // world y at the center of the viewport
+  zoom: number; // 1 = 1 world px per screen px
+  autoFit: boolean; // true until the player manually zooms or pans, then permanently false
+  isPanning: boolean;
+  panLastScreen: Vec2 | null;
+}
+
 export interface GameState {
   phase: GamePhase;
   score: number;
@@ -66,8 +80,16 @@ export interface GameState {
   lines: Record<string, MetroLine>;
   trains: Record<string, Train>;
   drawing: DrawingState;
-  lastDeliveryMessage: string;
-  lastDeliveryTime: number;
+  camera: CameraState;
+  lastMilestoneMessage: string;
+  lastMilestoneTime: number;
+  graceDurationMs: number; // current Grace Duration — grows via "grace" bonuses, never shrinks
+  reserveCarriers: number; // unplaced Depot Trains
+  reserveCarriages: number; // unplaced Depot Carriages
+  milestoneBonusMode: MilestoneBonusMode;
+  milestoneAutoIndex: number; // round-robin cursor for Auto mode
+  milestoneChoicePending: boolean; // true while the Weekly Upgrade choice popup is open (freezes all timers)
+  selectedReserveItem: ReserveItemKind | null; // player has clicked a Depot item and is now picking a target
   // ID counters live in state — never in module scope, to avoid re-render side-effects
   nextIds: { station: number; passenger: number; train: number };
   debugMode: boolean;
@@ -75,7 +97,7 @@ export interface GameState {
   debugLog: string[]; // circular, capped at 30 entries
   debugAction: null
     | { type: 'pick_passenger'; stationId: string; menuPos: Vec2 }
-    | { type: 'pick_station_shape'; menuPos: Vec2 };
+    | { type: 'pick_station_shape'; menuPos: Vec2; worldPos: Vec2 };
   debugPlacingStation: boolean; // true after pressing A, waiting for canvas click
   debugPauseStations: boolean; // suppress automatic station spawning
   debugPausePassengers: boolean; // suppress automatic passenger spawning

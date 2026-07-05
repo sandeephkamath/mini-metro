@@ -1,6 +1,6 @@
 # Core Logic Specification
 
-**Version**: 1.1
+**Version**: 1.4
 **Last updated**: 2026-07-05
 
 This document defines the game's mechanics in theme-neutral terms. Themes extend this document by mapping these abstract concepts to named entities and providing configuration values.
@@ -44,18 +44,30 @@ An ordered sequence of Nodes connected by segments. One or more Carriers travel 
 - Branching (a Route splitting into more than one path from a single Node) is not allowed.
 - A Route cannot contain the same Node twice.
 - The player draws Routes by dragging between Nodes.
-- A fixed number of Routes are unlocked at game start; more are unlocked via delivery events.
+- A fixed number of Routes are unlocked at game start; more unlock as the total Node count grows (see `progression.md` §4) — Route unlocking is not tied to Milestone Events.
 
 ### Carrier
 
 A vehicle that travels back and forth along a Route, collecting and delivering Resources.
 
-- One Carrier is automatically added when a Route gets its second Node.
+- One Carrier is automatically added when a Route gets its second Node. This is the only Carrier a Route gains automatically — a Route never grows its own Carrier count over time; further Carriers only arrive via the Reserve (below).
 - Carriers move at a fixed speed in pixels per second.
 - A Carrier stops at each Node for a fixed duration. On arrival it drops off Resources; just before departing it picks up Resources.
 - At each end of the Route the Carrier reverses direction.
-- A Carrier has a maximum Resource capacity (upgradeable via delivery events).
-- When multiple Carriers share a Route they are evenly spaced along the full length of the Route.
+- A Carrier has a maximum Resource capacity, increased only by attaching a Reserve Carriage (below).
+- When multiple Carriers share a Route they are evenly spaced along the full length of the Route. Placing an additional Carrier from the Reserve onto a Route re-triggers this spacing for every Carrier already on it.
+
+### Reserve
+
+A holding area for two kinds of unassigned reward granted by Milestone Events (§3), until the player assigns them:
+
+- **Reserve Carrier**: an unplaced Carrier, not yet on any Route.
+- **Reserve Carriage**: an unplaced capacity upgrade, not yet attached to any Carrier.
+
+- Reserve items accumulate without limit or expiry — granting a new one while others are still unassigned does not replace or discard them.
+- A Reserve Carrier can be assigned, at any time, to any unlocked Route that already has at least one Carrier of its own. Assigning it places the Carrier on that Route immediately, re-spacing all Carriers on it per the rule above.
+- A Reserve Carriage can be assigned, at any time, to any single Carrier currently in service on any Route, immediately increasing that Carrier's capacity.
+- Both kinds of assignment are player-initiated and instantaneous; there is no rule requiring an item to be assigned before the next Milestone Event fires.
 
 ---
 
@@ -86,17 +98,28 @@ Boarding happens just before the Carrier departs, not on arrival. This separatio
 
 ### Node Overflow
 
-After every game tick, each Node is checked. If any Node's queue length exceeds its maximum capacity, the game ends immediately.
+After every game tick, each Node is checked against its maximum capacity. Reaching capacity is not immediately fatal — it starts a grace window:
 
-### Delivery Events
+- **Entering risk**: the instant a Node's queue length reaches or exceeds its maximum capacity, the Node enters **Overflow Risk** and a Grace Timer starts counting down from the Grace Duration (`progression.md` §5).
+- **Recovery**: if the queue length drops back below capacity while the Grace Timer is still running, Overflow Risk ends immediately and the Grace Timer is discarded — a later crossing back over capacity starts a brand-new Grace Timer at full duration, never resuming a discarded one.
+- **Expiry**: if the Grace Timer reaches zero while the Node is still at or over capacity, the game ends immediately.
+- Each Node's Grace Timer is independent — multiple Nodes can be in Overflow Risk at once, each on its own countdown.
+- A Grace Duration increase (from a Milestone Event, below) takes effect immediately: it extends the remaining time on every Node currently in Overflow Risk, in addition to lengthening all future Grace Timers for the rest of the session.
 
-At regular time intervals a delivery event fires automatically:
+### Milestone Events
 
-- One new Carrier is added to the active Route with the fewest Carriers.
-- One locked Route is unlocked (if any remain).
-- The busiest Carrier gains additional capacity.
+At regular time intervals — the Milestone Event interval — a Milestone Event fires, granting exactly one bonus of one of three kinds:
 
-The event is instantaneous — the game does not pause.
+1. **Reserve Carrier** — adds one unplaced Carrier to the Reserve.
+2. **Reserve Carriage** — adds one unplaced capacity upgrade to the Reserve.
+3. **Grace Duration increase** — increases the Grace Duration (Node Overflow, above) by a fixed increment, applied immediately.
+
+A single session-wide setting decides how the bonus kind is picked, the same way for every Milestone Event in the session (`progression.md` §6):
+
+- **Auto mode**: the game picks the kind itself, with no player input.
+- **Choice mode**: all three kinds are offered as options. Presenting the choice pauses game time using the same mechanism as §6 Game Clock — every timer in the game, including other Nodes' Grace Timers and the countdown to the next Milestone Event, freezes until the player picks. Only the chosen kind is granted; the other two are discarded, not banked for later.
+
+Route unlocking is not part of a Milestone Event — Routes unlock purely from total Node count (`progression.md` §4).
 
 ### Scoring
 
@@ -123,13 +146,26 @@ There is no win condition. The game ends when any Node overflows, and the final 
 
 ---
 
-## 5. Game Clock
+## 5. Map & Viewport
+
+The map (the full space in which Nodes can spawn) is larger than the visible viewport. The player sees the map through a Camera: a rectangular window defined by a center point and a zoom level.
+
+- The Camera starts centered on the initial cluster of Nodes, at a zoom level that shows them clearly.
+- New Nodes spawn near the existing cluster at first; the area they can spawn across widens gradually as more Nodes are placed, only reaching the map's full extent once the Node count is well established. This keeps growth of the visible area gradual rather than an early Node appearing anywhere on the map at once.
+- The Camera holds still as long as every placed Node already fits in view with a small margin. The instant a newly spawned Node would fall outside that margin, the Camera automatically re-centers and zooms out just enough to bring every placed Node back into view — never zooming in tighter than the starting zoom level while doing so, and never adjusting itself when nothing has actually gone out of view.
+- The player can manually zoom in or out, and pan the view, at any time. Manual adjustment permanently hands control of the Camera to the player for the rest of the session — the automatic keep-everything-in-view behavior described above does not resume afterward.
+- The Camera cannot be zoomed out past the point where the whole map is visible, and cannot be panned to show space beyond the map's edges.
+- Zooming and panning are purely a viewing convenience — they never change Node positions, Route geometry, or any other game rule.
+
+---
+
+## 6. Game Clock
 
 All timers use game time, not wall time. Game time advances only while the game is in the playing state. Pausing freezes all timers.
 
 ---
 
-## 6. Architecture Constraints
+## 7. Architecture Constraints
 
 - Game state is a single mutable object updated each frame. UI state (score, phase) is a shallow copy synchronised at ~10Hz.
 - The render loop must be stable: it must not restart on UI re-renders.
@@ -138,7 +174,7 @@ All timers use game time, not wall time. Game time advances only while the game 
 
 ---
 
-## 7. Terminology Reference
+## 8. Terminology Reference
 
 | Abstract Term | Definition |
 |---------------|-----------|
@@ -146,5 +182,7 @@ All timers use game time, not wall time. Game time advances only while the game 
 | Route | An ordered sequence of Nodes; traversed by Carriers |
 | Carrier | A vehicle that moves along a Route picking up and delivering Resources |
 | Resource | A unit with a destination type waiting at a Node |
-| Delivery Event | A periodic reward that grants new Carriers, Routes, or capacity |
+| Milestone Event | A periodic event granting a Reserve Carrier, a Reserve Carriage, or a Grace Duration increase |
+| Reserve | Holding area for unplaced Carriers/Carriages granted by Milestone Events until assigned |
+| Overflow Risk | The state a Node enters at/over capacity, during which a Grace Timer counts down before the game ends |
 | Transfer Node | A Node that belongs to two or more Routes |

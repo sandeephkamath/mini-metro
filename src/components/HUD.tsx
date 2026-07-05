@@ -1,13 +1,38 @@
+import type { ReserveItemKind } from '../types/game';
+
 interface HUDProps {
   score: number;
   weekNumber: number;
-  deliveryMessage: string;
-  deliveryAge: number; // ms since last delivery
+  milestoneMessage: string;
+  milestoneAge: number; // ms since last milestone bonus was granted
+  reserveCarriers: number;
+  reserveCarriages: number;
+  selectedReserveItem: ReserveItemKind | null;
+  onSelectReserveCarrier: () => void;
+  onSelectReserveCarriage: () => void;
 }
 
-export function HUD({ score, weekNumber, deliveryMessage, deliveryAge }: HUDProps) {
-  const toastVisible = deliveryAge < 3000 && deliveryMessage;
-  const toastOpacity = toastVisible ? Math.max(0, 1 - (deliveryAge - 2000) / 1000) : 0;
+export function HUD({
+  score, weekNumber, milestoneMessage, milestoneAge,
+  reserveCarriers, reserveCarriages, selectedReserveItem,
+  onSelectReserveCarrier, onSelectReserveCarriage,
+}: HUDProps) {
+  const toastVisible = milestoneAge < 3000 && milestoneMessage;
+  const toastOpacity = toastVisible ? Math.min(1, Math.max(0, 1 - (milestoneAge - 2000) / 1000)) : 0;
+
+  function depotButtonStyle(count: number, selected: boolean) {
+    return {
+      background: selected ? '#e74c3c' : count > 0 ? '#333' : '#222',
+      color: count > 0 ? '#fff' : '#666',
+      border: selected ? '2px solid #fff' : '2px solid transparent',
+      borderRadius: '6px',
+      padding: '4px 10px',
+      fontFamily: 'monospace',
+      fontSize: '12px',
+      cursor: count > 0 ? 'pointer' : 'default',
+      pointerEvents: 'auto' as const,
+    };
+  }
 
   return (
     <>
@@ -27,10 +52,49 @@ export function HUD({ score, weekNumber, deliveryMessage, deliveryAge }: HUDProp
         pointerEvents: 'none',
         zIndex: 10,
       }}>
-        <span>Week {weekNumber}</span>
-        <span style={{ fontSize: '22px', fontWeight: 'bold' }}>{score}</span>
+        <span data-testid="hud-week">Week {weekNumber}</span>
+        <div style={{ display: 'flex', gap: 8, pointerEvents: 'none' }}>
+          <button
+            onClick={onSelectReserveCarrier}
+            disabled={reserveCarriers === 0}
+            style={depotButtonStyle(reserveCarriers, selectedReserveItem === 'carrier')}
+            title="Depot Train — click, then click a line to place it"
+          >
+            🚆 Train ×{reserveCarriers}
+          </button>
+          <button
+            onClick={onSelectReserveCarriage}
+            disabled={reserveCarriages === 0}
+            style={depotButtonStyle(reserveCarriages, selectedReserveItem === 'carriage')}
+            title="Depot Carriage — click, then click a train to attach it"
+          >
+            🚃 Carriage ×{reserveCarriages}
+          </button>
+        </div>
+        <span data-testid="hud-score" style={{ fontSize: '22px', fontWeight: 'bold' }}>{score}</span>
         <span style={{ opacity: 0.6, fontSize: '12px' }}>drag between stations to draw lines</span>
       </div>
+
+      {selectedReserveItem && (
+        <div style={{
+          position: 'absolute',
+          top: 44,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.75)',
+          color: '#fff',
+          fontFamily: 'monospace',
+          fontSize: '12px',
+          padding: '6px 14px',
+          borderRadius: '16px',
+          pointerEvents: 'none',
+          zIndex: 10,
+        }}>
+          {selectedReserveItem === 'carrier'
+            ? 'Click a line to place the train [Esc to cancel]'
+            : 'Click a train to attach the carriage [Esc to cancel]'}
+        </div>
+      )}
 
       {toastVisible && (
         <div style={{
@@ -49,7 +113,7 @@ export function HUD({ score, weekNumber, deliveryMessage, deliveryAge }: HUDProp
           opacity: toastOpacity,
           whiteSpace: 'nowrap',
         }}>
-          {deliveryMessage}
+          {milestoneMessage}
         </div>
       )}
     </>

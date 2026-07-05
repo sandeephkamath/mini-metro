@@ -1,6 +1,6 @@
 # Progression & Difficulty Specification
 
-**Version**: 1.0
+**Version**: 2.0
 **Last updated**: 2026-07-05
 **Extends**: `./logic.md`
 
@@ -52,27 +52,63 @@ effective wait budget ≈ Node capacity ÷ (Resource arrival rate at that Node �
 
 This section exists so difficulty can be reasoned about in terms of "how long can a Resource wait before things get dangerous," by adjusting the upstream parameters below rather than adding a new failure condition:
 
-- Raising Node capacity, slowing Resource spawn rate, or shortening the Delivery Event interval (more Carriers sooner) all increase tolerable wait.
+- Raising Node capacity, slowing Resource spawn rate, or unlocking Routes/Carriers sooner all increase tolerable wait.
 - Lowering Node capacity, speeding up Resource spawn decay, or leaving a Node poorly served all decrease it.
+- This derived budget describes the time before a Node *reaches* capacity in the first place. Once it does, the explicit Grace Timer (§5) takes over and governs how much longer the Node can stay over capacity before the game ends — the two are sequential, not overlapping: the wait budget above ends exactly where the Grace Timer begins.
 
 ---
 
-## 4. Route / Carrier Unlock Progression
+## 4. Route Unlock Progression
 
-A fixed number of Routes are unlocked at game start (core §2 Route). Additional Routes, Carriers, and Carrier capacity unlock via Delivery Events, which fire on a fixed interval — one "week" of game time (core §3 Delivery Events).
+A fixed number of Routes are unlocked at game start (core §2 Route). Additional Routes unlock purely from the total Node count present on the map — not from any timer, and not from Milestone Events.
 
-The unlock order is a schedule: an ordered list mapping week index → what unlocks. A theme may use the simple default described in core §3 (one Carrier to the least-served Route, one Route unlock if any remain, one capacity bump to the busiest Carrier — every event, round-robin), or supply an explicit week-indexed table for finer control over pacing (e.g. front-loading Route unlocks, or holding capacity bumps until later weeks).
+- Each time total Node count increases by the Route unlock step (a fixed number of additional Nodes), the next locked Route, in a fixed order, unlocks — provided any remain.
+- Formula: `unlocked Route count = min(Total Route count, Initial unlocked Route count + floor((current Node count − Initial Node count) / Route unlock step))`, re-checked whenever a new Node spawns.
+- Node spawning (§1) and Route unlocking are independent systems layered on the same input (Node count) — Route unlocking only reads the current count, it never affects spawn timing or vice versa.
 
 | Parameter | Meaning |
 |-----------|---------|
 | Initial unlocked Route count | Routes available at game start |
 | Total Route count | Routes available across the whole session |
-| Delivery Event interval | Duration of one "week"; how often the unlock schedule advances |
-| Unlock schedule | Week-indexed mapping of what a given Delivery Event grants, if overriding the round-robin default |
+| Route unlock step | Additional Nodes required, beyond the last unlock, to unlock the next Route |
 
 ---
 
-## 5. Difficulty Levers Reference
+## 5. Overflow Grace Period
+
+Node Overflow (core §3) does not end the game the instant a Node reaches capacity — a Grace Timer (core §3 Node Overflow) gives the player a window to relieve it first.
+
+| Parameter | Meaning |
+|-----------|---------|
+| Grace Duration (base) | How long a Node's Grace Timer runs, at session start, before the game ends |
+| Grace Duration increment | How much a single Grace Duration increase Milestone bonus adds |
+
+Grace Duration only ever increases during a session (via Milestone bonuses, §6) — nothing in core reduces it.
+
+---
+
+## 6. Milestone Event Bonuses
+
+Milestone Events (core §3) fire on a fixed interval and grant exactly one of three bonus kinds: a Reserve Carrier, a Reserve Carriage, or a Grace Duration increase (§5).
+
+### 6.1 Auto Mode vs. Choice Mode
+
+A single session-wide setting decides how the bonus kind is picked, the same way for every Milestone Event in the session — it does not vary event-to-event:
+
+- **Auto mode**: the game cycles through all three kinds in a fixed round-robin order (Reserve Carrier → Reserve Carriage → Grace Duration increase → repeat), so all three recur at a predictable, even rate over a long session, with no player input.
+- **Choice mode**: all three kinds are offered as options every time; the player picks exactly one, the other two are discarded for that event (core §3 Milestone Events).
+
+A theme may expose Auto vs. Choice as a difficulty-preset knob rather than a single fixed value — see §8 Tuning Guidance.
+
+| Parameter | Meaning |
+|-----------|---------|
+| Milestone Event interval | Time between Milestone Events |
+| Milestone bonus mode | Auto or Choice — which selection rule governs every Milestone Event this session |
+| Reserve Carriage capacity bonus | How much capacity a single Reserve Carriage adds once attached to a Carrier |
+
+---
+
+## 7. Difficulty Levers Reference
 
 All parameters named above, in one place. A theme fills these in as concrete values (e.g. `themes/metro.md` §5 Configuration Values) or preset tables for different difficulty modes.
 
@@ -87,15 +123,19 @@ All parameters named above, in one place. A theme fills these in as concrete val
 | Resource spawn floor | Maximum Resource pressure at late game |
 | Initial unlocked Route count | Starting player capability |
 | Total Route count | Ceiling on player capability |
-| Delivery Event interval | How often the player gets relief (Carriers, Routes, capacity) |
-| Unlock schedule | Which relief arrives on which week, if not round-robin |
-| Node capacity | Ceiling before a single under-served Node ends the game |
-| Carrier capacity | How much relief one Carrier provides per stop |
+| Route unlock step | How quickly Route access scales with map growth |
+| Node capacity | Queue size before a Node enters Overflow Risk |
+| Grace Duration (base) | How long a Node can stay over capacity before the game ends |
+| Grace Duration increment | How much each Grace Duration bonus extends that window |
+| Milestone Event interval | How often the player gets relief (Reserve items, Grace Duration) |
+| Milestone bonus mode | Whether relief is auto-granted or player-chosen |
+| Reserve Carriage capacity bonus | How much relief one Carriage adds per attachment |
 
 ---
 
-## 6. Tuning Guidance
+## 8. Tuning Guidance
 
-- **Easier**: increase Node capacity, increase Resource spawn base interval/floor or slow the decay rate, increase initial unlocked Routes or Carrier capacity, shorten the Delivery Event interval.
-- **Harder**: the inverse of the above — lower Node capacity, faster Resource spawn decay, fewer starting Routes, longer Delivery Event interval.
-- Changing any single lever shifts the effective waiting budget (§3) rather than the game's win/loss rules — the mechanics in `logic.md` stay fixed regardless of how these values are tuned.
+- **Easier**: increase Node capacity, increase Grace Duration (base) or its increment, increase Resource spawn base interval/floor or slow the decay rate, increase initial unlocked Routes or lower the Route unlock step, shorten the Milestone Event interval, raise the Reserve Carriage capacity bonus.
+- **Harder**: the inverse of the above — lower Node capacity, shorter/no Grace Duration growth, faster Resource spawn decay, fewer starting Routes or a higher Route unlock step, longer Milestone Event interval.
+- Auto mode is generally the gentler, more predictable pacing choice; Choice mode adds strategic depth (and a pause point) but puts bonus-allocation judgment on the player, which can be harder for a first-time player under time pressure.
+- Changing any single lever shifts the effective waiting budget (§3) or the Grace Period (§5) rather than the game's win/loss rules — the mechanics in `logic.md` stay fixed regardless of how these values are tuned.
