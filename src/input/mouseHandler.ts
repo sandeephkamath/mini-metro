@@ -96,18 +96,17 @@ export function onMouseDown(state: GameState, canvasX: number, canvasY: number):
   if (state.phase !== 'playing') return;
   if (state.milestoneChoicePending) return; // choice popup owns input until resolved
 
-  if (state.debugMode) {
-    onDebugMouseDown(state, canvasX, canvasY);
-    return;
-  }
-
   const world = screenToWorld(state, { x: canvasX, y: canvasY });
 
   // A Depot item is selected — this click assigns it (or misses and cancels
-  // the selection), taking priority over normal line-drawing (core §2 Reserve).
+  // the selection), taking priority over normal line-drawing AND over debug
+  // mode (core §2 Reserve). Checked before the debugMode branch so debug
+  // tooling never silently swallows a Depot placement click (see themes/metro.md
+  // bug log). Guarded by the reserve count so a stale/raced selection can
+  // never assign more than was actually granted or drive the count negative.
   if (state.selectedReserveItem === 'carrier') {
     const line = getActiveLineAt(state, world);
-    if (line) {
+    if (line && state.reserveCarriers > 0) {
       addTrainToLine(state, line.id);
       state.reserveCarriers -= 1;
     }
@@ -116,11 +115,16 @@ export function onMouseDown(state: GameState, canvasX: number, canvasY: number):
   }
   if (state.selectedReserveItem === 'carriage') {
     const train = getTrainAt(state, world);
-    if (train) {
+    if (train && state.reserveCarriages > 0) {
       addCarriageToTrain(state, train.id);
       state.reserveCarriages -= 1;
     }
     state.selectedReserveItem = null;
+    return;
+  }
+
+  if (state.debugMode) {
+    onDebugMouseDown(state, canvasX, canvasY);
     return;
   }
 
