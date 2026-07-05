@@ -13,7 +13,7 @@ import { MilestoneChoiceModal } from './MilestoneChoiceModal';
 export function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const {
-    stateRef, score, phase, weekNumber, reserveCarriers, reserveCarriages, milestoneChoicePending,
+    stateRef, score, phase, weekNumber, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending,
     selectedReserveItem, startGame, syncReactState, setSelectedReserveItem,
   } = useGameState();
 
@@ -24,6 +24,9 @@ export function GameCanvas() {
   const milestoneAge = state.lastMilestoneTime > 0
     ? Math.max(0, state.gameTimeMs - state.lastMilestoneTime)
     : 99999;
+  const lineSlots = Object.keys(state.lines)
+    .sort((a, b) => parseInt(a.slice(1), 10) - parseInt(b.slice(1), 10))
+    .map(id => ({ color: state.lines[id].color, isUnlocked: state.lines[id].isUnlocked }));
 
   function selectReserveCarrier() {
     setSelectedReserveItem(selectedReserveItem === 'carrier' ? null : 'carrier');
@@ -48,6 +51,8 @@ export function GameCanvas() {
         <HUD
           score={score}
           weekNumber={weekNumber}
+          weekProgress={weekProgress}
+          lineSlots={lineSlots}
           milestoneMessage={state.lastMilestoneMessage}
           milestoneAge={milestoneAge}
           reserveCarriers={reserveCarriers}

@@ -1,5 +1,6 @@
 import type { GameState } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
+import { computeTrainAngle } from '../logic/trains';
 
 function darken(hex: string, amount = 0.3): string {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -15,16 +16,7 @@ export function renderTrains(ctx: CanvasRenderingContext2D, state: GameState): v
 
     ctx.save();
     ctx.translate(train.pos.x, train.pos.y);
-
-    // Compute direction angle from prev → target station
-    const prevIdx = train.targetStationIndex - train.direction;
-    if (prevIdx >= 0 && prevIdx < line.stationIds.length) {
-      const from = state.stations[line.stationIds[prevIdx]]?.pos;
-      const to = state.stations[line.stationIds[train.targetStationIndex]]?.pos;
-      if (from && to) {
-        ctx.rotate(Math.atan2(to.y - from.y, to.x - from.x));
-      }
-    }
+    ctx.rotate(computeTrainAngle(train, line, state));
 
     const w = CONFIG.TRAIN_WIDTH;
     const h = CONFIG.TRAIN_HEIGHT;

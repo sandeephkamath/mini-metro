@@ -1,6 +1,7 @@
-import type { GameState } from '../types/game';
+import type { GameState, Vec2 } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
 import { getLineEndpoints } from '../logic/lines';
+import { computeBentSegment } from '../logic/geometry';
 
 export function renderLines(ctx: CanvasRenderingContext2D, state: GameState): void {
   ctx.save();
@@ -11,16 +12,27 @@ export function renderLines(ctx: CanvasRenderingContext2D, state: GameState): vo
   for (const line of Object.values(state.lines)) {
     if (line.stationIds.length < 2) continue;
 
+    const positions = line.stationIds
+      .map(id => state.stations[id]?.pos)
+      .filter((p): p is Vec2 => !!p);
+    if (positions.length < 2) continue;
+
     ctx.strokeStyle = line.color;
     ctx.beginPath();
-
-    const first = state.stations[line.stationIds[0]];
-    if (!first) continue;
-    ctx.moveTo(first.pos.x, first.pos.y);
-
-    for (let i = 1; i < line.stationIds.length; i++) {
-      const s = state.stations[line.stationIds[i]];
-      if (s) ctx.lineTo(s.pos.x, s.pos.y);
+    ctx.moveTo(positions[0].x, positions[0].y);
+    for (let i = 0; i < positions.length - 1; i++) {
+      const a = positions[i];
+      const b = positions[i + 1];
+      const seg = computeBentSegment(a, b, CONFIG.LINE_BEND_RADIUS);
+      if (seg) {
+        // Straight leg into the bend, a short rounded curve at the corner, straight leg
+        // out — the segment as a whole stays straight, only the corner itself is smoothed.
+        ctx.lineTo(seg.t1.x, seg.t1.y);
+        ctx.quadraticCurveTo(seg.elbow.x, seg.elbow.y, seg.t2.x, seg.t2.y);
+        ctx.lineTo(b.x, b.y);
+      } else {
+        ctx.lineTo(b.x, b.y);
+      }
     }
     ctx.stroke();
   }

@@ -8,13 +8,21 @@ test('dragging between two stations draws a line and spawns a train', async ({ p
   await drawLine(page, FIXED_STATIONS.circle, FIXED_STATIONS.triangle);
   await page.waitForTimeout(200); // let the next render frame paint the new line
 
-  // Sample the midpoint of the segment for the first line color (#e74c3c red).
-  const mid = {
-    x: Math.round((FIXED_STATIONS.circle.x + FIXED_STATIONS.triangle.x) / 2),
-    y: Math.round((FIXED_STATIONS.circle.y + FIXED_STATIONS.triangle.y) / 2),
+  // Lines render as mostly-straight legs with only a short rounded curve right at the bend
+  // point (not a curve along the whole segment), so sample a spot on the straight leg — 40px
+  // along the initial diagonal toward the bend, clear of the origin station's own circle
+  // (radius 14) and well short of where the corner rounding (LINE_BEND_RADIUS, 28px back
+  // from the bend) kicks in.
+  const a = FIXED_STATIONS.circle;
+  const b = FIXED_STATIONS.triangle;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const onLeg = {
+    x: Math.round(a.x + Math.sign(dx) * 40),
+    y: Math.round(a.y + Math.sign(dy) * 40),
   };
-  const [r, g, b] = await getCanvasPixel(page, mid.x, mid.y);
-  expect([r, g, b]).toEqual([231, 76, 60]);
+  const [r, g, b2] = await getCanvasPixel(page, onLeg.x, onLeg.y);
+  expect([r, g, b2]).toEqual([231, 76, 60]);
 
   // A train should appear somewhere along the line within one stop cycle.
   // Train presence/position isn't reliably pixel-sampleable (it moves continuously),

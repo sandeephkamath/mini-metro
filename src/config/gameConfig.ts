@@ -48,6 +48,7 @@ export const CONFIG = {
   LINE_UNLOCK_STEP: 3, // additional stations required to unlock each subsequent line
 
   WEEK_DURATION_MS: 60000, // also the Milestone Event (Weekly Upgrade) interval
+  DAY_NAMES: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'], // cosmetic HUD clock — days per week, cycles within WEEK_DURATION_MS
 
   RISK_TIMER_BASE_MS: 8000, // Grace Duration a station starts with, at session start
   RISK_TIMER_INCREMENT_MS: 4000, // added by a single "More Time" Milestone bonus
@@ -56,6 +57,7 @@ export const CONFIG = {
   MILESTONE_BONUS_MODE: 'choice' as const, // 'auto' | 'choice' — see core/progression.md §6.1
 
   LINE_WIDTH: 6,
+  LINE_BEND_RADIUS: 28, // px of corner-rounding at a Line's bend point — the rest of each leg stays straight
   LINE_HIT_RADIUS: 10,
   ENDPOINT_HANDLE_LENGTH: 20,
   ENDPOINT_HANDLE_HIT_RADIUS: 10,

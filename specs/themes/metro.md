@@ -137,7 +137,7 @@ Either input immediately and permanently disables the automatic keep-everything-
 Drawn back to front each frame, with items 2–10 subject to the Camera transform (world space) and item 11 drawn unscaled on top (screen space):
 
 1. Background fill (`#f5f0e8`)
-2. Line strokes (colored, thick)
+2. Line strokes (colored, thick; between stations that aren't already aligned to a straight or 45° path, drawn as a diagonal run then a straight run — two straight legs, with only a short rounded curve where they meet, not a curve along the whole segment. Trains travel along this same straight-legs-plus-rounded-corner shape, and it's what mid-Line insertion hit-testing checks against, so movement, hit-testing, and what's drawn all agree)
 3. Line end markers (colored tab + perpendicular crossbar at each Line terminus — one per Line ending at a Node, independently draggable)
 4. Drag preview (dashed line to cursor, only while drawing)
 5. Station shapes (white fill, neutral dark border — a Station is never colored by the Lines it belongs to)
@@ -155,7 +155,7 @@ Drawn back to front each frame, with items 2–10 subject to the Camera transfor
 | Phase | What the player sees |
 |-------|---------------------|
 | start | Welcome screen with instructions and Start button, plus Best Level Reached, the current Picture (partially revealed), and a "View Collection" control — see §9 |
-| playing | Full canvas + HUD bar (score, Level number, Depot tray) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) |
+| playing | Full canvas + HUD bar (score, Level number, day-of-week/clock indicator showing progress through the current week, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) |
 | gameover | Canvas dimmed, game over overlay with final score, Level reached, and restart button, plus Best Level / Picture progress — see §9 |
 
 The Collection gallery is not a distinct phase — it is an overlay opened from the `start` phase (see §9) and closes back to it.

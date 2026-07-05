@@ -62,6 +62,7 @@ export function useGameState() {
   const [score, setScore] = useState(0);
   const [phase, setPhase] = useState<GamePhase>('start');
   const [weekNumber, setWeekNumber] = useState(0);
+  const [weekProgress, setWeekProgress] = useState(0); // 0..1 fraction of the current week elapsed, for the HUD clock
   const [reserveCarriers, setReserveCarriers] = useState(0);
   const [reserveCarriages, setReserveCarriages] = useState(0);
   const [milestoneChoicePending, setMilestoneChoicePending] = useState(false);
@@ -69,13 +70,15 @@ export function useGameState() {
 
   // Stable identity — empty deps because stateRef is a ref and setters are stable
   const syncReactState = useCallback(() => {
-    setScore(stateRef.current!.score);
-    setPhase(stateRef.current!.phase);
-    setWeekNumber(stateRef.current!.weekNumber);
-    setReserveCarriers(stateRef.current!.reserveCarriers);
-    setReserveCarriages(stateRef.current!.reserveCarriages);
-    setMilestoneChoicePending(stateRef.current!.milestoneChoicePending);
-    setSelectedReserveItemState(stateRef.current!.selectedReserveItem);
+    const s = stateRef.current!;
+    setScore(s.score);
+    setPhase(s.phase);
+    setWeekNumber(s.weekNumber);
+    setWeekProgress(Math.max(0, Math.min(0.9999, 1 - (s.nextWeekTime - s.gameTimeMs) / CONFIG.WEEK_DURATION_MS)));
+    setReserveCarriers(s.reserveCarriers);
+    setReserveCarriages(s.reserveCarriages);
+    setMilestoneChoicePending(s.milestoneChoicePending);
+    setSelectedReserveItemState(s.selectedReserveItem);
   }, []);
 
   // Writes through to both the mutable ref (so game logic/input sees it immediately)
@@ -91,6 +94,7 @@ export function useGameState() {
     setPhase('playing');
     setScore(0);
     setWeekNumber(0);
+    setWeekProgress(0);
     setReserveCarriers(0);
     setReserveCarriages(0);
     setMilestoneChoicePending(false);
@@ -99,7 +103,7 @@ export function useGameState() {
 
   return {
     stateRef: stateRef as MutableRefObject<GameState>,
-    score, phase, weekNumber, reserveCarriers, reserveCarriages, milestoneChoicePending, selectedReserveItem,
+    score, phase, weekNumber, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending, selectedReserveItem,
     startGame, syncReactState, setSelectedReserveItem,
   };
 }

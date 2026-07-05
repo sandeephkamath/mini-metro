@@ -23,5 +23,5 @@ test('weekly upgrade advances the week and offers a choice', async ({ page }) =>
   await expect(newTrainOption).not.toBeVisible();
 
   await test.info().attach('after-choice', { body: await page.screenshot(), contentType: 'image/png' });
-  await expect(page.getByText('Train ×1', { exact: false })).toBeVisible();
+  await expect(page.getByText('🚆 ×1', { exact: false })).toBeVisible();
 });

@@ -1,17 +1,13 @@
 import type { GameState, MetroLine, Vec2 } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
 import { createTrain, redistributeTrains } from './trains';
+import { buildSegmentShape, computeElbow, distToSegment } from './geometry';
 
-function distToSegment(p: Vec2, a: Vec2, b: Vec2): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const lengthSq = dx * dx + dy * dy;
-  if (lengthSq === 0) return Math.hypot(p.x - a.x, p.y - a.y);
-  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSq));
-  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
-}
+const SEGMENT_HIT_SAMPLES = 10; // sub-divisions used to hit-test the (mostly straight, corner-rounded) segment shape
 
-// Finds a line segment (between two consecutive stations) near a point, for mid-line insertion drags
+// Finds a line segment (between two consecutive stations) near a point, for mid-line insertion drags.
+// Hit-tests against the same shape rendering draws (straight legs with a short rounded corner at the
+// bend, via buildSegmentShape), not a direct station-to-station line, so clicks land where the line looks like it is.
 export function getSegmentAt(state: GameState, pos: Vec2): { lineId: string; afterIndex: number } | null {
   for (const line of Object.values(state.lines)) {
     if (!line.isUnlocked) continue;
@@ -19,9 +15,16 @@ export function getSegmentAt(state: GameState, pos: Vec2): { lineId: string; aft
       const a = state.stations[line.stationIds[i]]?.pos;
       const b = state.stations[line.stationIds[i + 1]]?.pos;
       if (!a || !b) continue;
-      if (distToSegment(pos, a, b) <= CONFIG.LINE_HIT_RADIUS) {
-        return { lineId: line.id, afterIndex: i };
+      const shape = buildSegmentShape(a, b, CONFIG.LINE_BEND_RADIUS);
+
+      let hit = false;
+      let prev = a;
+      for (let s = 1; s <= SEGMENT_HIT_SAMPLES; s++) {
+        const p = shape.pointAt(s / SEGMENT_HIT_SAMPLES);
+        if (distToSegment(pos, prev, p) <= CONFIG.LINE_HIT_RADIUS) { hit = true; break; }
+        prev = p;
       }
+      if (hit) return { lineId: line.id, afterIndex: i };
     }
   }
   return null;
@@ -60,8 +63,13 @@ function endpointHandle(state: GameState, lineId: string, endId: string, neighbo
   const neighbor = state.stations[neighborId]?.pos;
   if (!end || !neighbor) return null;
 
-  const dx = end.x - neighbor.x;
-  const dy = end.y - neighbor.y;
+  // The segment only curves right at the bend point — near the station itself the track is
+  // always straight, so the tab direction is just the straight leg into the station: from the
+  // elbow (if the segment bends) or the neighbor (if it doesn't).
+  const elbow = computeElbow(neighbor, end);
+  const from = elbow ?? neighbor;
+  const dx = end.x - from.x;
+  const dy = end.y - from.y;
   const len = Math.hypot(dx, dy) || 1;
   return {
     lineId,

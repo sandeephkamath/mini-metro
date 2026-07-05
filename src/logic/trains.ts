@@ -1,5 +1,6 @@
 import type { GameState, Train, Vec2, MetroLine, Station, Passenger } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
+import { dist, buildSegmentShape } from './geometry';
 
 const SYM: Record<string, string> = { circle: '●', triangle: '▲', square: '■' };
 function sym(shape: string) { return SYM[shape] ?? '?'; }
@@ -11,22 +12,12 @@ function log(state: GameState, train: Train, msg: string): void {
   if (state.debugLog.length > 30) state.debugLog.shift();
 }
 
-function dist(a: Vec2, b: Vec2): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
-function lerp(a: Vec2, b: Vec2, t: number): Vec2 {
-  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
-}
-
 function lineLength(line: MetroLine, state: GameState): number {
   let total = 0;
   for (let i = 0; i < line.stationIds.length - 1; i++) {
     const a = state.stations[line.stationIds[i]]?.pos;
     const b = state.stations[line.stationIds[i + 1]]?.pos;
-    if (a && b) total += dist(a, b);
+    if (a && b) total += buildSegmentShape(a, b, CONFIG.LINE_BEND_RADIUS).length;
   }
   return total;
 }
@@ -34,21 +25,55 @@ function lineLength(line: MetroLine, state: GameState): number {
 function segmentLength(line: MetroLine, targetIndex: number, direction: number, state: GameState): number {
   const prevIndex = targetIndex - direction;
   if (prevIndex < 0 || prevIndex >= line.stationIds.length) return 1;
-  const from = state.stations[line.stationIds[prevIndex]]?.pos;
-  const to = state.stations[line.stationIds[targetIndex]]?.pos;
-  if (!from || !to) return 1;
-  return Math.max(1, dist(from, to));
+  const lowIndex = Math.min(prevIndex, targetIndex);
+  const highIndex = Math.max(prevIndex, targetIndex);
+  const a = state.stations[line.stationIds[lowIndex]]?.pos;
+  const b = state.stations[line.stationIds[highIndex]]?.pos;
+  if (!a || !b) return 1;
+  return Math.max(1, buildSegmentShape(a, b, CONFIG.LINE_BEND_RADIUS).length);
 }
 
-export function computeTrainPos(train: Train, line: MetroLine, state: GameState): Vec2 {
+// computeElbow (inside buildSegmentShape) isn't symmetric — the diagonal leg always sits next
+// to whichever point is passed first, so computeElbow(a,b) and computeElbow(b,a) bend in
+// different places. Rendering always builds a segment's shape in ascending station-index order
+// (stationIds[i] -> stationIds[i+1]); a Train traveling backward (high index -> low index) must
+// sample that *same* shape rather than rebuild it with from/to swapped, or its bend lands
+// somewhere the rendered line never goes — which is why trains only drifted off-track on return trips.
+function sampleTrainSegment(train: Train, line: MetroLine, state: GameState): { pos: Vec2; tangent: Vec2 } | null {
   const prevIndex = train.targetStationIndex - train.direction;
-  if (prevIndex < 0 || prevIndex >= line.stationIds.length) {
-    return state.stations[line.stationIds[train.targetStationIndex]]?.pos ?? { x: 0, y: 0 };
-  }
-  const from = state.stations[line.stationIds[prevIndex]]?.pos;
-  const to = state.stations[line.stationIds[train.targetStationIndex]]?.pos;
-  if (!from || !to) return { x: 0, y: 0 };
-  return lerp(from, to, train.progress);
+  if (prevIndex < 0 || prevIndex >= line.stationIds.length) return null;
+
+  const lowIndex = Math.min(prevIndex, train.targetStationIndex);
+  const highIndex = Math.max(prevIndex, train.targetStationIndex);
+  const a = state.stations[line.stationIds[lowIndex]]?.pos;
+  const b = state.stations[line.stationIds[highIndex]]?.pos;
+  if (!a || !b) return null;
+
+  const shape = buildSegmentShape(a, b, CONFIG.LINE_BEND_RADIUS);
+  // train.progress runs 0→1 from wherever it departed toward wherever it's headed. The shape
+  // is always parametrized low-index-end (t=0) to high-index-end (t=1), so moving forward
+  // (departed low, heading high) maps progress directly; moving backward, it's reversed.
+  const t = train.direction === 1 ? train.progress : 1 - train.progress;
+  const tangent = shape.tangentAt(t);
+  if (train.direction === -1) { tangent.x = -tangent.x; tangent.y = -tangent.y; }
+  return { pos: shape.pointAt(t), tangent };
+}
+
+// Train position follows the exact same shape renderLines draws (straight legs with a short
+// rounded corner at the bend, via buildSegmentShape) — previously this lerped straight between
+// station centers even when the rendered track bent, so trains visibly cut corners.
+export function computeTrainPos(train: Train, line: MetroLine, state: GameState): Vec2 {
+  const sample = sampleTrainSegment(train, line, state);
+  if (!sample) return state.stations[line.stationIds[train.targetStationIndex]]?.pos ?? { x: 0, y: 0 };
+  return sample.pos;
+}
+
+// Facing angle along the same shape as computeTrainPos, for rendering rotation — smoothly
+// rotates through a bend instead of snapping to a new fixed angle only at each station.
+export function computeTrainAngle(train: Train, line: MetroLine, state: GameState): number {
+  const sample = sampleTrainSegment(train, line, state);
+  if (!sample) return 0;
+  return Math.atan2(sample.tangent.y, sample.tangent.x);
 }
 
 // A passenger should board only if the train can deliver them within one transfer:
@@ -222,7 +247,7 @@ export function redistributeTrains(lineId: string, state: GameState): void {
       const to = state.stations[line.stationIds[segIdx + 1]]?.pos;
       if (!from || !to) continue;
 
-      const segLen = dist(from, to);
+      const segLen = buildSegmentShape(from, to, CONFIG.LINE_BEND_RADIUS).length;
       if (cumLen + segLen >= targetDist) {
         const progress = segLen > 0 ? Math.min((targetDist - cumLen) / segLen, 0.999) : 0;
         trains[i].targetStationIndex = segIdx + 1;
