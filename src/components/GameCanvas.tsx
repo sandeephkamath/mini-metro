@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { MilestoneBonusKind } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
 import { useGameState } from '../hooks/useGameState';
@@ -22,6 +22,28 @@ export function GameCanvas() {
 
   useGameLoop({ stateRef, canvasRef, syncReactState });
   useMouseInput({ canvasRef, stateRef });
+
+  // Scale the whole fixed 800x600 design (canvas + HUD, all pixel-based) down to
+  // fit any viewport smaller than that — phones/small windows — via a single CSS
+  // transform, rather than reworking every component's units. Never scales UP past
+  // 1, so desktop (and the Playwright harness's larger default viewport) renders
+  // pixel-identical to before this existed. getBoundingClientRect-based coordinate
+  // conversion in useMouseInput.ts already accounts for any ancestor transform, so
+  // no input-handling changes are needed to support this.
+  const [stageScale, setStageScale] = useState(1);
+  useEffect(() => {
+    function recompute() {
+      const scale = Math.min(1, window.innerWidth / CONFIG.CANVAS_WIDTH, window.innerHeight / CONFIG.CANVAS_HEIGHT);
+      setStageScale(scale);
+    }
+    recompute();
+    window.addEventListener('resize', recompute);
+    window.addEventListener('orientationchange', recompute);
+    return () => {
+      window.removeEventListener('resize', recompute);
+      window.removeEventListener('orientationchange', recompute);
+    };
+  }, []);
 
   const state = stateRef.current;
   const milestoneAge = state.lastMilestoneTime > 0
@@ -53,12 +75,23 @@ export function GameCanvas() {
   }
 
   return (
-    <div style={{ position: 'relative', width: CONFIG.CANVAS_WIDTH, height: CONFIG.CANVAS_HEIGHT }}>
+    <div style={{
+      width: CONFIG.CANVAS_WIDTH * stageScale,
+      height: CONFIG.CANVAS_HEIGHT * stageScale,
+      overflow: 'hidden',
+    }}>
+    <div style={{
+      position: 'relative',
+      width: CONFIG.CANVAS_WIDTH,
+      height: CONFIG.CANVAS_HEIGHT,
+      transform: `scale(${stageScale})`,
+      transformOrigin: 'top left',
+    }}>
       <canvas
         ref={canvasRef}
         width={CONFIG.CANVAS_WIDTH}
         height={CONFIG.CANVAS_HEIGHT}
-        style={{ display: 'block', cursor: 'crosshair' }}
+        style={{ display: 'block', cursor: 'crosshair', touchAction: 'none' }}
       />
 
       {phase === 'playing' && (
@@ -96,6 +129,7 @@ export function GameCanvas() {
       {phase === 'gameover' && (
         <GameOverScreen score={score} level={level} onRestart={goHome} />
       )}
+    </div>
     </div>
   );
 }

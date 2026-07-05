@@ -229,6 +229,9 @@ export function HUD({
                 onMouseDown={() => startHold(slot.id, slot.hasStations)}
                 onMouseUp={cancelHold}
                 onMouseLeave={cancelHold}
+                onTouchStart={() => startHold(slot.id, slot.hasStations)}
+                onTouchEnd={cancelHold}
+                onTouchCancel={cancelHold}
                 title={slot.hasStations ? 'Hold to delete this line' : undefined}
                 style={{
                   width: holding ? 34 : 20,
@@ -244,6 +247,9 @@ export function HUD({
                   justifyContent: 'center',
                   flexShrink: 0,
                   userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  WebkitTouchCallout: 'none',
+                  touchAction: 'none',
                 }}
               >
                 {holding && <span style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', lineHeight: 1 }}>×</span>}

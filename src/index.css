@@ -30,10 +30,13 @@
   padding: 0;
 }
 
-body {
+html, body {
   margin: 0;
   padding: 0;
   background: #2c2c2c;
+  overflow: hidden; /* the game stage scales itself to fit the viewport; nothing should scroll */
+  overscroll-behavior: none; /* stop mobile pull-to-refresh/rubber-banding from fighting the canvas's own pan/zoom */
+  touch-action: none;
 }
 
 h1,

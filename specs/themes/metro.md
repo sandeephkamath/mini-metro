@@ -138,8 +138,13 @@ Metro's concrete controls for the abstract Camera behavior in core §5 Map & Vie
 |-------|--------|
 | Scroll wheel / trackpad pinch | Zooms in or out, centered on the cursor position |
 | Drag on empty map space (not a Station, Line end, or Line segment) | Pans the Camera |
+| One-finger touch drag on empty map space | Same as a mouse drag — pans the Camera. A single touch is otherwise a full equivalent of the mouse for every interaction in §3/§4 (drawing/extending/inserting into Lines) |
+| Two-finger pinch | Zooms in or out, centered on the pinch midpoint |
+| Two-finger drag (both touches moving together, pinch distance roughly constant) | Pans the Camera by the midpoint's movement — combines with pinch-zoom in the same gesture |
 
 Either input immediately and permanently disables the automatic keep-everything-in-view behavior for the rest of the session.
+
+Touch and mouse are equivalent input methods throughout — nothing in core or this theme distinguishes them. The one exception is the Line-deletion hold gesture (§4-equivalent, HUD legend swatch): touch uses `touchstart`/`touchend`/`touchcancel` in place of `mousedown`/`mouseup`/`mouseleave`, since long-press semantics differ slightly between the two on the web.
 
 ---
 

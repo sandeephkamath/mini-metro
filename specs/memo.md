@@ -47,8 +47,12 @@ Current code still has the old behavior (Delivery Events auto-adding a Carrier t
 
 ## Mobile / Responsive
 
-- No touch input support — game only handles mouse events (`useMouseInput.ts`), including the Camera's scroll-to-zoom / drag-to-pan controls (`src/logic/camera.ts`, `core/logic.md` §5). No pinch-to-zoom or touch-drag-to-pan equivalent yet.
-- Canvas is a fixed 800×600 (`GameCanvas.tsx`) — no responsive scaling to viewport size or `devicePixelRatio`. Will render small/cropped/blurry on phone screens as-is.
+Touch input and responsive sizing are now implemented (`useMouseInput.ts`, `GameCanvas.tsx` — see `themes/metro.md` §6 Camera Controls for the touch-gesture mapping):
+- Single-finger touch is a full equivalent of the mouse for drawing/extending Lines and panning.
+- Two-finger pinch zooms (centered on the pinch midpoint); two-finger drag pans; both combine in one gesture.
+- The whole 800×600 canvas+HUD stage scales down (via a CSS transform, never scaling up past 1) to fit any viewport smaller than that, so it no longer overflows/clips on phone screens.
+
+Still a real gap, not addressed: the internal canvas resolution stays fixed at 800×600 regardless of `devicePixelRatio` — on a high-DPI phone the game renders correctly-scaled but not at native sharpness (no supersampling). Also, since the design is native-landscape (4:3-ish) and the responsive fit is "contain" (show the whole thing, letterboxed), a portrait phone shows the game fairly small with empty bars above/below; there's no rotate-to-landscape prompt or portrait-specific HUD layout. Revisit if phone playtesting shows this is a real usability problem rather than just a smaller-than-desktop presentation.
 
 ### Android Packaging (decision pending)
 
