@@ -25,7 +25,7 @@ export function renderTrains(ctx: CanvasRenderingContext2D, state: GameState): v
 
     // Per-carriage passenger capacity, front carriage first: base capacity, then
     // one CARRIAGE_CAPACITY_BONUS slice per attached Depot Carriage.
-    const capacities = [CONFIG.TRAIN_INITIAL_CAPACITY];
+    const capacities: number[] = [CONFIG.TRAIN_INITIAL_CAPACITY];
     for (let i = 1; i < train.carriageCount; i++) capacities.push(CONFIG.CARRIAGE_CAPACITY_BONUS);
 
     let passengerCursor = 0;
