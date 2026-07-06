@@ -15,6 +15,16 @@ export interface Passenger {
   id: string;
   destinationShape: StationShape;
   originStationId: string;
+  queuedAtMs: number; // state.gameTimeMs when last added to a Station queue (spawn/transfer/debug) — drives the queue-in animation; stale while riding a Train
+}
+
+// Short-lived ghost flourish left when a Passenger boards a Train or is delivered —
+// pruned from GameState.passengerFx once older than the flourish duration.
+export interface PassengerFx {
+  stationId: string;
+  shape: StationShape;
+  kind: 'board' | 'deliver';
+  atMs: number; // state.gameTimeMs when the event happened
 }
 
 export interface Station {
@@ -50,6 +60,7 @@ export interface Train {
   progress: number;
   state: TrainState;
   stopTimer: number;
+  spawnedAtMs: number; // state.gameTimeMs at creation — drives the spawn-in animation, freezes with the Game Clock
 }
 
 export interface DrawingState {
@@ -88,6 +99,7 @@ export interface GameState {
   stations: Record<string, Station>;
   lines: Record<string, MetroLine>;
   trains: Record<string, Train>;
+  passengerFx: PassengerFx[]; // time-ordered; pruned each tick once older than the flourish duration
   drawing: DrawingState;
   camera: CameraState;
   // Real on-screen canvas size (post-rotation-alignment). Equals CONFIG.CANVAS_WIDTH/HEIGHT

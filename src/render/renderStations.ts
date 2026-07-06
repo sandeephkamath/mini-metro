@@ -77,12 +77,12 @@ export function renderStations(ctx: CanvasRenderingContext2D, state: GameState, 
     }
 
     // Passenger dots (no save needed — uses absolute coords only)
-    renderPassengerDots(ctx, station);
+    renderPassengerDots(ctx, station, state.gameTimeMs);
   }
 }
 
-function drawPassengerIcon(ctx: CanvasRenderingContext2D, x: number, y: number, shape: Station['shape']): void {
-  traceShapePath(ctx, x, y, shape, 4);
+function drawPassengerIcon(ctx: CanvasRenderingContext2D, x: number, y: number, shape: Station['shape'], radius = 4): void {
+  traceShapePath(ctx, x, y, shape, radius);
   ctx.fillStyle = '#111';
   ctx.fill();
   ctx.strokeStyle = 'rgba(0,0,0,0.3)';
@@ -90,7 +90,7 @@ function drawPassengerIcon(ctx: CanvasRenderingContext2D, x: number, y: number, 
   ctx.stroke();
 }
 
-function renderPassengerDots(ctx: CanvasRenderingContext2D, station: Station): void {
+function renderPassengerDots(ctx: CanvasRenderingContext2D, station: Station, gameTimeMs: number): void {
   const count = station.passengerQueue.length;
   if (count === 0) return;
 
@@ -105,7 +105,12 @@ function renderPassengerDots(ctx: CanvasRenderingContext2D, station: Station): v
     const p = station.passengerQueue[i];
     const col = i % cols;
     const row = Math.floor(i / cols);
-    drawPassengerIcon(ctx, startX + col * spacing, startY + row * spacing, p.destinationShape);
+    // Queue-in animation — newly queued passengers (spawn/transfer/debug) fade and
+    // scale in instead of popping (themes/metro.md §7 item 8). Game-time driven.
+    const queueT = Math.max(0, Math.min(1, (gameTimeMs - p.queuedAtMs) / CONFIG.PASSENGER_QUEUE_ANIM_MS));
+    ctx.globalAlpha = queueT < 1 ? 0.2 + 0.8 * queueT : 1;
+    drawPassengerIcon(ctx, startX + col * spacing, startY + row * spacing, p.destinationShape, 4 * (0.4 + 0.6 * queueT));
+    ctx.globalAlpha = 1;
   }
 
   if (count > 8) {

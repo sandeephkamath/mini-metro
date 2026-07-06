@@ -1,6 +1,7 @@
 import type { GameState } from '../types/game';
 import { renderLines } from './renderLines';
 import { renderStations } from './renderStations';
+import { renderPassengerFx } from './renderPassengers';
 import { renderTrains } from './renderTrains';
 import { renderDebug } from './renderDebug';
 
@@ -20,6 +21,7 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState, now: num
 
   renderLines(ctx, state);
   renderStations(ctx, state, now);
+  renderPassengerFx(ctx, state);
   renderTrains(ctx, state);
 
   ctx.restore();

@@ -142,6 +142,7 @@ function boardPassengers(train: Train, stationId: string, state: GameState): voi
   for (const passenger of station.passengerQueue) {
     if (train.passengers.length < train.maxCapacity && canReachAhead(train, passenger, state)) {
       train.passengers.push(passenger);
+      state.passengerFx.push({ stationId: station.id, shape: passenger.destinationShape, kind: 'board', atMs: state.gameTimeMs });
       log(state, train, `@${sym(station.shape)} boarded ${sym(passenger.destinationShape)}`);
     } else if (state.debugMode && !canReachAhead(train, passenger, state)) {
       log(state, train, `@${sym(station.shape)} skipped ${sym(passenger.destinationShape)} (wrong dir)`);
@@ -177,8 +178,10 @@ function disembarkPassengers(train: Train, stationId: string, state: GameState):
   for (const p of train.passengers) {
     if (p.destinationShape === station.shape) {
       state.score += 1;
+      state.passengerFx.push({ stationId: station.id, shape: p.destinationShape, kind: 'deliver', atMs: state.gameTimeMs });
       log(state, train, `@${sym(station.shape)} delivered ${sym(p.destinationShape)} ✓`);
     } else if (shouldTransferHere(train, p, station, state) && station.passengerQueue.length < station.maxCapacity) {
+      p.queuedAtMs = state.gameTimeMs;
       station.passengerQueue.push(p);
       log(state, train, `@${sym(station.shape)} transfer ${sym(p.destinationShape)} → waiting`);
     } else {
@@ -293,5 +296,6 @@ export function createTrain(lineId: string, state: GameState): Train {
     progress: 0,
     state: 'moving',
     stopTimer: 0,
+    spawnedAtMs: state.gameTimeMs,
   };
 }

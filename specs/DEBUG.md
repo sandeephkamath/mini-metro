@@ -1,7 +1,7 @@
 # Debug Mode Specification
 
-**Version**: 1.0
-**Last updated**: 2026-07-04
+**Version**: 1.1
+**Last updated**: 2026-07-06
 
 Debug mode is a developer tool layered on top of the running game. It does not alter game rules — it only provides visibility and controlled injection of state for testing.
 
@@ -15,7 +15,7 @@ Press **`D`** to toggle debug mode on or off. Turning it off clears the event lo
 
 ## Debug Overlay (always visible in debug mode)
 
-A semi-transparent panel on the right side of the canvas shows:
+A semi-transparent panel on the right side of the canvas shows the sections below. The panel's top edge sits below the HUD's top bar (never overlapping it), so both stay readable while debug mode is on.
 
 ### Train Status (top section)
 One row per active train:

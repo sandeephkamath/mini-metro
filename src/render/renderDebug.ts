@@ -64,6 +64,10 @@ function drawPopup(
 // TypeScript: fix the `ShapeShape` typo used in drawPopup signature
 type ShapeShape = StationShape;
 
+// Keep the panel clear of the DOM HUD's top bar (HUD.tsx: 8px vertical padding around
+// ~28px-tall content) — they share the same pixel space (both children of the stage div).
+const PANEL_TOP = 48;
+
 export function renderDebug(ctx: CanvasRenderingContext2D, state: GameState): void {
   if (!state.debugMode) return;
 
@@ -98,10 +102,10 @@ export function renderDebug(ctx: CanvasRenderingContext2D, state: GameState): vo
   // Panel background
   ctx.fillStyle = 'rgba(0,0,0,0.75)';
   ctx.beginPath();
-  ctx.roundRect(panelX, 4, panelW, panelH, 6);
+  ctx.roundRect(panelX, PANEL_TOP, panelW, panelH, 6);
   ctx.fill();
 
-  let y = 4 + padding + lineH - 2;
+  let y = PANEL_TOP + padding + lineH - 2;
 
   // Header
   ctx.fillStyle = '#aaa';

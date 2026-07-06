@@ -19,6 +19,15 @@ export function renderTrains(ctx: CanvasRenderingContext2D, state: GameState): v
     ctx.translate(train.pos.x, train.pos.y);
     ctx.rotate(computeTrainAngle(train, line, state));
 
+    // Spawn-in fade/scale — matches the Station spawn treatment (themes/metro.md §7
+    // item 9). Game-time driven, so it freezes with the Game Clock.
+    const spawnT = Math.max(0, Math.min(1, (state.gameTimeMs - train.spawnedAtMs) / CONFIG.TRAIN_SPAWN_ANIM_MS));
+    if (spawnT < 1) {
+      ctx.globalAlpha = 0.2 + 0.8 * spawnT;
+      const s = 0.4 + 0.6 * spawnT;
+      ctx.scale(s, s);
+    }
+
     const w = CONFIG.TRAIN_WIDTH;
     const h = CONFIG.TRAIN_HEIGHT;
     const gap = CONFIG.CARRIAGE_GAP;
@@ -58,8 +67,9 @@ export function renderTrains(ctx: CanvasRenderingContext2D, state: GameState): v
       for (let i = 0; i < maxIcons; i++) {
         const shape = inCarriage[i].destinationShape;
         const px = cx - w / 2 + 3 + i * ((w - 6) / maxIcons) + (w - 6) / (maxIcons * 2);
+        // Light-on-dark for legibility against the dark train body (themes/metro.md §7 item 10)
         traceShapePath(ctx, px, 0, shape, 2);
-        ctx.fillStyle = '#111';
+        ctx.fillStyle = '#f5f0e8';
         ctx.fill();
       }
     }

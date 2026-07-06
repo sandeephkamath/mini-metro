@@ -1,4 +1,4 @@
-import type { GameState, Passenger, Train } from '../types/game';
+import type { GameState } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
 import { ALL_SHAPES } from './shapes';
 
@@ -22,38 +22,11 @@ export function trySpawnPassenger(state: GameState): boolean {
       id: `p${++state.nextIds.passenger}`,
       destinationShape: destShape,
       originStationId: station.id,
+      queuedAtMs: state.gameTimeMs,
     });
     spawnedAny = true;
   }
   return spawnedAny;
-}
-
-export function canReach(train: Train, passenger: Passenger, state: GameState): boolean {
-  const line = state.lines[train.lineId];
-  if (!line) return false;
-
-  const visited = new Set<string>();
-  const queue: string[] = [...line.stationIds];
-
-  while (queue.length > 0) {
-    const sid = queue.shift()!;
-    if (visited.has(sid)) continue;
-    visited.add(sid);
-
-    const station = state.stations[sid];
-    if (!station) continue;
-    if (station.shape === passenger.destinationShape) return true;
-
-    for (const lineId of station.lineIds) {
-      const connectedLine = state.lines[lineId];
-      if (!connectedLine) continue;
-      for (const connSid of connectedLine.stationIds) {
-        if (!visited.has(connSid)) queue.push(connSid);
-      }
-    }
-  }
-
-  return false;
 }
 
 export function getPassengerSpawnInterval(weekNumber: number): number {

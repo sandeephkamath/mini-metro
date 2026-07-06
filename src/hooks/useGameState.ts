@@ -20,6 +20,7 @@ function createInitialState(): GameState {
     stations: {},
     lines: {},
     trains: {},
+    passengerFx: [],
     drawing: {
       isDrawing: false,
       lineId: null,

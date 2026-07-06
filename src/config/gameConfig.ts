@@ -28,6 +28,9 @@ export const CONFIG = {
   STATION_INITIAL_CAPACITY: 6,
   STATION_RADIUS: 14,
   STATION_SPAWN_ANIM_MS: 600, // spawn-in fade/scale duration for a newly-created Station
+  TRAIN_SPAWN_ANIM_MS: 400, // spawn-in fade/scale duration for a newly-created Train
+  PASSENGER_QUEUE_ANIM_MS: 300, // fade/scale-in of a Passenger icon newly added to a Station queue
+  PASSENGER_FX_MS: 400, // lifetime of the board/deliver ghost flourish
   // Hit radius for STARTING a drag (precise — an accidental drag from empty space should
   // never silently grab the wrong station). core/logic.md §4.
   STATION_HIT_RADIUS: 20,

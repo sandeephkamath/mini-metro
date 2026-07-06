@@ -14,8 +14,10 @@ export function tick(state: GameState, dt: number): void {
   // same mechanism as the phase !== 'playing' guard above (core §6 Game Clock).
   if (state.milestoneChoicePending) return;
   // Player-facing Pause button uses the same guard — drawing/editing stays live,
-  // only simulation time freezes (core §6 Game Clock).
-  if (state.playerPaused) return;
+  // only simulation time freezes (core §6 Game Clock). While debug mode is on, the
+  // keyed debug speed takes precedence over the player's HUD selection (DEBUG.md
+  // Speed Control) — debug speed 0 already pauses via a zero dt multiplier.
+  if (state.playerPaused && !state.debugMode) return;
 
   const cappedDt = Math.min(dt, CONFIG.MAX_DT);
   state.gameTimeMs += cappedDt;
@@ -34,6 +36,11 @@ export function tick(state: GameState, dt: number): void {
   }
 
   tickTrains(state, cappedDt);
+
+  // passengerFx is appended in time order, so expired entries are always at the front
+  while (state.passengerFx.length > 0 && state.gameTimeMs - state.passengerFx[0].atMs > CONFIG.PASSENGER_FX_MS) {
+    state.passengerFx.shift();
+  }
 
   updateOverflowRisk(state, cappedDt);
   if ((state.phase as string) === 'gameover') return;

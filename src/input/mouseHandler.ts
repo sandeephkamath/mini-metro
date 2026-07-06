@@ -54,6 +54,7 @@ function onDebugMouseDown(state: GameState, x: number, y: number): void {
             id: `p${++state.nextIds.passenger}`,
             destinationShape: hit,
             originStationId: station.id,
+            queuedAtMs: state.gameTimeMs,
           });
         }
       } else {
