@@ -234,6 +234,21 @@ export async function waitForScoreAtLeast(page: Page, target: number, timeoutMs:
   return score ?? -1;
 }
 
+// Polls instead of a fixed waitForTimeout — how much real time a given amount of debug-
+// sped-up game time actually takes isn't exact (RAF throttling, frame overhead), so a
+// fixed wait tuned to the nominal multiplier can come up just short (see
+// flows/weekly-upgrade.spec.ts). Polling is robust to that regardless of the actual ratio.
+export async function waitForWeekAtLeast(page: Page, target: number, timeoutMs: number): Promise<number> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const { week } = await getScoreAndWeek(page);
+    if (week !== null && week >= target) return week;
+    await page.waitForTimeout(500);
+  }
+  const { week } = await getScoreAndWeek(page);
+  return week ?? -1;
+}
+
 // Reads the pixel at a WORLD coordinate. getImageData reads the canvas's raw pixel
 // buffer directly — that's always exactly canvas-local (pre-rotation) space, unaffected
 // by any CSS transform, so (unlike canvasPoint) there's no box/rotation step needed here,

@@ -38,14 +38,22 @@ export function tick(state: GameState, dt: number): void {
   updateOverflowRisk(state, cappedDt);
   if ((state.phase as string) === 'gameover') return;
 
+  // Advance nextWeekTime/nextMilestoneTime from their own prior (exact-multiple) value,
+  // not from the current (possibly overshot, per-tick-capped) gameTimeMs — otherwise each
+  // firing's overshoot compounds into the next threshold, and since MILESTONE_EVENT_WEEKS
+  // weeks' worth of week-boundary overshoot can add up to more than a single week-boundary
+  // overshoot, nextWeekTime can drift past nextMilestoneTime by the time a milestone week
+  // is reached. That desync freezes weekNumber one short forever once the (still-exact)
+  // milestone check pauses the clock before the (now-late) week check ever fires again —
+  // see themes/metro.md §11 B12.
   if (state.gameTimeMs >= state.nextWeekTime) {
     state.weekNumber++;
-    state.nextWeekTime = state.gameTimeMs + CONFIG.WEEK_DURATION_MS;
+    state.nextWeekTime += CONFIG.WEEK_DURATION_MS;
   }
 
   if (state.gameTimeMs >= state.nextMilestoneTime) {
     state.level++;
-    state.nextMilestoneTime = state.gameTimeMs + CONFIG.WEEK_DURATION_MS * CONFIG.MILESTONE_EVENT_WEEKS;
+    state.nextMilestoneTime += CONFIG.WEEK_DURATION_MS * CONFIG.MILESTONE_EVENT_WEEKS;
     fireMilestoneEvent(state);
   }
 }
