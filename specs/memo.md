@@ -47,12 +47,13 @@ Current code still has the old behavior (Delivery Events auto-adding a Carrier t
 
 ## Mobile / Responsive
 
-Touch input and responsive sizing are now implemented (`useMouseInput.ts`, `GameCanvas.tsx` — see `themes/metro.md` §6 Camera Controls for the touch-gesture mapping):
+Touch input and responsive sizing are now implemented (`useMouseInput.ts`, `GameCanvas.tsx` — see `themes/metro.md` §6 Camera Controls / §6.1 Responsive Presentation for the full rules):
 - Single-finger touch is a full equivalent of the mouse for drawing/extending Lines and panning.
 - Two-finger pinch zooms (centered on the pinch midpoint); two-finger drag pans; both combine in one gesture.
-- The whole 800×600 canvas+HUD stage scales down (via a CSS transform, never scaling up past 1) to fit any viewport smaller than that, so it no longer overflows/clips on phone screens.
+- The whole 800×600 canvas+HUD stage scales to fit any viewport, never scaling up past native size. On a portrait phone specifically, it rotates 90° before scaling to actually fill the screen, rather than a plain contain-fit that would otherwise leave most of a tall narrow screen empty (`themes/metro.md` §6.1) — confirmed necessary via real-device testing (a plain scale-to-fit alone left the game tiny and letterboxed on an actual phone in portrait).
+- Real-device testing also surfaced that the drag-to-connect-Lines target radius was too tight for touch on a scaled-down screen — releasing near-but-not-exactly-on a Node would silently fail to connect. Fixed by widening (and using nearest-not-first-found for) the drop-tolerance specifically on drag release — see `core/logic.md` §4.
 
-Still a real gap, not addressed: the internal canvas resolution stays fixed at 800×600 regardless of `devicePixelRatio` — on a high-DPI phone the game renders correctly-scaled but not at native sharpness (no supersampling). Also, since the design is native-landscape (4:3-ish) and the responsive fit is "contain" (show the whole thing, letterboxed), a portrait phone shows the game fairly small with empty bars above/below; there's no rotate-to-landscape prompt or portrait-specific HUD layout. Revisit if phone playtesting shows this is a real usability problem rather than just a smaller-than-desktop presentation.
+Still a real gap, not addressed: the internal canvas resolution stays fixed at 800×600 regardless of `devicePixelRatio` — on a high-DPI phone the game renders correctly-scaled but not at native sharpness (no supersampling). There's also no portrait-specific HUD layout — the rotate-to-fill above means the existing HUD just rotates along with everything else rather than being redesigned for a tall narrow screen.
 
 ### Android Packaging (decision pending)
 

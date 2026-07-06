@@ -127,6 +127,8 @@ These are the concrete values for the tunable parameters defined abstractly in `
 | Frame dt cap | 100 ms | Prevents spiral-of-death |
 | End marker tab length | 20 px | Projects past the terminal station |
 | End marker hit radius | 10 px | For grabbing a specific Line's end |
+| Station hit radius | 20 px | For starting a drag (precise — core §4) |
+| Station drop radius | 40 px | For completing a drag (more forgiving than starting one — core §4); kept under half of Station min spacing (90px) so it can't overlap two stations at once |
 
 ---
 
@@ -145,6 +147,16 @@ Metro's concrete controls for the abstract Camera behavior in core §5 Map & Vie
 Either input immediately and permanently disables the automatic keep-everything-in-view behavior for the rest of the session.
 
 Touch and mouse are equivalent input methods throughout — nothing in core or this theme distinguishes them. The one exception is the Line-deletion hold gesture (§4-equivalent, HUD legend swatch): touch uses `touchstart`/`touchend`/`touchcancel` in place of `mousedown`/`mouseup`/`mouseleave`, since long-press semantics differ slightly between the two on the web.
+
+### 6.1 Responsive Presentation
+
+The full game (canvas and HUD together) is designed at a fixed size and presented scaled to fit whatever viewport it's actually running in, rather than redesigning the layout per screen size:
+
+- On a viewport at least as large as the design size in both dimensions (typical desktop), the game renders at its native size, unscaled.
+- On a smaller viewport whose long axis is horizontal (landscape phones, small windows), the game scales down uniformly (preserving aspect ratio) to fit, still right-side-up.
+- On a smaller viewport whose long axis is vertical (portrait phones — the common case, since the design is landscape-shaped), the whole game rotates 90° to align its own long axis with the viewport's long axis, *then* scales to fit — filling far more of a portrait screen than scaling alone would (which would otherwise only ever be limited by the narrow width, leaving most of the screen empty). The player sees the game sideways in this case; physically rotating the device to landscape removes the need for this and returns the game to right-side-up, scaled to fit normally.
+- Never scales up past native size — a very large viewport still renders at the design's native size, not stretched larger.
+- Every input method (mouse and touch alike) accounts for whichever of the above is currently active, so a click/tap always lands on the same game-world point the player sees on screen, rotated presentation included.
 
 ---
 
@@ -245,3 +257,4 @@ The game-over screen additionally shows this session's contribution to the curre
 | B8 | Station overflow could never end the game — the queue could reach exactly `maxCapacity` but the check required strictly exceeding it | Every code path that pushes into a Station's queue (`trySpawnPassenger`, the transfer branch of `disembarkPassengers`, the debug add-passenger handler) gated on `< maxCapacity`, so `checkOverflow`'s `> maxCapacity` test was unreachable | Replaced with the Overflow Risk / Grace Timer state machine — a Station at/over capacity starts a Grace Timer instead of ending the game instantly; expiry while still over capacity ends it — see core/logic.md §3 Node Overflow, core/progression.md §5 |
 | B9 | Selecting a Depot Train/Carriage from the HUD while debug mode is on and then clicking a Line/Train did nothing — the selection stayed visually "active" with no way to place it short of Escape or toggling debug off | `onMouseDown` checked `state.debugMode` and routed to the debug popup handler before ever reaching the `selectedReserveItem` branches, so every canvas click was swallowed by debug tooling regardless of a pending Depot selection | Reordered `onMouseDown` so the Reserve-assignment branches are checked first, before the debug-mode branch — Depot placement now works identically whether debug mode is on or off |
 | B10 | `reserveCarriers`/`reserveCarriages` could in principle be driven negative by a fast repeated click while a Depot item was selected | The Reserve-assignment branches in `onMouseDown` decremented the count unconditionally on any hit, with no check that a reserve was actually available | Added a `> 0` guard before assigning and decrementing each Reserve count |
+| B11 | Holding two different Lines' HUD legend swatches at once with two fingers produced the wrong outcome for both — releasing one early (should cancel) deleted it anyway, while holding the other past the threshold (should delete) got silently cancelled instead | `HUD.tsx`'s hold-to-delete tracking (`holdingLineId` + `holdTimerRef`) was a single shared value, not per-Line — a second swatch's `touchstart` overwrote the first swatch's timer reference, orphaning it | Keyed the hold state per-Line (`Set<string>` + `Map<string, number>`) so concurrent holds on different Lines can't interfere with each other's timer lifecycle — found via the `game-tester` agent's real two-finger touch dispatch, only reachable via multi-touch (impossible with a single mouse) |

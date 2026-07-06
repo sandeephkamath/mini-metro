@@ -111,11 +111,18 @@ export function trySpawnStationAt(state: GameState, pos: Vec2, shape: StationSha
   state.stations[id] = { id, label, shape, pos, passengerQueue: [], maxCapacity: CONFIG.STATION_INITIAL_CAPACITY, lineIds: [], riskTimer: null, spawnedAtMs: state.gameTimeMs };
 }
 
-export function getStationAt(state: GameState, pos: Vec2): Station | null {
+// Returns the *nearest* Station within radius (not just the first one found) — with
+// STATION_DROP_RADIUS's wider tolerance for completing a drag (core/logic.md §4), more
+// than one Station can plausibly be in range at once, and the closest one should win.
+export function getStationAt(state: GameState, pos: Vec2, radius: number = CONFIG.STATION_HIT_RADIUS): Station | null {
+  let closest: Station | null = null;
+  let closestDist = radius;
   for (const station of Object.values(state.stations)) {
-    if (distance(station.pos, pos) < CONFIG.STATION_RADIUS + 6) {
-      return station;
+    const d = distance(station.pos, pos);
+    if (d < closestDist) {
+      closest = station;
+      closestDist = d;
     }
   }
-  return null;
+  return closest;
 }

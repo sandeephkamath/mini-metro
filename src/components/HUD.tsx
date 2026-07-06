@@ -122,25 +122,41 @@ export function HUD({
   // X over DELETE_HOLD_MS; releasing early cancels. Matches the original's gesture
   // (specs/mini_metro_original_analysis_2_ui_timing.md §5). Pure UI feedback state —
   // the actual deletion is a single onDeleteLine call once the hold completes.
-  const [holdingLineId, setHoldingLineId] = useState<string | null>(null);
-  const holdTimerRef = useRef<number | null>(null);
+  //
+  // Keyed per-Line (Set + Map), not a single shared value — two fingers can hold two
+  // different Lines' swatches at once on touch (impossible with a single mouse, so this
+  // was missed until a real multi-touch pass caught it): a single shared value meant a
+  // second touchstart overwrote the first hold's tracking, silently orphaning its timer.
+  const [holdingLineIds, setHoldingLineIds] = useState<Set<string>>(new Set());
+  const holdTimersRef = useRef<Map<string, number>>(new Map());
 
   function startHold(lineId: string, hasStations: boolean) {
-    if (!hasStations) return;
-    setHoldingLineId(lineId);
-    holdTimerRef.current = window.setTimeout(() => {
+    if (!hasStations || holdTimersRef.current.has(lineId)) return;
+    setHoldingLineIds(prev => new Set(prev).add(lineId));
+    const timer = window.setTimeout(() => {
       onDeleteLine(lineId);
-      holdTimerRef.current = null;
-      setHoldingLineId(null);
+      holdTimersRef.current.delete(lineId);
+      setHoldingLineIds(prev => {
+        const next = new Set(prev);
+        next.delete(lineId);
+        return next;
+      });
     }, DELETE_HOLD_MS);
+    holdTimersRef.current.set(lineId, timer);
   }
 
-  function cancelHold() {
-    if (holdTimerRef.current !== null) {
-      clearTimeout(holdTimerRef.current);
-      holdTimerRef.current = null;
+  function cancelHold(lineId: string) {
+    const timer = holdTimersRef.current.get(lineId);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      holdTimersRef.current.delete(lineId);
     }
-    setHoldingLineId(null);
+    setHoldingLineIds(prev => {
+      if (!prev.has(lineId)) return prev;
+      const next = new Set(prev);
+      next.delete(lineId);
+      return next;
+    });
   }
 
   function depotButtonStyle(count: number, selected: boolean) {
@@ -221,17 +237,17 @@ export function HUD({
             if (!slot.isUnlocked) {
               return <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#666' }} />;
             }
-            const holding = holdingLineId === slot.id;
+            const holding = holdingLineIds.has(slot.id);
             return (
               <div
                 key={i}
                 data-testid={`hud-line-swatch-${slot.id}`}
                 onMouseDown={() => startHold(slot.id, slot.hasStations)}
-                onMouseUp={cancelHold}
-                onMouseLeave={cancelHold}
+                onMouseUp={() => cancelHold(slot.id)}
+                onMouseLeave={() => cancelHold(slot.id)}
                 onTouchStart={() => startHold(slot.id, slot.hasStations)}
-                onTouchEnd={cancelHold}
-                onTouchCancel={cancelHold}
+                onTouchEnd={() => cancelHold(slot.id)}
+                onTouchCancel={() => cancelHold(slot.id)}
                 title={slot.hasStations ? 'Hold to delete this line' : undefined}
                 style={{
                   width: holding ? 34 : 20,

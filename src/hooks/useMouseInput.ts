@@ -7,21 +7,33 @@ import { zoomAtScreenPoint, panCameraByScreenDelta } from '../logic/camera';
 interface UseMouseInputOptions {
   canvasRef: MutableRefObject<HTMLCanvasElement | null>;
   stateRef: MutableRefObject<GameState>;
+  // Whether GameCanvas.tsx is currently presenting the stage rotated 90° (portrait
+  // viewport — themes/metro.md §6.1). A ref, not a prop passed by value, so these
+  // native listeners always read the latest state without needing to re-attach.
+  rotatedRef: MutableRefObject<boolean>;
 }
 
-export function useMouseInput({ canvasRef, stateRef }: UseMouseInputOptions) {
+export function useMouseInput({ canvasRef, stateRef, rotatedRef }: UseMouseInputOptions) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // Under a 90°-rotated presentation, the rect returned by getBoundingClientRect
+    // is the rotated on-screen bounding box (width/height swapped relative to the
+    // canvas's own intrinsic pixels) — screen-X no longer maps to canvas-local X,
+    // it maps to canvas-local Y (and vice versa, with one axis inverted). Derived
+    // by tracking where each of the design box's 4 corners ends up on screen under
+    // CSS `rotate(90deg)`: local (0,0)→screen top-right, (W,0)→bottom-right,
+    // (0,H)→top-left, (W,H)→bottom-left. u/v below are the touch/click position
+    // normalized 0..1 within the on-screen rect, independent of rotation.
     function getCanvasPos(e: { clientX: number; clientY: number }) {
       const rect = canvas!.getBoundingClientRect();
-      const scaleX = canvas!.width / rect.width;
-      const scaleY = canvas!.height / rect.height;
-      return {
-        x: (e.clientX - rect.left) * scaleX,
-        y: (e.clientY - rect.top) * scaleY,
-      };
+      const u = (e.clientX - rect.left) / rect.width;
+      const v = (e.clientY - rect.top) / rect.height;
+      if (rotatedRef.current) {
+        return { x: v * canvas!.width, y: (1 - u) * canvas!.height };
+      }
+      return { x: u * canvas!.width, y: v * canvas!.height };
     }
 
     const handleDown = (e: MouseEvent) => {
@@ -183,5 +195,5 @@ export function useMouseInput({ canvasRef, stateRef }: UseMouseInputOptions) {
       window.removeEventListener('mouseup', handleUp);
       window.removeEventListener('keydown', handleKey);
     };
-  }, [canvasRef, stateRef]);
+  }, [canvasRef, stateRef, rotatedRef]);
 }

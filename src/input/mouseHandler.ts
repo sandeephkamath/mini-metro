@@ -193,7 +193,9 @@ export function onMouseUp(state: GameState, canvasX: number, canvasY: number): v
   if (!state.drawing.isDrawing) return;
 
   const world = screenToWorld(state, { x: canvasX, y: canvasY });
-  const endStation = getStationAt(state, world);
+  // Wider tolerance than the default hit radius — completing a drag (core/logic.md §4)
+  // forgives a near miss, unlike starting one.
+  const endStation = getStationAt(state, world, CONFIG.STATION_DROP_RADIUS);
   const startId = state.drawing.startStationId;
   const insertAfterIndex = state.drawing.insertAfterIndex;
 
