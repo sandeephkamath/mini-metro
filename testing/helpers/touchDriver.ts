@@ -76,3 +76,20 @@ export async function touchHold(page: Page, point: TouchPt, holdMs: number) {
   await page.waitForTimeout(holdMs);
   await dispatch(page, 'touchEnd', []);
 }
+
+// Low-level primitives for composing a custom multi-touch sequence where each finger
+// has its own independent lifetime (e.g. two fingers touching down at the same time
+// but lifting at different moments) — the composed gestures above always start/end
+// all their touches together, which doesn't fit that case. Per CDP's
+// Input.dispatchTouchEvent semantics: touchPoints always lists the *currently active*
+// set after this event (so a touchEnd removing one of several fingers should list the
+// ones still down, not an empty array, unless all fingers are lifting).
+export async function touchStart(page: Page, points: TouchPt[]) {
+  await dispatch(page, 'touchStart', points);
+}
+export async function touchMoveTo(page: Page, points: TouchPt[]) {
+  await dispatch(page, 'touchMove', points);
+}
+export async function touchEndKeeping(page: Page, stillDown: TouchPt[]) {
+  await dispatch(page, 'touchEnd', stillDown);
+}

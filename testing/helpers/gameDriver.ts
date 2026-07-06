@@ -32,12 +32,26 @@ async function canvasLocator(page: Page): Promise<Locator> {
 
 // Scales logical 800x600 canvas coordinates by the CSS box's actual on-screen size,
 // so this works whether the game stage is rendered at 1:1 (desktop/default Playwright
-// viewport) or scaled down to fit a smaller/mobile viewport (GameCanvas.tsx's
-// stageScale) — a no-op when box.width/height already equal CANVAS_WIDTH/HEIGHT.
+// viewport), scaled down to fit a smaller/mobile viewport, or rotated 90° to fill a
+// portrait viewport (GameCanvas.tsx's stageScale/rotatedRef, themes/metro.md §6.1) —
+// a no-op when box.width/height already equal CANVAS_WIDTH/HEIGHT.
+//
+// The design is always 800x600 (wider than tall) unrotated, so a box that ends up
+// narrower than tall can only mean the rotated presentation is active — inferring it
+// from the box's own aspect ratio here rather than needing to reach into React state.
+// Mirrors the inverse of useMouseInput.ts's getCanvasPos (screen -> local); this is
+// local -> screen.
 export async function canvasPoint(page: Page, x: number, y: number) {
   const canvas = await canvasLocator(page);
   const box = await canvas.boundingBox();
   if (!box) throw new Error('canvas not found');
+  const rotated = box.width < box.height;
+  if (rotated) {
+    return {
+      x: box.x + (1 - y / CANVAS_HEIGHT) * box.width,
+      y: box.y + (x / CANVAS_WIDTH) * box.height,
+    };
+  }
   return {
     x: box.x + (x / CANVAS_WIDTH) * box.width,
     y: box.y + (y / CANVAS_HEIGHT) * box.height,

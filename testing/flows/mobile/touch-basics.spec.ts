@@ -20,6 +20,27 @@ test('game stage fits the mobile viewport without horizontal overflow', async ({
   expect(bodyOverflowX).toBe(false);
 });
 
+// iPhone 13's default viewport (390x844) is portrait — themes/metro.md §6.1 says the
+// stage should rotate 90° to fill it rather than a plain contain-fit, which would be
+// limited by the narrow 390px width alone (390 * 390*600/800 = ~114k px² of canvas).
+// Confirms that's actually happening, not just that individual touch coordinates
+// happen to still resolve correctly (covered separately below).
+test('portrait viewport rotates the stage to fill much more of the screen than a plain fit would', async ({ page }) => {
+  await page.goto('/');
+  await startGame(page);
+
+  const viewport = page.viewportSize()!;
+  expect(viewport.height).toBeGreaterThan(viewport.width); // sanity-check this device profile is actually portrait
+
+  const canvasBox = await page.locator('canvas').boundingBox();
+  expect(canvasBox).not.toBeNull();
+  expect(canvasBox!.width).toBeLessThan(canvasBox!.height); // rotated: bounding box is taller than wide
+
+  const naiveContainFitArea = viewport.width * (viewport.width * 600 / 800);
+  const actualArea = canvasBox!.width * canvasBox!.height;
+  expect(actualArea).toBeGreaterThan(naiveContainFitArea * 1.5); // meaningfully bigger, not just technically taller
+});
+
 test('single-finger touch drag draws a line between stations', async ({ page }) => {
   await page.goto('/');
   await startGame(page);

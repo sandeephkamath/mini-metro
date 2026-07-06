@@ -53,11 +53,14 @@ A separate `mobile` Playwright project (`testing/playwright.config.ts`, `testing
 | Flow | Trigger | Expected (spec ref) |
 |------|---------|---------------------|
 | Responsive Fit | Load the app at a phone-sized viewport | Canvas+HUD stage scales to fit without horizontal page overflow (`themes/metro.md` §6, `memo.md` Mobile/Responsive) |
-| Touch Draw | Single-finger touch-drag between two stations | Same as Draw a Line above — touch is a full equivalent of the mouse (`themes/metro.md` §6) |
+| Rotate-to-Fill | Load the app at a portrait-shaped (taller-than-wide) viewport | Stage rotates 90° before scaling, filling meaningfully more of the screen than a plain contain-fit would (`themes/metro.md` §6.1) |
+| Touch Draw | Single-finger touch-drag between two stations | Same as Draw a Line above — touch is a full equivalent of the mouse, correct even when the stage is rotated (`themes/metro.md` §6, §6.1) |
 | Touch Pan | Single-finger touch-drag on empty map space | Pans the Camera, same as a mouse drag (`themes/metro.md` §6) |
 | Pinch Zoom | Two-finger pinch in/out | Zooms in/out around the pinch midpoint, clamped to `CAMERA_MIN_ZOOM`/`CAMERA_MAX_ZOOM` same as scroll-wheel zoom (`themes/metro.md` §6) |
 | Two-Finger Pan | Two fingers moving together, pinch distance ~constant | Pans the Camera by the midpoint's movement (`themes/metro.md` §6) |
 | Touch Hold-to-Delete | Touch-hold a Line's HUD legend swatch past the hold threshold | Line is deleted, same as the mouse hold gesture (`core/logic.md` §2 Route, §4; `mini_metro_original_analysis_2_ui_timing.md` §5) |
+| Concurrent Touch Hold-to-Delete | Two fingers hold two different Lines' swatches at once, released at different times relative to the hold threshold | Each Line's outcome depends only on its own touch's timing, independent of the other (`core/logic.md` §4) |
+| Snap-to-Node Drop Tolerance | Mouse/touch-drag released near but not exactly on a destination Station | Connects to the nearest Station within the wider drop tolerance, same as an exact hit (`core/logic.md` §4) |
 
 ---
 
