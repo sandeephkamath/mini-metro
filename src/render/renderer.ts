@@ -1,20 +1,20 @@
 import type { GameState } from '../types/game';
-import { CONFIG } from '../config/gameConfig';
 import { renderLines } from './renderLines';
 import { renderStations } from './renderStations';
 import { renderTrains } from './renderTrains';
 import { renderDebug } from './renderDebug';
 
 export function render(ctx: CanvasRenderingContext2D, state: GameState, now: number): void {
-  ctx.clearRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+  const { width, height } = state.viewport;
+  ctx.clearRect(0, 0, width, height);
 
   // Background
   ctx.fillStyle = '#f5f0e8';
-  ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+  ctx.fillRect(0, 0, width, height);
 
   const { camera } = state;
   ctx.save();
-  ctx.translate(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2);
+  ctx.translate(width / 2, height / 2);
   ctx.scale(camera.zoom, camera.zoom);
   ctx.translate(-camera.x, -camera.y);
 

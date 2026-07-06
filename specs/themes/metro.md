@@ -89,10 +89,10 @@ These are the concrete values for the tunable parameters defined abstractly in `
 
 | Parameter | Value | Notes |
 |-----------|-------|-------|
-| Viewport size | 800 × 600 px | Fixed on-screen canvas size |
+| Viewport size | 800 × 600 px, or the real device viewport if smaller | Native/default size, used unscaled whenever the real (rotation-aligned) viewport is at least this big in both dimensions; below that, the on-screen canvas is sized to exactly match the real viewport instead of being scaled down — see §6.1 |
 | Map size | 2400 × 1800 px | Full space Stations can spawn across — see core §5 Map & Viewport |
 | Camera default/starting zoom | 1.0× | Also the ceiling for automatic zoom-out |
-| Camera min zoom | 0.3× | Roughly the level at which the whole map fits the viewport |
+| Camera min zoom | 0.9 × max(viewport width ÷ 2400, viewport height ÷ 1800) | Computed from the actual viewport size, not a flat constant — the zoom level at which the whole map just fits the viewport, with a small margin. Equals exactly 0.3× at the native 800 × 600 viewport (unchanged from before) |
 | Camera max zoom | 2.5× | Manual zoom-in ceiling |
 | Camera auto-fit padding | 120 px | Margin kept around all Stations when auto-fitting |
 | Station capacity | 6 passengers | Per station; queue length that triggers Station at Risk |
@@ -150,12 +150,13 @@ Touch and mouse are equivalent input methods throughout — nothing in core or t
 
 ### 6.1 Responsive Presentation
 
-The full game (canvas and HUD together) is designed at a fixed size and presented scaled to fit whatever viewport it's actually running in, rather than redesigning the layout per screen size:
+The full game (canvas and HUD together) is designed at a fixed size, 800×600, and presented at that size unscaled whenever the real viewport is at least that big; below that, the on-screen canvas is resized to exactly match the real viewport instead of being scaled down, so gameplay is never letterboxed on a small screen:
 
 - On a viewport at least as large as the design size in both dimensions (typical desktop), the game renders at its native size, unscaled.
-- On a smaller viewport whose long axis is horizontal (landscape phones, small windows), the game scales down uniformly (preserving aspect ratio) to fit, still right-side-up.
-- On a smaller viewport whose long axis is vertical (portrait phones — the common case, since the design is landscape-shaped), the whole game rotates 90° to align its own long axis with the viewport's long axis, *then* scales to fit — filling far more of a portrait screen than scaling alone would (which would otherwise only ever be limited by the narrow width, leaving most of the screen empty). The player sees the game sideways in this case; physically rotating the device to landscape removes the need for this and returns the game to right-side-up, scaled to fit normally.
-- Never scales up past native size — a very large viewport still renders at the design's native size, not stretched larger.
+- On a viewport smaller than the design size in either dimension whose long axis is horizontal (landscape phones, small windows), the canvas is resized to exactly the real viewport's pixel dimensions — filling the screen with zero letterboxing, still right-side-up.
+- On a viewport smaller than the design size whose long axis is vertical (portrait phones — the common case, since the design is landscape-shaped), the whole game still rotates 90° to align its own long axis with the viewport's long axis, then the canvas is resized to exactly match that rotated viewport — again with zero letterboxing, rather than scaling a fixed design down to fit inside it. The player sees the game sideways in this case; physically rotating the device to landscape removes the need for this.
+- A portrait-shaped viewport that is nonetheless at least as large as the design size in the rotated sense (e.g. a tall desktop window) still rotates, but at native size, unscaled — same as the desktop case above.
+- Never scales: either the design's native fixed size is used unscaled, or the canvas is resized to exactly match the real viewport. There is no intermediate scale factor in either case, and the canvas never renders larger than the real viewport.
 - Every input method (mouse and touch alike) accounts for whichever of the above is currently active, so a click/tap always lands on the same game-world point the player sees on screen, rotated presentation included.
 
 ---

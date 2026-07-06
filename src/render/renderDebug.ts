@@ -1,5 +1,4 @@
 import type { GameState, StationShape } from '../types/game';
-import { CONFIG } from '../config/gameConfig';
 import { ALL_SHAPES } from '../logic/shapes';
 
 const SYM: Record<string, string> = {
@@ -68,7 +67,7 @@ type ShapeShape = StationShape;
 export function renderDebug(ctx: CanvasRenderingContext2D, state: GameState): void {
   if (!state.debugMode) return;
 
-  const panelX = CONFIG.CANVAS_WIDTH - 210;
+  const panelX = state.viewport.width - 210;
   const panelW = 205;
   const padding = 8;
   const lineH = 14;
@@ -152,12 +151,12 @@ export function renderDebug(ctx: CanvasRenderingContext2D, state: GameState): vo
   if (state.debugPlacingStation) {
     ctx.save();
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.fillRect(0, CONFIG.CANVAS_HEIGHT - 28, CONFIG.CANVAS_WIDTH, 28);
+    ctx.fillRect(0, state.viewport.height - 28, state.viewport.width, 28);
     ctx.fillStyle = '#f39c12';
     ctx.font = 'bold 13px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Click anywhere to place station  [A or Esc to cancel]', CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT - 14);
+    ctx.fillText('Click anywhere to place station  [A or Esc to cancel]', state.viewport.width / 2, state.viewport.height - 14);
     ctx.restore();
   }
 

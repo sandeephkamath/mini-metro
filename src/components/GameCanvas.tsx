@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { MilestoneBonusKind } from '../types/game';
+import type { MilestoneBonusKind, ViewportSize } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
 import { useGameState } from '../hooks/useGameState';
 import { useGameLoop } from '../hooks/useGameLoop';
@@ -28,30 +28,50 @@ export function GameCanvas() {
   const rotatedRef = useRef(false);
   useMouseInput({ canvasRef, stateRef, rotatedRef });
 
-  // Scale the whole fixed 800x600 design (canvas + HUD, all pixel-based) to fit any
-  // viewport via a single CSS transform, rather than reworking every component's
-  // units. Never scales UP past 1, so desktop (and the Playwright harness's larger
-  // default viewport) renders pixel-identical to before this existed.
+  // The design (canvas + HUD, all pixel-based) renders at its native 800x600 size
+  // whenever the real viewport is at least that big in both dimensions (typical
+  // desktop, and the Playwright harness's larger default viewport) — pixel-identical
+  // to before this existed. Below that, instead of scaling the native design down to
+  // fit (which letterboxes whenever the device's aspect ratio isn't exactly 4:3), the
+  // canvas is resized to exactly match the real viewport, so there's never any empty
+  // space (themes/metro.md §6.1).
   //
   // On a portrait-shaped viewport (taller than wide — the common phone case, since
-  // this design is landscape-shaped), a plain contain-fit is limited by the narrow
-  // width and leaves most of the screen empty. Rotating the whole stage 90° first —
-  // aligning its long axis with the viewport's long axis — fills far more of the
-  // screen (themes/metro.md §6.1). getBoundingClientRect reflects the rotation, but
-  // the screen-to-canvas-local mapping stops being a simple per-axis scale once
-  // rotated, so useMouseInput.ts's getCanvasPos needs to know when it's active —
-  // that's what rotatedRef is for.
-  const [stageScale, setStageScale] = useState(1);
+  // this design is landscape-shaped), the whole stage still rotates 90° first —
+  // aligning its long axis with the viewport's long axis — before sizing. getBoundingClientRect
+  // reflects the rotation, but the screen-to-canvas-local mapping stops being a simple
+  // identity map once rotated, so useMouseInput.ts's getCanvasPos needs to know when
+  // it's active — that's what rotatedRef is for.
+  const [viewport, setViewport] = useState<ViewportSize>({ width: CONFIG.CANVAS_WIDTH, height: CONFIG.CANVAS_HEIGHT });
   const [rotated, setRotated] = useState(false);
+  // Mirrors state.viewport outside the GameState object itself, so it survives
+  // startGame()/goHome() replacing stateRef.current wholesale with a fresh
+  // createInitialState() (which otherwise resets state.viewport back to the native
+  // 800x600 default until the next real resize/orientation event, silently breaking
+  // the camera on a small viewport until the player rotates or resizes their device).
+  const viewportRef = useRef<ViewportSize>({ width: CONFIG.CANVAS_WIDTH, height: CONFIG.CANVAS_HEIGHT });
+
   useEffect(() => {
     function recompute() {
-      const portrait = window.innerHeight > window.innerWidth;
-      const scale = portrait
-        ? Math.min(1, window.innerHeight / CONFIG.CANVAS_WIDTH, window.innerWidth / CONFIG.CANVAS_HEIGHT)
-        : Math.min(1, window.innerWidth / CONFIG.CANVAS_WIDTH, window.innerHeight / CONFIG.CANVAS_HEIGHT);
+      const winW = window.innerWidth;
+      const winH = window.innerHeight;
+      const portrait = winH > winW;
+
+      // Realign the real viewport onto the design's own axes: presentedW pairs with
+      // CANVAS_WIDTH (the design's horizontal/long axis), presentedH with CANVAS_HEIGHT.
+      const presentedW = portrait ? winH : winW;
+      const presentedH = portrait ? winW : winH;
+      const bigEnough = presentedW >= CONFIG.CANVAS_WIDTH && presentedH >= CONFIG.CANVAS_HEIGHT;
+      const nextViewport = bigEnough
+        ? { width: CONFIG.CANVAS_WIDTH, height: CONFIG.CANVAS_HEIGHT }
+        : { width: Math.floor(presentedW), height: Math.floor(presentedH) };
+
       rotatedRef.current = portrait;
+      viewportRef.current = nextViewport;
       setRotated(portrait);
-      setStageScale(scale);
+      setViewport(nextViewport);
+      stateRef.current.viewport.width = nextViewport.width;
+      stateRef.current.viewport.height = nextViewport.height;
     }
     recompute();
     window.addEventListener('resize', recompute);
@@ -60,7 +80,21 @@ export function GameCanvas() {
       window.removeEventListener('resize', recompute);
       window.removeEventListener('orientationchange', recompute);
     };
-  }, []);
+  }, [stateRef]);
+
+  // startGame()/goHome() both replace stateRef.current with a fresh createInitialState()
+  // (native-size default viewport) — re-apply the real, currently-known viewport
+  // immediately afterward so the camera doesn't misbehave until the next resize/rotate.
+  function handleStartGame() {
+    startGame();
+    stateRef.current.viewport.width = viewportRef.current.width;
+    stateRef.current.viewport.height = viewportRef.current.height;
+  }
+  function handleGoHome() {
+    goHome();
+    stateRef.current.viewport.width = viewportRef.current.width;
+    stateRef.current.viewport.height = viewportRef.current.height;
+  }
 
   const state = stateRef.current;
   const milestoneAge = state.lastMilestoneTime > 0
@@ -92,14 +126,13 @@ export function GameCanvas() {
   }
 
   // Outer box is sized to the actual on-screen footprint (rotated: width/height
-  // swapped, since the visual bounding box of a 90°-rotated 800x600 box is 600x800
-  // before scaling) so the parent's flex-centering (App.tsx) still centers it exactly.
-  // Inner "design" div stays a fixed 800x600 and is centered within the outer box via
-  // top/left 50% + translate(-50%,-50%) on its own size, so the same transform-origin
-  // (its own center) works whether or not rotate(90deg) is also applied — rotating
-  // and scaling both happen around that already-centered point.
-  const outerWidth = (rotated ? CONFIG.CANVAS_HEIGHT : CONFIG.CANVAS_WIDTH) * stageScale;
-  const outerHeight = (rotated ? CONFIG.CANVAS_WIDTH : CONFIG.CANVAS_HEIGHT) * stageScale;
+  // swapped, since the visual bounding box of a 90°-rotated box is its width/height
+  // swapped) so the parent's flex-centering (App.tsx) still centers it exactly.
+  // Inner "design" div matches viewport's own (pre-rotation) dimensions and is centered
+  // within the outer box via top/left 50% + translate(-50%,-50%) on its own size, so the
+  // same transform-origin (its own center) works whether or not rotate(90deg) is applied.
+  const outerWidth = rotated ? viewport.height : viewport.width;
+  const outerHeight = rotated ? viewport.width : viewport.height;
 
   return (
     <div style={{
@@ -112,14 +145,14 @@ export function GameCanvas() {
       position: 'absolute',
       top: '50%',
       left: '50%',
-      width: CONFIG.CANVAS_WIDTH,
-      height: CONFIG.CANVAS_HEIGHT,
-      transform: `translate(-50%, -50%) ${rotated ? 'rotate(90deg) ' : ''}scale(${stageScale})`,
+      width: viewport.width,
+      height: viewport.height,
+      transform: `translate(-50%, -50%)${rotated ? ' rotate(90deg)' : ''}`,
     }}>
       <canvas
         ref={canvasRef}
-        width={CONFIG.CANVAS_WIDTH}
-        height={CONFIG.CANVAS_HEIGHT}
+        width={viewport.width}
+        height={viewport.height}
         style={{ display: 'block', cursor: 'crosshair', touchAction: 'none' }}
       />
 
@@ -153,10 +186,10 @@ export function GameCanvas() {
 
       {phase === 'home' && <HomeScreen onPlay={goToStart} />}
 
-      {phase === 'start' && <StartScreen onStart={startGame} />}
+      {phase === 'start' && <StartScreen onStart={handleStartGame} />}
 
       {phase === 'gameover' && (
-        <GameOverScreen score={score} level={level} onRestart={goHome} />
+        <GameOverScreen score={score} level={level} onRestart={handleGoHome} />
       )}
     </div>
     </div>

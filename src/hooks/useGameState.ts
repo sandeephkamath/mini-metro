@@ -29,6 +29,7 @@ function createInitialState(): GameState {
       mousePos: { x: 0, y: 0 },
     },
     camera: createInitialCamera(),
+    viewport: { width: CONFIG.CANVAS_WIDTH, height: CONFIG.CANVAS_HEIGHT },
     lastMilestoneMessage: '',
     lastMilestoneTime: -99999,
     graceDurationMs: CONFIG.RISK_TIMER_BASE_MS,

@@ -1,4 +1,8 @@
 export const CONFIG = {
+  // Native/default design size. Used unscaled whenever the real (rotation-aligned)
+  // device viewport is at least this big in both dimensions; also the threshold below
+  // which GameCanvas.tsx switches to sizing the canvas dynamically to the real viewport
+  // instead (see specs/themes/metro.md §6.1).
   CANVAS_WIDTH: 800,
   CANVAS_HEIGHT: 600,
 
@@ -6,7 +10,10 @@ export const CONFIG = {
   WORLD_HEIGHT: 1800,
 
   CAMERA_DEFAULT_ZOOM: 1,
-  CAMERA_MIN_ZOOM: 0.3,
+  // Multiplier applied to max(viewport_w/WORLD_WIDTH, viewport_h/WORLD_HEIGHT) to derive
+  // the actual camera min-zoom per viewport size (src/logic/camera.ts's getCameraMinZoom) —
+  // 0.9 reproduces the old flat 0.3 exactly at native 800x600.
+  CAMERA_MIN_ZOOM_MARGIN: 0.9,
   CAMERA_MAX_ZOOM: 2.5,
   CAMERA_FIT_PADDING: 120,
   CAMERA_LERP_MS: 800,

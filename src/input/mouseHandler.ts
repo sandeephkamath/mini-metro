@@ -69,22 +69,22 @@ function onDebugMouseDown(state: GameState, x: number, y: number): void {
   // Placing station mode: record click position and open shape picker
   if (state.debugPlacingStation) {
     state.debugPlacingStation = false;
-    state.debugAction = { type: 'pick_station_shape', menuPos: clampMenu(x, y), worldPos: screenToWorld(state, { x, y }) };
+    state.debugAction = { type: 'pick_station_shape', menuPos: clampMenu(state, x, y), worldPos: screenToWorld(state, { x, y }) };
     return;
   }
 
   // Click on a station → open passenger type picker
   const station = getStationAt(state, screenToWorld(state, { x, y }));
   if (station) {
-    state.debugAction = { type: 'pick_passenger', stationId: station.id, menuPos: clampMenu(x, y - 40) };
+    state.debugAction = { type: 'pick_passenger', stationId: station.id, menuPos: clampMenu(state, x, y - 40) };
   }
 }
 
-function clampMenu(x: number, y: number): Vec2 {
+function clampMenu(state: GameState, x: number, y: number): Vec2 {
   const totalW = ALL_SHAPES.length * (BUTTON_W + BUTTON_GAP) - BUTTON_GAP;
   return {
-    x: Math.min(x, CONFIG.CANVAS_WIDTH - totalW - 4),
-    y: Math.max(4, Math.min(y, CONFIG.CANVAS_HEIGHT - BUTTON_H - 4)),
+    x: Math.min(x, state.viewport.width - totalW - 4),
+    y: Math.max(4, Math.min(y, state.viewport.height - BUTTON_H - 4)),
   };
 }
 

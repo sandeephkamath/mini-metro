@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { FIXED_STATIONS, canvasPoint, getCanvasPixel, startGame } from '../../helpers/gameDriver';
+import {
+  FIXED_STATIONS, canvasPoint, getCanvasPixel, getCanvasPixelAtLocal, getLiveCameraViewportSnapshot,
+  localPoint, projectWorldToLocal, startGame,
+} from '../../helpers/gameDriver';
 import { touchDrag, touchPan } from '../../helpers/touchDriver';
 
 // Runs only under the `mobile` Playwright project (devices['iPhone 13'], hasTouch/isMobile) —
@@ -21,11 +24,12 @@ test('game stage fits the mobile viewport without horizontal overflow', async ({
 });
 
 // iPhone 13's default viewport (390x844) is portrait — themes/metro.md §6.1 says the
-// stage should rotate 90° to fill it rather than a plain contain-fit, which would be
-// limited by the narrow 390px width alone (390 * 390*600/800 = ~114k px² of canvas).
-// Confirms that's actually happening, not just that individual touch coordinates
-// happen to still resolve correctly (covered separately below).
-test('portrait viewport rotates the stage to fill much more of the screen than a plain fit would', async ({ page }) => {
+// stage should rotate 90° to fill it, and (since the fix for the mobile letterboxing
+// bug) the canvas is now sized to exactly match the real viewport instead of scaling a
+// fixed 800x600 design down to fit inside it. Confirms there's zero letterboxing, not
+// just that individual touch coordinates happen to still resolve correctly (covered
+// separately below).
+test('portrait viewport is filled edge-to-edge by the rotated stage (no letterboxing)', async ({ page }) => {
   await page.goto('/');
   await startGame(page);
 
@@ -36,9 +40,8 @@ test('portrait viewport rotates the stage to fill much more of the screen than a
   expect(canvasBox).not.toBeNull();
   expect(canvasBox!.width).toBeLessThan(canvasBox!.height); // rotated: bounding box is taller than wide
 
-  const naiveContainFitArea = viewport.width * (viewport.width * 600 / 800);
-  const actualArea = canvasBox!.width * canvasBox!.height;
-  expect(actualArea).toBeGreaterThan(naiveContainFitArea * 1.5); // meaningfully bigger, not just technically taller
+  expect(Math.abs(canvasBox!.width - viewport.width)).toBeLessThanOrEqual(2);
+  expect(Math.abs(canvasBox!.height - viewport.height)).toBeLessThanOrEqual(2);
 });
 
 test('single-finger touch drag draws a line between stations', async ({ page }) => {
@@ -63,9 +66,12 @@ test('one-finger drag on empty map space pans the camera', async ({ page }) => {
   await startGame(page);
 
   const before = await page.screenshot();
-  // Drag from a point with no station nearby (empty map space) to pan.
-  const start = await canvasPoint(page, 700, 500);
-  const end = await canvasPoint(page, 500, 350);
+  // Drag from a point with no station nearby (empty map space) to pan. World coordinates
+  // (canvasPoint takes world, not screen-space, positions) — chosen to land within the
+  // initial camera's on-screen view (center (1200,900), zoom 1) while staying clear of
+  // all three starting stations (see FIXED_STATIONS).
+  const start = await canvasPoint(page, 1500, 1100);
+  const end = await canvasPoint(page, 1300, 950);
   await touchDrag(page, start, end, 8);
   await page.waitForTimeout(200);
   const after = await page.screenshot();
@@ -84,29 +90,48 @@ test('two-finger pan (constant pinch distance) translates the camera without zoo
   await page.goto('/');
   await startGame(page);
 
+  // This device's rotated canvas is shorter than the old fixed 600px design height, so
+  // the initial station cluster doesn't quite fit at the default zoom — the Camera's
+  // auto-fit (core/logic.md §5) kicks in and lerps toward a wider view right after game
+  // start. Wait for it to settle before snapshotting the camera below: this test predicts
+  // exactly where things end up relative to a single before-pan snapshot, which only
+  // holds once the Camera has stopped drifting on its own.
+  await page.waitForTimeout(2000);
+
   // Dead center of a Station's shape is its white fill (`#ffffff`), reliably distinct
   // from the canvas background fill (`#f5f0e8` = [245,240,232], renderer.ts) — used as
   // the "is a Station drawn here" signal instead of alpha (the background itself is
   // fully opaque, so alpha is 255 everywhere and can't distinguish the two).
   const BACKGROUND: [number, number, number] = [245, 240, 232];
   const square = FIXED_STATIONS.square;
-  const beforePixel = await getCanvasPixel(page, square.x, square.y);
+
+  // Snapshot the camera once and reason entirely in that fixed local/screen frame from
+  // here on — panning never moves a Station's WORLD position, so re-deriving local
+  // coordinates from the world via the *live* (post-pan) camera would just keep tracking
+  // the Station back to wherever it now renders, and could never detect that it moved.
+  const before = await getLiveCameraViewportSnapshot(page);
+  const squareLocal = projectWorldToLocal(square, before.camera, before.viewport);
+  const beforePixel = await getCanvasPixelAtLocal(page, squareLocal.x, squareLocal.y);
   expect([beforePixel[0], beforePixel[1], beforePixel[2]]).not.toEqual(BACKGROUND); // sanity: Station is drawn here first
 
-  // Pan by a known canvas-local delta: canvasPoint() converts these two logical points'
-  // separation into the equivalent page-pixel delta, whatever the current scale/rotation.
+  // Pan by a known world-space delta, expressed in the snapshotted local frame (a world
+  // delta of (dx,dy) is a local delta of (dx*zoom,dy*zoom) — camera.ts's screenToWorld is
+  // a uniform scale, so this holds regardless of the Camera's current zoom).
   const dx = 100, dy = -60;
-  const centerPage = await canvasPoint(page, 400, 300);
-  const shiftedPage = await canvasPoint(page, 400 + dx, 300 + dy);
+  const localDelta = { x: dx * before.camera.zoom, y: dy * before.camera.zoom };
+  const centerPage = await localPoint(page, squareLocal, before.viewport);
+  const shiftedLocal = { x: squareLocal.x + localDelta.x, y: squareLocal.y + localDelta.y };
+  const shiftedPage = await localPoint(page, shiftedLocal, before.viewport);
   const pageDelta = { x: shiftedPage.x - centerPage.x, y: shiftedPage.y - centerPage.y };
   await touchPan(page, centerPage, pageDelta);
   await page.waitForTimeout(200);
 
-  // Same dx/dy = new-minus-last convention as mouse-drag panning (mouseHandler.ts):
-  // the world visually shifts by +dx/+dy on screen at zoom 1 (a fresh session's default,
-  // unchanged by a pure pan). The Station should now render at its old position + delta.
-  const afterAtOldPos = await getCanvasPixel(page, square.x, square.y);
-  const afterAtNewPos = await getCanvasPixel(page, square.x + dx, square.y + dy);
+  // Same dx/dy = new-minus-last convention as mouse-drag panning (mouseHandler.ts): the
+  // world visually shifts by +dx/+dy world units on screen. The Station should now
+  // render at its old (snapshotted) LOCAL position + localDelta, and its old local
+  // position should have reverted to background.
+  const afterAtOldPos = await getCanvasPixelAtLocal(page, squareLocal.x, squareLocal.y);
+  const afterAtNewPos = await getCanvasPixelAtLocal(page, shiftedLocal.x, shiftedLocal.y);
   expect([afterAtNewPos[0], afterAtNewPos[1], afterAtNewPos[2]]).not.toEqual(BACKGROUND); // Station now at the predicted shifted position
   expect([afterAtOldPos[0], afterAtOldPos[1], afterAtOldPos[2]]).toEqual(BACKGROUND); // old position reverted to background
 });

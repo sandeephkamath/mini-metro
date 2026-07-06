@@ -33,6 +33,15 @@ export function useGameLoop({ stateRef, canvasRef, syncReactState }: UseGameLoop
         if (ctx) render(ctx, state, now);
       }
 
+      // Read-only mirror of the live camera/viewport for the Playwright test harness
+      // (testing/helpers/gameDriver.ts) — canvas-local pixel positions depend on both,
+      // and neither is otherwise observable from outside the RAF loop. Never read by
+      // game code itself. specs/testing.md.
+      (window as typeof window & { __miniMetroDebug?: unknown }).__miniMetroDebug = {
+        camera: state.camera,
+        viewport: state.viewport,
+      };
+
       if (now - lastSyncRef.current > 100) {
         syncReactState();
         lastSyncRef.current = now;

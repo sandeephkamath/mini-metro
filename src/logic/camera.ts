@@ -22,20 +22,31 @@ export function createInitialCamera(): CameraState {
 export function screenToWorld(state: GameState, screen: Vec2): Vec2 {
   const { camera } = state;
   return {
-    x: (screen.x - CONFIG.CANVAS_WIDTH / 2) / camera.zoom + camera.x,
-    y: (screen.y - CONFIG.CANVAS_HEIGHT / 2) / camera.zoom + camera.y,
+    x: (screen.x - state.viewport.width / 2) / camera.zoom + camera.x,
+    y: (screen.y - state.viewport.height / 2) / camera.zoom + camera.y,
   };
 }
 
-function clampZoom(zoom: number): number {
-  return Math.min(CONFIG.CAMERA_MAX_ZOOM, Math.max(CONFIG.CAMERA_MIN_ZOOM, zoom));
+// The zoom level at which the whole map just fits the viewport (with a small margin) —
+// derived from the actual viewport size rather than a flat constant, so it stays correct
+// whether the viewport is native 800x600 or a dynamically-sized mobile canvas (metro.md §5).
+// CAMERA_MIN_ZOOM_MARGIN is tuned so this formula reproduces the old flat 0.3 exactly at
+// native 800x600 (0.9 * max(800/2400, 600/1800) = 0.3).
+function getCameraMinZoom(state: GameState): number {
+  const { width, height } = state.viewport;
+  return CONFIG.CAMERA_MIN_ZOOM_MARGIN * Math.max(width / CONFIG.WORLD_WIDTH, height / CONFIG.WORLD_HEIGHT);
+}
+
+function clampZoom(state: GameState, zoom: number): number {
+  return Math.min(CONFIG.CAMERA_MAX_ZOOM, Math.max(getCameraMinZoom(state), zoom));
 }
 
 // Keeps the viewport from showing empty space past the world edges when the
 // world is larger than what's visible at the current zoom.
-function clampCameraToWorld(camera: CameraState): void {
-  const halfW = CONFIG.CANVAS_WIDTH / (2 * camera.zoom);
-  const halfH = CONFIG.CANVAS_HEIGHT / (2 * camera.zoom);
+function clampCameraToWorld(state: GameState): void {
+  const camera = state.camera;
+  const halfW = state.viewport.width / (2 * camera.zoom);
+  const halfH = state.viewport.height / (2 * camera.zoom);
 
   camera.x = CONFIG.WORLD_WIDTH <= halfW * 2
     ? CONFIG.WORLD_WIDTH / 2
@@ -52,8 +63,8 @@ function clampCameraToWorld(camera: CameraState): void {
 // keeps the camera perfectly still at the start and after each adjustment
 // settles, instead of endlessly micro-drifting toward a recomputed centroid.
 function allStationsInView(state: GameState, camera: CameraState): boolean {
-  const halfW = CONFIG.CANVAS_WIDTH / (2 * camera.zoom) - CONFIG.CAMERA_FIT_PADDING;
-  const halfH = CONFIG.CANVAS_HEIGHT / (2 * camera.zoom) - CONFIG.CAMERA_FIT_PADDING;
+  const halfW = state.viewport.width / (2 * camera.zoom) - CONFIG.CAMERA_FIT_PADDING;
+  const halfH = state.viewport.height / (2 * camera.zoom) - CONFIG.CAMERA_FIT_PADDING;
   for (const s of Object.values(state.stations)) {
     if (Math.abs(s.pos.x - camera.x) > halfW) return false;
     if (Math.abs(s.pos.y - camera.y) > halfH) return false;
@@ -66,7 +77,7 @@ function allStationsInView(state: GameState, camera: CameraState): boolean {
 function computeAutoFitTarget(state: GameState): { x: number; y: number; zoom: number } {
   const stations = Object.values(state.stations);
   if (stations.length === 0) {
-    return { x: CONFIG.CANVAS_WIDTH / 2, y: CONFIG.CANVAS_HEIGHT / 2, zoom: CONFIG.CAMERA_DEFAULT_ZOOM };
+    return { x: state.viewport.width / 2, y: state.viewport.height / 2, zoom: CONFIG.CAMERA_DEFAULT_ZOOM };
   }
 
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -80,12 +91,12 @@ function computeAutoFitTarget(state: GameState): { x: number; y: number; zoom: n
   const pad = CONFIG.CAMERA_FIT_PADDING;
   const bboxW = (maxX - minX) + pad * 2;
   const bboxH = (maxY - minY) + pad * 2;
-  const fitZoom = Math.min(CONFIG.CANVAS_WIDTH / bboxW, CONFIG.CANVAS_HEIGHT / bboxH);
+  const fitZoom = Math.min(state.viewport.width / bboxW, state.viewport.height / bboxH);
 
   return {
     x: (minX + maxX) / 2,
     y: (minY + maxY) / 2,
-    zoom: clampZoom(Math.min(fitZoom, CONFIG.CAMERA_DEFAULT_ZOOM)),
+    zoom: clampZoom(state, Math.min(fitZoom, CONFIG.CAMERA_DEFAULT_ZOOM)),
   };
 }
 
@@ -99,7 +110,7 @@ export function updateCameraAutoFit(state: GameState, dt: number): void {
   camera.x += (target.x - camera.x) * t;
   camera.y += (target.y - camera.y) * t;
   camera.zoom += (target.zoom - camera.zoom) * t;
-  clampCameraToWorld(camera);
+  clampCameraToWorld(state);
 }
 
 // Zooms around a screen point (e.g. the cursor) so the world point under it stays put.
@@ -107,11 +118,11 @@ export function zoomAtScreenPoint(state: GameState, screenPos: Vec2, factor: num
   const camera = state.camera;
   const before = screenToWorld(state, screenPos);
 
-  camera.zoom = clampZoom(camera.zoom * factor);
-  camera.x = before.x - (screenPos.x - CONFIG.CANVAS_WIDTH / 2) / camera.zoom;
-  camera.y = before.y - (screenPos.y - CONFIG.CANVAS_HEIGHT / 2) / camera.zoom;
+  camera.zoom = clampZoom(state, camera.zoom * factor);
+  camera.x = before.x - (screenPos.x - state.viewport.width / 2) / camera.zoom;
+  camera.y = before.y - (screenPos.y - state.viewport.height / 2) / camera.zoom;
   camera.autoFit = false;
-  clampCameraToWorld(camera);
+  clampCameraToWorld(state);
 }
 
 export function panCameraByScreenDelta(state: GameState, dxScreen: number, dyScreen: number): void {
@@ -119,5 +130,5 @@ export function panCameraByScreenDelta(state: GameState, dxScreen: number, dyScr
   camera.x -= dxScreen / camera.zoom;
   camera.y -= dyScreen / camera.zoom;
   camera.autoFit = false;
-  clampCameraToWorld(camera);
+  clampCameraToWorld(state);
 }

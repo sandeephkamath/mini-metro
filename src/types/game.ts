@@ -70,6 +70,11 @@ export interface CameraState {
   panLastScreen: Vec2 | null;
 }
 
+export interface ViewportSize {
+  width: number;
+  height: number;
+}
+
 export interface GameState {
   phase: GamePhase;
   score: number;
@@ -85,6 +90,10 @@ export interface GameState {
   trains: Record<string, Train>;
   drawing: DrawingState;
   camera: CameraState;
+  // Real on-screen canvas size (post-rotation-alignment). Equals CONFIG.CANVAS_WIDTH/HEIGHT
+  // whenever the real viewport is at least that big in both dimensions; otherwise sized
+  // dynamically to the real viewport (GameCanvas.tsx recompute(), themes/metro.md §6.1).
+  viewport: ViewportSize;
   lastMilestoneMessage: string;
   lastMilestoneTime: number;
   graceDurationMs: number; // current Grace Duration — grows via "grace" bonuses, never shrinks
