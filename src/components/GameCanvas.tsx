@@ -53,8 +53,14 @@ export function GameCanvas() {
 
   useEffect(() => {
     function recompute() {
-      const winW = window.innerWidth;
-      const winH = window.innerHeight;
+      // Some mobile browsers (e.g. Chrome's "Desktop site" mode, which some
+      // large-screen Android phones enable automatically) report an inflated
+      // layout viewport and zoom the whole page out to fit the real screen —
+      // innerWidth/innerHeight can then claim desktop-sized dimensions on a
+      // screen that's still phone-sized. window.screen tracks the physical
+      // display and isn't affected by that zoom, so it's used as a ceiling.
+      const winW = Math.min(window.innerWidth, window.screen.width);
+      const winH = Math.min(window.innerHeight, window.screen.height);
       const portrait = winH > winW;
 
       // Realign the real viewport onto the design's own axes: presentedW pairs with
