@@ -81,6 +81,7 @@ you. The three starting stations are fixed at circle `(180,280)`, triangle
 | `screenshot [name]` | Save a PNG to `testing/run-screenshots/` |
 | `click <x> <y>` | Click a canvas-relative point |
 | `drag <x1> <y1> <x2> <y2> [steps]` | Mouse-drag between two canvas-relative points (e.g. draw a line between stations) |
+| `down <x> <y>` / `move <x> <y> [steps]` / `up` | Low-level mouse primitives — build multi-waypoint gestures (one drag chaining several stations, per core §4) or screenshot mid-gesture to see the live drag preview |
 | `wheel <x> <y> <deltaY> [ticks]` | Scroll-wheel at a canvas-relative point, `ticks` times (positive `deltaY` zooms out) |
 | `key <key>` | Press a keyboard key (e.g. `key d` toggles debug mode) |
 | `wait <ms>` | Wait (use after actions before screenshotting — the canvas draws on the next animation frame) |
@@ -112,10 +113,10 @@ see `specs/testing.md` and `testing/README.md`:
 cd testing && npm test
 ```
 
-Expected result: 8 passed, 1 skipped, 1 failed (`overflow-gameover.spec.ts`)
-— that failure is a real, already-documented product bug (`specs/memo.md`
-"Game over can never trigger"), not a flaky or broken test. The skipped
-`restart.spec.ts` depends on reaching game-over first.
+Expected result: all tests pass (21 as of 2026-07-06, desktop + mobile
+projects). The once-expected `overflow-gameover.spec.ts` failure was fixed
+by the Overflow Risk / Grace Timer redesign (`themes/metro.md` §11 B8) — if
+it fails now, treat it as a real regression.
 
 ## Gotchas
 

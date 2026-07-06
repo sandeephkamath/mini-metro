@@ -158,6 +158,28 @@ async function main() {
           log('ok drag');
           break;
         }
+        // Low-level mouse primitives — for multi-waypoint gestures (e.g. chaining
+        // several stations in one drag) and screenshotting mid-gesture previews.
+        case 'down': {
+          const [x, y] = args;
+          const p = await toPagePoint(x, y);
+          await page.mouse.move(p.x, p.y);
+          await page.mouse.down();
+          log('ok down');
+          break;
+        }
+        case 'move': {
+          const [x, y, steps] = args;
+          const p = await toPagePoint(x, y);
+          await page.mouse.move(p.x, p.y, { steps: Number(steps) || 10 });
+          log('ok move');
+          break;
+        }
+        case 'up': {
+          await page.mouse.up();
+          log('ok up');
+          break;
+        }
         case 'wheel': {
           const [x, y, deltaY, ticks] = args;
           const p = await toPagePoint(x, y);

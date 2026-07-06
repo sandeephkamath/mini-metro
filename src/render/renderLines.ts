@@ -1,7 +1,37 @@
-import type { GameState, Vec2 } from '../types/game';
+import type { GameState, MetroLine, Vec2 } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
-import { getLineEndpoints, getSegmentElbow } from '../logic/lines';
+import { getLineEndpoints, getSegmentElbow, getDrawingChain } from '../logic/lines';
 import { computeBentSegment } from '../logic/geometry';
+
+// Stroke the stations from index `from` to index `to` (inclusive) of a line as one path,
+// using the same straight-legs-plus-rounded-corner shape trains travel along.
+function strokeLineRun(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  line: MetroLine,
+  positions: Vec2[],
+  from: number,
+  to: number,
+): void {
+  if (to - from < 1) return;
+  ctx.beginPath();
+  ctx.moveTo(positions[from].x, positions[from].y);
+  for (let i = from; i < to; i++) {
+    const a = positions[i];
+    const b = positions[i + 1];
+    const seg = computeBentSegment(a, b, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(state, line, i));
+    if (seg) {
+      // Straight leg into the bend, a short rounded curve at the corner, straight leg
+      // out — the segment as a whole stays straight, only the corner itself is smoothed.
+      ctx.lineTo(seg.t1.x, seg.t1.y);
+      ctx.quadraticCurveTo(seg.elbow.x, seg.elbow.y, seg.t2.x, seg.t2.y);
+      ctx.lineTo(b.x, b.y);
+    } else {
+      ctx.lineTo(b.x, b.y);
+    }
+  }
+  ctx.stroke();
+}
 
 export function renderLines(ctx: CanvasRenderingContext2D, state: GameState): void {
   ctx.save();
@@ -18,23 +48,25 @@ export function renderLines(ctx: CanvasRenderingContext2D, state: GameState): vo
     if (positions.length < 2) continue;
 
     ctx.strokeStyle = line.color;
-    ctx.beginPath();
-    ctx.moveTo(positions[0].x, positions[0].y);
-    for (let i = 0; i < positions.length - 1; i++) {
-      const a = positions[i];
-      const b = positions[i + 1];
-      const seg = computeBentSegment(a, b, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(state, line, i));
-      if (seg) {
-        // Straight leg into the bend, a short rounded curve at the corner, straight leg
-        // out — the segment as a whole stays straight, only the corner itself is smoothed.
-        ctx.lineTo(seg.t1.x, seg.t1.y);
-        ctx.quadraticCurveTo(seg.elbow.x, seg.elbow.y, seg.t2.x, seg.t2.y);
-        ctx.lineTo(b.x, b.y);
+
+    // While this line's end is being shortened, its detachment-marked tail renders
+    // faded so the player sees what release will remove (core §4).
+    const d = state.drawing;
+    const last = positions.length - 1;
+    if (d.isDrawing && d.lineId === line.id && d.detachCount > 0 && d.extendEnd !== null) {
+      const solidFrom = d.extendEnd === 'front' ? d.detachCount : 0;
+      const solidTo = d.extendEnd === 'front' ? last : last - d.detachCount;
+      strokeLineRun(ctx, state, line, positions, solidFrom, solidTo);
+      ctx.globalAlpha = 0.25;
+      if (d.extendEnd === 'front') {
+        strokeLineRun(ctx, state, line, positions, 0, d.detachCount);
       } else {
-        ctx.lineTo(b.x, b.y);
+        strokeLineRun(ctx, state, line, positions, last - d.detachCount, last);
       }
+      ctx.globalAlpha = 1;
+    } else {
+      strokeLineRun(ctx, state, line, positions, 0, last);
     }
-    ctx.stroke();
   }
 
   // End tabs — the draggable stub at each line terminus. A station can have several
@@ -64,24 +96,59 @@ export function renderLines(ctx: CanvasRenderingContext2D, state: GameState): vo
     ctx.stroke();
   }
 
-  // Drag preview
+  // Drag preview (core §4): the provisional chain renders in the line's real color and
+  // bend geometry — the player sees exactly how the route will form before releasing.
+  // Only the dangling leg from the last chained station to the cursor stays dashed.
   if (state.drawing.isDrawing) {
-    const previewColor = state.drawing.lineId
-      ? (state.lines[state.drawing.lineId]?.color ?? '#aaa')
-      : '#aaa';
-    const origin = state.drawing.startStationId
-      ? state.stations[state.drawing.startStationId]?.pos
-      : state.drawing.grabPos;
+    const d = state.drawing;
+    const previewColor = d.lineId ? (state.lines[d.lineId]?.color ?? '#aaa') : '#aaa';
+    ctx.strokeStyle = previewColor;
 
-    if (origin) {
-      ctx.strokeStyle = previewColor;
-      ctx.globalAlpha = 0.5;
-      ctx.setLineDash([8, 6]);
-      ctx.beginPath();
-      ctx.moveTo(origin.x, origin.y);
-      ctx.lineTo(state.drawing.mousePos.x, state.drawing.mousePos.y);
-      ctx.stroke();
+    if (d.insertAfterIndex !== null) {
+      // Mid-line insertion: dashed leg from the grabbed segment point to the cursor.
+      if (d.grabPos) {
+        ctx.globalAlpha = 0.5;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        ctx.moveTo(d.grabPos.x, d.grabPos.y);
+        ctx.lineTo(d.mousePos.x, d.mousePos.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    } else {
+      const chain = getDrawingChain(state)
+        .map(id => state.stations[id]?.pos)
+        .filter((p): p is Vec2 => !!p);
+
+      if (chain.length >= 2) {
+        ctx.globalAlpha = 0.7;
+        ctx.beginPath();
+        ctx.moveTo(chain[0].x, chain[0].y);
+        for (let i = 0; i < chain.length - 1; i++) {
+          const seg = computeBentSegment(chain[i], chain[i + 1], CONFIG.LINE_BEND_RADIUS);
+          if (seg) {
+            ctx.lineTo(seg.t1.x, seg.t1.y);
+            ctx.quadraticCurveTo(seg.elbow.x, seg.elbow.y, seg.t2.x, seg.t2.y);
+            ctx.lineTo(chain[i + 1].x, chain[i + 1].y);
+          } else {
+            ctx.lineTo(chain[i + 1].x, chain[i + 1].y);
+          }
+        }
+        ctx.stroke();
+      }
+
+      const origin = chain[chain.length - 1];
+      if (origin) {
+        ctx.globalAlpha = 0.5;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        ctx.moveTo(origin.x, origin.y);
+        ctx.lineTo(d.mousePos.x, d.mousePos.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
     }
+    ctx.globalAlpha = 1;
   }
 
   ctx.restore();

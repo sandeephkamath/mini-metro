@@ -1,7 +1,7 @@
 # Metro Theme Specification
 
-**Version**: 2.0
-**Last updated**: 2026-07-05
+**Version**: 2.1
+**Last updated**: 2026-07-06
 **Extends**: `../core/logic.md`, `../core/meta_progression.md`
 
 This document defines the Metro theme. It maps core abstract concepts to metro terminology, specifies metro-specific entities and visual rules, and provides all configuration values. Game mechanics not mentioned here follow core/logic.md exactly.
@@ -105,7 +105,8 @@ These are the concrete values for the tunable parameters defined abstractly in `
 | Max stations | 20 | |
 | Initial station count | 3 | The fixed starting cluster |
 | Station spawn area, starting size | 520 × 360 px | Rectangle centered on the map a new Station can appear in, right after the initial cluster |
-| Station spawn area, full size | Full map minus edge margin | Reached only as Station count approaches Max stations — grows on an ease-in curve (squared) with Station count in between, so the area stays tight through most of the spawn budget and only widens sharply near the end |
+| Station spawn area, maximum size | 1240 × 900 px | Ceiling the spawn area grows toward on an ease-in curve (squared) with Station count — deliberately much smaller than the 2400 × 1800 map (core §5), so the network stays compact and the auto-camera never zooms out past roughly 0.5× at the native viewport; the rest of the map is panning space only |
+| Station max neighbor distance | 240 px | A new Station must land within this distance of an existing Station — the cluster grows contiguously outward instead of scattering (core §5) |
 | Initial unlocked station shape count | 3 | Circle, Triangle, Square |
 | Star unlock week | 1 | |
 | Hexagon unlock week | 2 | |
@@ -129,10 +130,14 @@ These are the concrete values for the tunable parameters defined abstractly in `
 | Passenger queue-in animation | 300 ms | Fade/scale-in of a Passenger icon newly added to a Station queue (fresh spawn, transfer alighting from a Train, or debug injection) — §7 |
 | Passenger board/deliver flourish | 400 ms | Lifetime of the fading ghost icon left behind when a Passenger boards a Train (shrinks out at the queue area) or is delivered (grows and drifts out at the Station) — §7 |
 | Frame dt cap | 100 ms | Prevents spiral-of-death |
-| End marker tab length | 20 px | Projects past the terminal station |
-| End marker hit radius | 10 px | For grabbing a specific Line's end |
-| Station hit radius | 20 px | For starting a drag (precise — core §4) |
-| Station drop radius | 40 px | For completing a drag (more forgiving than starting one — core §4); kept under half of Station min spacing (90px) so it can't overlap two stations at once |
+| End marker tab length | 24 px | Projects past the terminal station |
+| End marker hit radius | 14 px | For grabbing a specific Line's end |
+| End marker min separation | 40° | Multiple end markers at one Station fan apart to at least this angle so each stays grabbable (core §4) |
+| Station hit radius | 20 px | For starting a drag, and for capturing Stations into the provisional chain mid-drag (precise — core §4) |
+| Station drop radius | 40 px | For completing a drag (more forgiving than starting one — core §4); the nearest in-range Station wins if several are in range |
+| Line segment hit radius | 10 px | For grabbing a mid-Line segment (insertion drag) |
+
+All drawing hit radii above (end marker, station hit/drop, line segment) are **screen-space** values per core §4: below 1× camera zoom, the world-space radius grows by 1/zoom so targets keep their intended on-screen size; at or above 1× the base value is used as-is.
 
 ---
 
@@ -172,8 +177,8 @@ Drawn back to front each frame, with items 2–10 subject to the Camera transfor
 
 1. Background fill (`#f5f0e8`)
 2. Line strokes (colored, thick; between stations that aren't already aligned to a straight or 45° path, drawn as a diagonal run then a straight run — two straight legs, with only a short rounded curve where they meet, not a curve along the whole segment. Trains travel along this same straight-legs-plus-rounded-corner shape, and it's what mid-Line insertion hit-testing checks against, so movement, hit-testing, and what's drawn all agree)
-3. Line end markers (colored tab + perpendicular crossbar at each Line terminus — one per Line ending at a Node, independently draggable)
-4. Drag preview (dashed line to cursor, only while drawing)
+3. Line end markers (colored tab + perpendicular crossbar at each Line terminus — one per Line ending at a Node, independently draggable; multiple markers at one Station fan apart to the min separation angle in §5)
+4. Drag preview (only while drawing): the provisional chain drawn solid in the Line's color with the same bend geometry as a committed Line, the dangling leg from the last chained Station to the pointer dashed, and any detachment-marked tail segments of the Line being shortened drawn faded — see core §4
 5. Station shapes (white fill, neutral dark border — a Station is never colored by the Lines it belongs to). A newly-created Station fades and scales in over a short spawn animation (a shrinking, fading gray halo behind a shape growing from small to full size) rather than appearing instantly — driven by game time, so it freezes along with everything else while the Game Clock is paused (§6 in core/logic.md; see `research/mini_metro_original_analysis_2_ui_timing.md` §2 for the original's equivalent).
 6. Station at Risk indicator (pulsing red glow plus a shrinking countdown arc showing Risk Timer remaining). The HUD's day-of-week clock badge doubles as a global version of this cue: it recolors solid red for as long as any Station anywhere is in Overflow Risk, independent of which Station(s) are currently visible on screen, and reverts as soon as none are.
 7. Station labels (C1, T2… above each station)

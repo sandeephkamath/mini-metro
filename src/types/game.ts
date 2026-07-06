@@ -70,6 +70,12 @@ export interface DrawingState {
   insertAfterIndex: number | null; // set when dragging from a mid-line segment to insert a station
   grabPos: Vec2 | null; // segment grab point, for drag preview when insertAfterIndex is set
   mousePos: Vec2;
+  // Provisional chain built up during the drag (core §4) — committed only on release.
+  // New-line drags: path[0] is the start station. Extend drags: path holds only the
+  // stations chained beyond the line's dragged end.
+  path: string[];
+  detachCount: number; // terminal stations provisionally marked for removal (shorten gesture)
+  extendEnd: 'front' | 'back' | null; // which end of lineId is being extended; null = new line / insertion
 }
 
 export interface CameraState {

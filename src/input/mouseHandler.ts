@@ -1,8 +1,12 @@
 import type { GameState, StationShape, Vec2 } from '../types/game';
 import { getStationAt, trySpawnStationAt } from '../logic/stations';
-import { getAvailableLine, getLineEndpointAt, addStationToLine, getSegmentAt, insertStationIntoLine, getActiveLineAt, addTrainToLine, addCarriageToTrain } from '../logic/lines';
+import {
+  getAvailableLine, getLineEndpointAt, addStationToLine, getSegmentAt, insertStationIntoLine,
+  getActiveLineAt, addTrainToLine, addCarriageToTrain,
+  chainDrawingStation, getRemainingLineStations, removeStationFromLineEnd,
+} from '../logic/lines';
 import { getTrainAt } from '../logic/trains';
-import { screenToWorld, panCameraByScreenDelta, zoomAtScreenPoint } from '../logic/camera';
+import { screenToWorld, panCameraByScreenDelta, zoomAtScreenPoint, worldHitRadius } from '../logic/camera';
 import { CONFIG } from '../config/gameConfig';
 import { ALL_SHAPES } from '../logic/shapes';
 
@@ -129,29 +133,38 @@ export function onMouseDown(state: GameState, canvasX: number, canvasY: number):
     return;
   }
 
-  // Grabbing a line's end tab extends that specific line, even if other lines
-  // also terminate at the same station (e.g. a station with several route ends).
+  // Grabbing a line's end tab extends (or shortens) that specific line, even if
+  // other lines also terminate at the same station.
   const endpoint = getLineEndpointAt(state, world);
   if (endpoint) {
+    const line = state.lines[endpoint.lineId];
     state.drawing.isDrawing = true;
     state.drawing.startStationId = endpoint.stationId;
     state.drawing.insertAfterIndex = null;
     state.drawing.grabPos = null;
     state.drawing.mousePos = world;
     state.drawing.lineId = endpoint.lineId;
+    state.drawing.path = [];
+    state.drawing.detachCount = 0;
+    state.drawing.extendEnd = line && line.stationIds[0] === endpoint.stationId ? 'front' : 'back';
     return;
   }
 
   // Clicking a station's body (not a specific line's end tab) always starts a
-  // fresh route — a station is never "owned" by a color.
-  const station = getStationAt(state, world);
+  // fresh route — a station is never "owned" by a color. The next free line is
+  // reserved right away so the preview draws in its real color (core §4); with
+  // no free line the drag previews neutrally and commits nothing.
+  const station = getStationAt(state, world, worldHitRadius(state, CONFIG.STATION_HIT_RADIUS));
   if (station) {
     state.drawing.isDrawing = true;
     state.drawing.startStationId = station.id;
     state.drawing.insertAfterIndex = null;
     state.drawing.grabPos = null;
     state.drawing.mousePos = world;
-    state.drawing.lineId = null;
+    state.drawing.lineId = getAvailableLine(state)?.id ?? null;
+    state.drawing.path = [station.id];
+    state.drawing.detachCount = 0;
+    state.drawing.extendEnd = null;
     return;
   }
 
@@ -163,6 +176,9 @@ export function onMouseDown(state: GameState, canvasX: number, canvasY: number):
     state.drawing.grabPos = world;
     state.drawing.mousePos = world;
     state.drawing.lineId = segment.lineId;
+    state.drawing.path = [];
+    state.drawing.detachCount = 0;
+    state.drawing.extendEnd = null;
     return;
   }
 
@@ -182,6 +198,42 @@ export function onMouseMove(state: GameState, canvasX: number, canvasY: number):
 
   if (!state.drawing.isDrawing) return;
   state.drawing.mousePos = screenToWorld(state, { x: canvasX, y: canvasY });
+
+  // Continuous chaining (core §4): passing over a station mid-drag provisionally adds it
+  // (or undoes / marks a detachment). Uses the precise hit radius, not the forgiving drop
+  // radius, so dragging past an unrelated nearby station doesn't silently capture it.
+  // No lineId means no free line was available — nothing could commit, so don't chain.
+  if (state.drawing.insertAfterIndex === null && state.drawing.lineId) {
+    const station = getStationAt(state, state.drawing.mousePos, worldHitRadius(state, CONFIG.STATION_HIT_RADIUS));
+    if (station) chainDrawingStation(state, station.id);
+  }
+}
+
+// Commit everything the gesture built up: detachments first, then chained stations
+// attached in order to the dragged end (core §4 "Releasing").
+function commitDrawing(state: GameState): void {
+  const d = state.drawing;
+  if (!d.lineId) return;
+  const line = state.lines[d.lineId];
+  if (!line) return;
+
+  if (line.stationIds.length === 0) {
+    // Brand-new line: path[0] is the start station; needs at least one more to exist.
+    for (let i = 1; i < d.path.length; i++) {
+      addStationToLine(state, d.lineId, d.path[i], d.path[i - 1]);
+    }
+    return;
+  }
+
+  if (d.extendEnd === null) return;
+  for (let i = 0; i < d.detachCount; i++) {
+    removeStationFromLineEnd(state, d.lineId, d.extendEnd);
+  }
+  let endId = d.extendEnd === 'front' ? line.stationIds[0] : line.stationIds[line.stationIds.length - 1];
+  for (const stationId of d.path) {
+    addStationToLine(state, d.lineId, stationId, endId);
+    endId = stationId;
+  }
 }
 
 export function onMouseUp(state: GameState, canvasX: number, canvasY: number): void {
@@ -194,30 +246,29 @@ export function onMouseUp(state: GameState, canvasX: number, canvasY: number): v
   if (!state.drawing.isDrawing) return;
 
   const world = screenToWorld(state, { x: canvasX, y: canvasY });
-  // Wider tolerance than the default hit radius — completing a drag (core/logic.md §4)
+  // Wider tolerance than the start/chain radius — completing a drag (core/logic.md §4)
   // forgives a near miss, unlike starting one.
-  const endStation = getStationAt(state, world, CONFIG.STATION_DROP_RADIUS);
-  const startId = state.drawing.startStationId;
+  const endStation = getStationAt(state, world, worldHitRadius(state, CONFIG.STATION_DROP_RADIUS));
   const insertAfterIndex = state.drawing.insertAfterIndex;
 
-  if (endStation && insertAfterIndex !== null && state.drawing.lineId) {
-    const line = state.lines[state.drawing.lineId];
-    if (line && !line.stationIds.includes(endStation.id)) {
-      insertStationIntoLine(state, state.drawing.lineId, insertAfterIndex, endStation.id);
-    }
-  } else if (endStation && startId && endStation.id !== startId) {
-    let lineId = state.drawing.lineId;
-
-    if (!lineId) {
-      lineId = getAvailableLine(state)?.id ?? null;
-    }
-
-    if (lineId) {
-      const line = state.lines[lineId];
+  if (insertAfterIndex !== null) {
+    if (endStation && state.drawing.lineId) {
+      const line = state.lines[state.drawing.lineId];
       if (line && !line.stationIds.includes(endStation.id)) {
-        addStationToLine(state, lineId, endStation.id, startId);
+        insertStationIntoLine(state, state.drawing.lineId, insertAfterIndex, endStation.id);
       }
     }
+  } else {
+    // Catch a final station the move events may have missed (fast flicks, touch lift
+    // wobble). Append-only: a release near an already-chained station must never
+    // undo or detach anything.
+    if (endStation && state.drawing.lineId) {
+      const remaining = getRemainingLineStations(state);
+      if (!remaining.includes(endStation.id) && !state.drawing.path.includes(endStation.id)) {
+        state.drawing.path.push(endStation.id);
+      }
+    }
+    commitDrawing(state);
   }
 
   state.drawing.isDrawing = false;
@@ -226,6 +277,9 @@ export function onMouseUp(state: GameState, canvasX: number, canvasY: number): v
   state.drawing.insertAfterIndex = null;
   state.drawing.grabPos = null;
   state.drawing.mousePos = { x: 0, y: 0 };
+  state.drawing.path = [];
+  state.drawing.detachCount = 0;
+  state.drawing.extendEnd = null;
 }
 
 // Wheel/pinch zoom, centered on the cursor. Disables auto-fit permanently.

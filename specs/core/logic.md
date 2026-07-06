@@ -1,7 +1,7 @@
 # Core Logic Specification
 
-**Version**: 1.4
-**Last updated**: 2026-07-05
+**Version**: 1.5
+**Last updated**: 2026-07-06
 
 This document defines the game's mechanics in theme-neutral terms. Themes extend this document by mapping these abstract concepts to named entities and providing configuration values.
 
@@ -134,17 +134,35 @@ There is no win condition. The game ends when any Node overflows, and the final 
 
 ## 4. Route Drawing Interaction
 
-- Each end of a Route (once it has 2+ Nodes) has its own end marker, drawn as a short tab projecting from the terminal Node. A Node can host several end markers at once — one per Route ending there — and each is an independent drag target.
+Route drawing is a continuous, preview-first interaction: a single drag can chain any number of Nodes, every provisional change is shown in the Route's real geometry before it takes effect, and nothing changes the actual Route until the player releases.
+
+### Starting a drag
+
+- Each end of a Route (once it has 2+ Nodes) has its own end marker, drawn as a short tab projecting from the terminal Node. A Node can host several end markers at once — one per Route ending there — and each is an independent drag target. When several end markers share a Node, they are kept at least a minimum angle apart: a marker may rotate away from its natural direction (the continuation of its Route's final segment) as far as needed so that every marker at that Node stays individually distinguishable and grabbable.
 - Clicking a Route's end marker begins extending that specific Route from that end. Which Route gets extended is determined by which end marker was grabbed, not by which Node — a Node is never associated with a single color.
-- Clicking a Node's body (anywhere that isn't a specific Route's end marker) always begins a new Route using the next available unlocked Route color/identifier, even if the Node already belongs to one or more Routes.
-- Releasing on a different Node completes the segment, subject to:
-  - Target Node must not already be on the same Route.
-  - Source Node must be at one of the Route's two ends.
-  - If source is the first Node, target is prepended; if last, target is appended.
-- Clicking on a segment between two Nodes on an existing Route (rather than on a Node) begins a mid-Route insertion drag for that Route.
-- Releasing a mid-Route insertion drag on a Node not already on the Route inserts that Node between the two Nodes of the grabbed segment.
-- Releasing anywhere other than a valid Node cancels the drag.
-- Completing a drag (the two bullets above, plus the mid-Route insertion release) uses a more generous hit tolerance around each Node than starting one does — a release within that tolerance counts as releasing on the nearest such Node, not only a release exactly on its body. Precision at the end of a drag is typically worse than at the start (the pointer/finger itself obscures the target), so this asymmetry is intentional: starting a Route stays precise (so an accidental drag from empty space never silently grabs the wrong Node), while finishing one forgives a near miss.
+- Clicking a Node's body (anywhere that isn't a specific Route's end marker) always begins a new Route, even if the Node already belongs to one or more Routes. The next available unlocked Route color/identifier is reserved the moment the drag starts, so the preview draws in the Route's actual color; if no unlocked Route is free, the drag shows a neutral preview and can commit nothing.
+- Clicking on a segment between two Nodes on an existing Route (rather than on a Node) begins a mid-Route insertion drag for that Route. Releasing it on a Node not already on the Route inserts that Node between the two Nodes of the grabbed segment (one Node per insertion drag).
+
+### During the drag: the provisional chain
+
+- Dragging across a Node adds it to the drag's **provisional chain**: passing within the Node capture tolerance appends that Node, provided it is not already on the Route or in the chain. One continuous drag can chain any number of Nodes this way.
+- The provisional chain renders in the Route's real geometry — its color, its bend shapes — so the player sees exactly how the Route will form before releasing. Only the dangling leg from the last chained Node to the pointer renders as an uncommitted hint (dashed).
+- Dragging back onto the previous Node in the chain removes the most recently added Node — an in-gesture undo. Backing all the way out leaves nothing to commit.
+- **Shortening**: when extending from an end marker with nothing yet chained, dragging inward onto the Route's adjacent Node marks the terminal Node for detachment; continuing inward Node by Node marks more. Detachment-marked segments render faded to show they will be removed. A Route can never be shortened below two Nodes this way — removing a Route entirely stays the separate deletion gesture below. Chaining a fresh Node after marking detachments re-routes that end of the Route within the same gesture.
+
+### Releasing
+
+- Releasing commits the whole gesture at once: marked detachments are applied first, then chained Nodes are attached in order to the dragged end (prepended if it is the Route's first Node, appended if its last; a brand-new Route is created from its chain when it has two or more Nodes).
+- Release capture uses a more generous hit tolerance around each Node than starting a drag or chaining mid-drag does — a release within that tolerance counts as releasing on the nearest such Node. Precision at the end of a drag is typically worse than at the start (the pointer/finger itself obscures the target), so this asymmetry is intentional: starting a Route stays precise (an accidental drag from empty space never silently grabs the wrong Node), while finishing one forgives a near miss.
+- Releasing with nothing chained and nothing marked for detachment cancels the drag with no effect.
+- When a shortening commit removes a segment a Carrier was on (or the Node it was stopped at), that Carrier relocates to the Route's new terminal Node and continues inward from there; Resources on board are unaffected.
+
+### Hit tolerances are screen-space
+
+Every drawing hit tolerance — Node capture, end markers, segment grabs, release capture — is defined in screen pixels, not world pixels. When the Camera is zoomed out below the default zoom, the world-space tolerance scales up by the inverse zoom so targets never shrink below their intended on-screen size; zoomed in past default, tolerances keep their base world size (the targets are already large on screen). Because a scaled-up tolerance can bring more than one Node into range at once, the nearest in-range Node always wins.
+
+### Deleting a Route
+
 - Deleting a Route is a separate gesture from the drawing interactions above: the player presses and holds the Route's own legend swatch (its color indicator in the persistent UI, not a point on the map) for a fixed duration. Releasing before that duration elapses cancels with no effect; releasing anywhere is equivalent to a release since the target is the swatch itself, not a map position. Holding it to completion deletes the Route (per §2 Route). This is a deliberate, confirmable action rather than a stray-drag risk — a Route is never deleted by anything that happens on the map/canvas itself.
 
 ---
@@ -154,7 +172,8 @@ There is no win condition. The game ends when any Node overflows, and the final 
 The map (the full space in which Nodes can spawn) is larger than the visible viewport. The player sees the map through a Camera: a rectangular window defined by a center point and a zoom level.
 
 - The Camera starts centered on the initial cluster of Nodes, at a zoom level that shows them clearly.
-- New Nodes spawn near the existing cluster at first; the area they can spawn across widens gradually as more Nodes are placed, only reaching the map's full extent once the Node count is well established. This keeps growth of the visible area gradual rather than an early Node appearing anywhere on the map at once.
+- New Nodes spawn near the existing cluster at first; the area they can spawn across widens gradually as more Nodes are placed, up to a bounded maximum extent that is deliberately smaller than the full map — the map's outer region is never spawned into and exists only as Camera panning space. This keeps the network compact enough that the automatic zoom-out (below) stays gentle for the whole session.
+- Every new Node must additionally appear within a limited distance of at least one existing Node, so the network grows contiguously outward like a city — a new Node is never an isolated island far from everything, forcing Routes to stretch across empty space to reach it.
 - The Camera holds still as long as every placed Node already fits in view with a small margin. The instant a newly spawned Node would fall outside that margin, the Camera automatically re-centers and zooms out just enough to bring every placed Node back into view — never zooming in tighter than the starting zoom level while doing so, and never adjusting itself when nothing has actually gone out of view.
 - The player can manually zoom in or out, and pan the view, at any time. Manual adjustment permanently hands control of the Camera to the player for the rest of the session — the automatic keep-everything-in-view behavior described above does not resume afterward.
 - The Camera cannot be zoomed out past the point where the whole map is visible, and cannot be panned to show space beyond the map's edges.

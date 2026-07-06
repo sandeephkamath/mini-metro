@@ -1,6 +1,7 @@
 import type { GameState, MetroLine, Vec2 } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
-import { createTrain, redistributeTrains } from './trains';
+import { computeTrainPos, createTrain, redistributeTrains } from './trains';
+import { worldHitRadius } from './camera';
 import { buildSegmentShape, computeElbow, computeElbowRaw, distToSegment } from './geometry';
 
 const SEGMENT_HIT_SAMPLES = 10; // sub-divisions used to hit-test the (mostly straight, corner-rounded) segment shape
@@ -112,6 +113,7 @@ export function getSegmentElbow(state: GameState, line: MetroLine, index: number
 // Hit-tests against the same shape rendering draws (straight legs with a short rounded corner at the
 // bend, via buildSegmentShape), not a direct station-to-station line, so clicks land where the line looks like it is.
 export function getSegmentAt(state: GameState, pos: Vec2): { lineId: string; afterIndex: number } | null {
+  const hitRadius = worldHitRadius(state, CONFIG.LINE_HIT_RADIUS);
   for (const line of Object.values(state.lines)) {
     if (!line.isUnlocked) continue;
     for (let i = 0; i < line.stationIds.length - 1; i++) {
@@ -124,7 +126,7 @@ export function getSegmentAt(state: GameState, pos: Vec2): { lineId: string; aft
       let prev = a;
       for (let s = 1; s <= SEGMENT_HIT_SAMPLES; s++) {
         const p = shape.pointAt(s / SEGMENT_HIT_SAMPLES);
-        if (distToSegment(pos, prev, p) <= CONFIG.LINE_HIT_RADIUS) { hit = true; break; }
+        if (distToSegment(pos, prev, p) <= hitRadius) { hit = true; break; }
         prev = p;
       }
       if (hit) return { lineId: line.id, afterIndex: i };
@@ -160,13 +162,12 @@ export interface LineEndpoint {
   handlePos: Vec2;
 }
 
-// Handle position for one end of a line: projected past the terminal station,
-// continuing the direction of the line's last segment (the little draggable stub/tab).
-// `isFront` says whether `end` is the earlier station of the pair in stationIds order —
-// the elbow must be computed in that same a→b order the renderer used for this segment
-// (computeElbow is direction-dependent, not symmetric), or the tab points somewhere the
-// drawn track never actually goes.
-function endpointHandle(state: GameState, lineId: string, endId: string, neighborId: string, isFront: boolean): LineEndpoint | null {
+// Natural tab angle for one end of a line: continuing the direction of the line's last
+// segment past the terminal station. `isFront` says whether `end` is the earlier station
+// of the pair in stationIds order — the elbow must be computed in that same a→b order the
+// renderer used for this segment (computeElbow is direction-dependent, not symmetric), or
+// the tab points somewhere the drawn track never actually goes.
+function endpointAngle(state: GameState, lineId: string, endId: string, neighborId: string, isFront: boolean): number | null {
   const end = state.stations[endId]?.pos;
   const neighbor = state.stations[neighborId]?.pos;
   const line = state.lines[lineId];
@@ -179,32 +180,71 @@ function endpointHandle(state: GameState, lineId: string, endId: string, neighbo
   const index = isFront ? 0 : line.stationIds.length - 2;
   const elbow = getSegmentElbow(state, line, index);
   const from = elbow ?? neighbor;
-  const dx = end.x - from.x;
-  const dy = end.y - from.y;
-  const len = Math.hypot(dx, dy) || 1;
-  return {
-    lineId,
-    stationId: endId,
-    handlePos: {
-      x: end.x + (dx / len) * CONFIG.ENDPOINT_HANDLE_LENGTH,
-      y: end.y + (dy / len) * CONFIG.ENDPOINT_HANDLE_LENGTH,
-    },
-  };
+  return Math.atan2(end.y - from.y, end.x - from.x);
 }
 
-// One entry per end of every line with >=2 stations. A station can appear in
-// multiple entries if several lines terminate there — each is a separate target.
+// Relax a sorted ring of angles until every circular gap is at least minSep — tabs
+// sharing a station fan apart instead of overlapping (core §4). Few items (max one
+// per line), so a handful of passes converges plenty.
+function spreadAngles(angles: number[], minSep: number): number[] {
+  const n = angles.length;
+  const a = [...angles];
+  for (let pass = 0; pass < 4; pass++) {
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      let gap = a[j] - a[i];
+      if (j === 0) gap += Math.PI * 2;
+      if (gap < minSep) {
+        const push = (minSep - gap) / 2;
+        a[i] -= push;
+        a[j] += push;
+      }
+    }
+  }
+  return a;
+}
+
+// One entry per end of every line with >=2 stations. A station can appear in multiple
+// entries if several lines terminate there — each is a separate target, and tabs that
+// would sit closer together than ENDPOINT_HANDLE_MIN_ANGLE are rotated apart so each
+// stays individually grabbable.
 export function getLineEndpoints(state: GameState): LineEndpoint[] {
-  const endpoints: LineEndpoint[] = [];
+  const raw: Array<{ lineId: string; stationId: string; angle: number }> = [];
   for (const line of Object.values(state.lines)) {
     if (line.stationIds.length < 2) continue;
     const firstId = line.stationIds[0];
     const lastId = line.stationIds[line.stationIds.length - 1];
 
-    const front = endpointHandle(state, line.id, firstId, line.stationIds[1], true);
-    const back = endpointHandle(state, line.id, lastId, line.stationIds[line.stationIds.length - 2], false);
-    if (front) endpoints.push(front);
-    if (back) endpoints.push(back);
+    const front = endpointAngle(state, line.id, firstId, line.stationIds[1], true);
+    const back = endpointAngle(state, line.id, lastId, line.stationIds[line.stationIds.length - 2], false);
+    if (front !== null) raw.push({ lineId: line.id, stationId: firstId, angle: front });
+    if (back !== null) raw.push({ lineId: line.id, stationId: lastId, angle: back });
+  }
+
+  const byStation = new Map<string, typeof raw>();
+  for (const ep of raw) {
+    const group = byStation.get(ep.stationId);
+    if (group) group.push(ep); else byStation.set(ep.stationId, [ep]);
+  }
+
+  const endpoints: LineEndpoint[] = [];
+  for (const [stationId, group] of byStation) {
+    const station = state.stations[stationId];
+    if (!station) continue;
+    group.sort((x, y) => x.angle - y.angle);
+    const angles = group.length > 1
+      ? spreadAngles(group.map(g => g.angle), CONFIG.ENDPOINT_HANDLE_MIN_ANGLE)
+      : [group[0].angle];
+    for (let i = 0; i < group.length; i++) {
+      endpoints.push({
+        lineId: group[i].lineId,
+        stationId,
+        handlePos: {
+          x: station.pos.x + Math.cos(angles[i]) * CONFIG.ENDPOINT_HANDLE_LENGTH,
+          y: station.pos.y + Math.sin(angles[i]) * CONFIG.ENDPOINT_HANDLE_LENGTH,
+        },
+      });
+    }
   }
   return endpoints;
 }
@@ -213,7 +253,7 @@ export function getLineEndpoints(state: GameState): LineEndpoint[] {
 // line when a station has multiple lines terminating at it.
 export function getLineEndpointAt(state: GameState, pos: Vec2): LineEndpoint | null {
   let closest: LineEndpoint | null = null;
-  let closestDist: number = CONFIG.ENDPOINT_HANDLE_HIT_RADIUS;
+  let closestDist: number = worldHitRadius(state, CONFIG.ENDPOINT_HANDLE_HIT_RADIUS);
 
   for (const ep of getLineEndpoints(state)) {
     const d = Math.hypot(pos.x - ep.handlePos.x, pos.y - ep.handlePos.y);
@@ -332,6 +372,111 @@ export function insertStationIntoLine(
   }
 }
 
+// ── Provisional drawing chain (core §4) ────────────────────────────────────
+// While a drag is in progress, nothing below mutates the actual line — the chain
+// and detach count live in state.drawing and are committed only on release.
+
+// Stations of the line being dragged that will remain after pending detachments.
+export function getRemainingLineStations(state: GameState): string[] {
+  const d = state.drawing;
+  if (!d.lineId) return [];
+  const line = state.lines[d.lineId];
+  if (!line || line.stationIds.length === 0) return [];
+  if (d.extendEnd === 'front') return line.stationIds.slice(d.detachCount);
+  if (d.extendEnd === 'back') return line.stationIds.slice(0, line.stationIds.length - d.detachCount);
+  return line.stationIds;
+}
+
+// The provisional chain ordered outward from the dragged end: the (post-detach) terminal
+// first, then every station chained this gesture. For a new-line drag it is just the
+// path (path[0] = the start station).
+export function getDrawingChain(state: GameState): string[] {
+  const d = state.drawing;
+  if (d.extendEnd === null) return d.path;
+  const remaining = getRemainingLineStations(state);
+  const terminal = d.extendEnd === 'front' ? remaining[0] : remaining[remaining.length - 1];
+  return terminal ? [terminal, ...d.path] : d.path;
+}
+
+// Apply one hovered station to the in-progress gesture: append it to the chain, undo the
+// most recent append (dragging back), or mark a terminal detachment (dragging inward from
+// an end tab — the shorten gesture). See core §4 "During the drag".
+export function chainDrawingStation(state: GameState, stationId: string): void {
+  const d = state.drawing;
+  if (d.insertAfterIndex !== null) return; // insertion drags stay single-station
+  const chain = getDrawingChain(state);
+  if (chain[chain.length - 1] === stationId) return;
+
+  // In-gesture undo: dragging back onto the previous chain station pops the newest one.
+  if (d.path.length > 0 && chain[chain.length - 2] === stationId) {
+    d.path.pop();
+    return;
+  }
+
+  const remaining = getRemainingLineStations(state);
+
+  // Shorten: from an end tab with nothing chained yet, dragging onto the adjacent inward
+  // station marks the terminal for detachment — never below 2 remaining stations.
+  if (d.extendEnd !== null && d.path.length === 0 && remaining.length > 2) {
+    const inward = d.extendEnd === 'front' ? remaining[1] : remaining[remaining.length - 2];
+    if (stationId === inward) {
+      d.detachCount += 1;
+      return;
+    }
+  }
+
+  if (!remaining.includes(stationId) && !d.path.includes(stationId)) {
+    d.path.push(stationId);
+  }
+}
+
+// Detach one terminal station from a line end (the shorten gesture, core §4). Trains that
+// were on the removed segment — stopped at the removed station, heading to it, or departing
+// it — relocate to the new terminal and continue inward; everything else keeps rolling
+// undisturbed. Never shortens below 2 stations (full deletion is removeLine's job).
+export function removeStationFromLineEnd(state: GameState, lineId: string, end: 'front' | 'back'): boolean {
+  const line = state.lines[lineId];
+  if (!line || line.stationIds.length <= 2) return false;
+
+  const removedIndex = end === 'front' ? 0 : line.stationIds.length - 1;
+  const removedId = line.stationIds[removedIndex];
+
+  // Identify affected trains before the splice invalidates indices. A moving train
+  // occupies the segment (targetStationIndex - direction, targetStationIndex); a stopped
+  // train sits at targetStationIndex.
+  const affected = new Set<string>();
+  for (const trainId of line.trainIds) {
+    const train = state.trains[trainId];
+    if (!train) continue;
+    const prevIndex = train.state === 'moving' ? train.targetStationIndex - train.direction : train.targetStationIndex;
+    if (train.targetStationIndex === removedIndex || prevIndex === removedIndex) affected.add(trainId);
+  }
+
+  line.stationIds.splice(removedIndex, 1);
+  const removedStation = state.stations[removedId];
+  if (removedStation) {
+    removedStation.lineIds = removedStation.lineIds.filter(id => id !== lineId);
+  }
+
+  const terminalIndex = end === 'front' ? 0 : line.stationIds.length - 1;
+  for (const trainId of line.trainIds) {
+    const train = state.trains[trainId];
+    if (!train) continue;
+    if (affected.has(trainId)) {
+      // Snap to the new terminal, pause there, then head back inward.
+      train.targetStationIndex = terminalIndex;
+      train.direction = end === 'front' ? 1 : -1;
+      train.progress = 1;
+      train.state = 'stopped';
+      train.stopTimer = CONFIG.STATION_STOP_MS;
+      train.pos = computeTrainPos(train, line, state);
+    } else if (end === 'front') {
+      train.targetStationIndex -= 1; // everything shifted down by the front splice
+    }
+  }
+  return true;
+}
+
 // Finds an active (unlocked, already has a Carrier) Line near a click point —
 // used for assigning a Reserve Carrier from the Depot (core §2 Reserve).
 export function getActiveLineAt(state: GameState, pos: Vec2): MetroLine | null {
@@ -393,6 +538,7 @@ export function removeLine(state: GameState, lineId: string): boolean {
     state.drawing = {
       isDrawing: false, lineId: null, startStationId: null,
       insertAfterIndex: null, grabPos: null, mousePos: state.drawing.mousePos,
+      path: [], detachCount: 0, extendEnd: null,
     };
   }
 

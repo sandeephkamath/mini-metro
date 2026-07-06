@@ -31,14 +31,15 @@ export const CONFIG = {
   TRAIN_SPAWN_ANIM_MS: 400, // spawn-in fade/scale duration for a newly-created Train
   PASSENGER_QUEUE_ANIM_MS: 300, // fade/scale-in of a Passenger icon newly added to a Station queue
   PASSENGER_FX_MS: 400, // lifetime of the board/deliver ghost flourish
-  // Hit radius for STARTING a drag (precise — an accidental drag from empty space should
-  // never silently grab the wrong station). core/logic.md §4.
+  // Hit radius for STARTING a drag and for capturing stations into the provisional chain
+  // mid-drag (precise — an accidental drag from empty space should never silently grab the
+  // wrong station). Screen-space per core §4: scaled by 1/zoom below 1x (worldHitRadius).
   STATION_HIT_RADIUS: 20,
   // Hit radius for COMPLETING a drag (mouseup/touchend) — deliberately more generous than
   // STATION_HIT_RADIUS since release precision is typically worse than the start of a drag
   // (the pointer/finger obscures the target), especially on a scaled-down touch screen.
-  // Kept comfortably under half of MIN_STATION_DISTANCE (90) so it can't ambiguously
-  // overlap two stations at once. core/logic.md §4.
+  // Screen-space per core §4; getStationAt picks the nearest in-range station, so the
+  // zoom-scaled radius overlapping two stations resolves to the closer one.
   STATION_DROP_RADIUS: 40,
 
   // Additional station shapes unlock gradually by week number so new shapes don't
@@ -54,9 +55,17 @@ export const CONFIG = {
 
   // New stations spawn within a rectangle centered on the map, whose half-extents
   // grow from these minimums (a tight radius around the starting cluster) up to
-  // the full map extents as the station count approaches STATION_MAX_COUNT.
+  // the MAX half-extents as the station count approaches STATION_MAX_COUNT. The max
+  // is deliberately much smaller than the world: the network stays compact (auto-camera
+  // never zooms out past ~0.5x at native viewport) and the rest of the world is
+  // panning space only — see core §5 / themes/metro.md §5.
   STATION_SPAWN_MIN_HALF_WIDTH: 260,
   STATION_SPAWN_MIN_HALF_HEIGHT: 180,
+  STATION_SPAWN_MAX_HALF_WIDTH: 620,
+  STATION_SPAWN_MAX_HALF_HEIGHT: 450,
+  // A new station must land within this distance of an existing one, so the cluster
+  // grows contiguously outward instead of scattering across the spawn box (core §5).
+  STATION_MAX_NEIGHBOR_DISTANCE: 240,
   // Ease-in exponent applied to spawn-extent growth (see trySpawnStation) — >1 keeps
   // the box tight for longer, only widening rapidly near STATION_MAX_COUNT, so stations
   // stay close together instead of the map filling with empty gaps early on.
@@ -101,9 +110,12 @@ export const CONFIG = {
 
   LINE_WIDTH: 6,
   LINE_BEND_RADIUS: 28, // px of corner-rounding at a Line's bend point — the rest of each leg stays straight
-  LINE_HIT_RADIUS: 10,
-  ENDPOINT_HANDLE_LENGTH: 20,
-  ENDPOINT_HANDLE_HIT_RADIUS: 10,
+  LINE_HIT_RADIUS: 10, // screen-space per core §4 (scaled by 1/zoom below 1x)
+  ENDPOINT_HANDLE_LENGTH: 24,
+  ENDPOINT_HANDLE_HIT_RADIUS: 14, // screen-space per core §4 (scaled by 1/zoom below 1x)
+  // Multiple end tabs at one station fan apart to at least this angle so each stays
+  // an individually grabbable target (core §4) — 40°.
+  ENDPOINT_HANDLE_MIN_ANGLE: (40 * Math.PI) / 180,
   TRAIN_WIDTH: 22,
   TRAIN_HEIGHT: 12,
   PASSENGER_DOT_RADIUS: 3,

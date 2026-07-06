@@ -1,7 +1,7 @@
 # Progression & Difficulty Specification
 
-**Version**: 2.0
-**Last updated**: 2026-07-05
+**Version**: 2.1
+**Last updated**: 2026-07-06
 **Extends**: `./logic.md`
 
 This document defines the theme-neutral rules that govern pacing and difficulty: how often Nodes and Resources spawn, how that rate changes over time, and how Route/Carrier unlocks progress. It is the tuning layer that sits between the fixed mechanics in `logic.md` and each theme's concrete numbers (e.g. `themes/metro.md` §5 Configuration Values). It contains no concrete numbers of its own and no rendering/UI references — only the shape of each rule and the parameters a theme must supply.
@@ -14,13 +14,17 @@ Use this document when you want to reason about or change the game's difficulty 
 
 New Nodes appear on a fixed timer, at a random valid position, until a maximum count is reached.
 
-- A position is valid if it is at least the minimum spacing away from every existing Node and at least the edge margin away from the map bounds.
+- A position is valid if it is at least the minimum spacing away from every existing Node, within the max neighbor distance of at least one existing Node (core §5 — the network grows contiguously), inside the current spawn area, and at least the edge margin away from the map bounds.
+- The spawn area grows with Node count from its starting size up to its maximum size (core §5) — the maximum is a deliberate cap smaller than the map itself.
 - New Node types are distributed to keep type counts roughly balanced, among whichever types are currently unlocked (§1.1) — see core §2 Node.
 
 | Parameter | Meaning |
 |-----------|---------|
 | Node spawn interval | Time between Node spawn attempts |
 | Node min spacing | Minimum allowed distance between any two Nodes |
+| Node max neighbor distance | Maximum allowed distance between a new Node and its nearest existing Node |
+| Node spawn area starting size | Spawn area right after the initial cluster |
+| Node spawn area maximum size | Ceiling the spawn area grows toward as Node count climbs — smaller than the map |
 | Node edge margin | Minimum allowed distance between a Node and the map edge |
 | Max Node count | Spawning stops once this many Nodes exist |
 
@@ -141,6 +145,8 @@ All parameters named above, in one place. A theme fills these in as concrete val
 |-------|---------|
 | Node spawn interval | How fast new Nodes appear |
 | Node min spacing | Map density |
+| Node max neighbor distance | How contiguously the network grows (smaller = tighter cluster) |
+| Node spawn area maximum size | How far the network can ultimately sprawl (drives late-game zoom-out) |
 | Node edge margin | Playable map area |
 | Max Node count | Session length ceiling before Node spawning stops |
 | Initial unlocked Node type count | Starting type variety the player must learn |

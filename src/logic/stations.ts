@@ -67,33 +67,35 @@ export function trySpawnStation(state: GameState): void {
   if (stationList.length >= CONFIG.STATION_MAX_COUNT) return;
 
   const {
-    WORLD_WIDTH, WORLD_HEIGHT, STATION_MARGIN, MIN_STATION_DISTANCE,
+    MIN_STATION_DISTANCE, STATION_MAX_NEIGHBOR_DISTANCE,
     STATION_MAX_COUNT, INITIAL_STATION_COUNT,
-    STATION_SPAWN_MIN_HALF_WIDTH, STATION_SPAWN_MIN_HALF_HEIGHT, STATION_SPAWN_GROWTH_EXPONENT,
+    STATION_SPAWN_MIN_HALF_WIDTH, STATION_SPAWN_MIN_HALF_HEIGHT,
+    STATION_SPAWN_MAX_HALF_WIDTH, STATION_SPAWN_MAX_HALF_HEIGHT,
+    STATION_SPAWN_GROWTH_EXPONENT,
   } = CONFIG;
   const center = getMapCenter();
-  const maxHalfW = WORLD_WIDTH / 2 - STATION_MARGIN;
-  const maxHalfH = WORLD_HEIGHT / 2 - STATION_MARGIN;
 
-  // Spawn extent grows from a tight box around the starting cluster out to the
-  // full map as the station count climbs from INITIAL_STATION_COUNT to STATION_MAX_COUNT,
-  // so new stations appear near the cluster first and only reach the map edges late.
-  // Eased (rather than linear) so the box stays tight through most of the spawn
-  // budget and only widens sharply near STATION_MAX_COUNT.
+  // Spawn extent grows from a tight box around the starting cluster out to the capped
+  // maximum extent (deliberately much smaller than the world — core §5) as the station
+  // count climbs from INITIAL_STATION_COUNT to STATION_MAX_COUNT. Eased (rather than
+  // linear) so the box stays tight through most of the spawn budget.
   const linearGrowth = Math.min(1, Math.max(0,
     (stationList.length - INITIAL_STATION_COUNT) / (STATION_MAX_COUNT - INITIAL_STATION_COUNT)
   ));
   const growth = Math.pow(linearGrowth, STATION_SPAWN_GROWTH_EXPONENT);
-  const halfW = STATION_SPAWN_MIN_HALF_WIDTH + (maxHalfW - STATION_SPAWN_MIN_HALF_WIDTH) * growth;
-  const halfH = STATION_SPAWN_MIN_HALF_HEIGHT + (maxHalfH - STATION_SPAWN_MIN_HALF_HEIGHT) * growth;
+  const halfW = STATION_SPAWN_MIN_HALF_WIDTH + (STATION_SPAWN_MAX_HALF_WIDTH - STATION_SPAWN_MIN_HALF_WIDTH) * growth;
+  const halfH = STATION_SPAWN_MIN_HALF_HEIGHT + (STATION_SPAWN_MAX_HALF_HEIGHT - STATION_SPAWN_MIN_HALF_HEIGHT) * growth;
 
-  for (let attempt = 0; attempt < 30; attempt++) {
+  for (let attempt = 0; attempt < 60; attempt++) {
     const pos: Vec2 = {
       x: center.x + (Math.random() * 2 - 1) * halfW,
       y: center.y + (Math.random() * 2 - 1) * halfH,
     };
 
     if (stationList.some(s => distance(s.pos, pos) < MIN_STATION_DISTANCE)) continue;
+    // Contiguous growth: a new station must sit near at least one existing station,
+    // never as a far-off island the player has to stretch a line across empty space for.
+    if (!stationList.some(s => distance(s.pos, pos) <= STATION_MAX_NEIGHBOR_DISTANCE)) continue;
     if (tooCloseToAnyLine(state, pos)) continue;
 
     const id = `s${++state.nextIds.station}`;

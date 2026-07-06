@@ -19,6 +19,13 @@ export function createInitialCamera(): CameraState {
   };
 }
 
+// Drawing hit tolerances are screen-space (core §4): zoomed out below 1x, the
+// world-space radius grows by 1/zoom so targets keep their on-screen size; zoomed
+// in, the base value stays (targets are already large on screen).
+export function worldHitRadius(state: GameState, screenRadius: number): number {
+  return screenRadius * Math.max(1, 1 / state.camera.zoom);
+}
+
 export function screenToWorld(state: GameState, screen: Vec2): Vec2 {
   const { camera } = state;
   return {
