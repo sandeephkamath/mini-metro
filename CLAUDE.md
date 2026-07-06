@@ -49,6 +49,7 @@ There's an isolated Playwright harness at `testing/` (own `package.json`, never 
 
 ## When Extending
 
-- New game rule → check if it's theme-neutral (goes in core) or metro-specific (goes in theme) before writing code.
+- **Spec-first, always.** Specs are the source of truth for behavior; code implements what the spec says, not the other way around. When a change adds or alters behavior: write or update the relevant spec section (`core/logic.md`, `core/progression.md`, `core/meta_progression.md`, or `themes/metro.md`) *first*, then write code to match it. Do not implement the behavior first and edit the spec afterward as a formality — that inverts spec-first into spec-as-afterthought, and the spec stops being trustworthy as the thing code is checked against. If a change is exploratory and the shape of the behavior is genuinely unclear, sketch the spec change (even roughly) before writing implementation code, and refine both together — but the spec edit is never the last step.
+- New game rule → check if it's theme-neutral (goes in core) or metro-specific (goes in theme) before writing the spec.
 - Fixed a non-obvious bug → add a row to the Bug Log in `themes/metro.md` §10, same format as existing entries.
 - Noticed a gap or deferred feature → add it to `memo.md` instead of leaving it undocumented.

@@ -13,6 +13,9 @@ export function tick(state: GameState, dt: number): void {
   // Presenting the Weekly Upgrade choice pauses every timer in the game — the
   // same mechanism as the phase !== 'playing' guard above (core §6 Game Clock).
   if (state.milestoneChoicePending) return;
+  // Player-facing Pause button uses the same guard — drawing/editing stays live,
+  // only simulation time freezes (core §6 Game Clock).
+  if (state.playerPaused) return;
 
   const cappedDt = Math.min(dt, CONFIG.MAX_DT);
   state.gameTimeMs += cappedDt;

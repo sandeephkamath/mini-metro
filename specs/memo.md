@@ -2,15 +2,17 @@
 
 Running list of things not yet decided or implemented. Not a spec — just a backlog to work through and turn into real spec entries (`specs/`) once decided.
 
+See also `specs/mini_metro_original_analysis.md` — gameplay analysis of an original Mini Metro playthrough (spawn/upgrade pacing, overflow warning UX, route editing/deletion), referenced from a few items below. And `specs/mini_metro_original_analysis_2_ui_timing.md` — a second pass with captions/commentary as source, focused on UI/timing specifics (what exactly triggers the overflow indicator, pausable animations, player-facing speed controls, line bend geometry, the confirmed line-deletion gesture); includes reference screenshots in `specs/reference_screenshots/nyc_analysis/`.
+
 ---
 
 ## Styling / Visual Polish
 
 - Only one visual theme exists (Metro). Decide if alternate themes (e.g. water pipes, blood vessels, airline routes) are worth building on top of `core/logic.md`.
-- No animations for station spawn, passenger boarding/alighting, or train arrival — everything pops in/out instantly.
+- Station spawn now fades/scales in (matching the original's shrinking-gray-halo look, `mini_metro_original_analysis_2_ui_timing.md` §2) — implemented on the `mini-metro-original-parity` branch. Passenger boarding/alighting and train arrival still pop in/out instantly with no animation.
 - No sound effects or music (noted in metro.md divergences).
 - Canvas is a fixed 800×600 — no responsive scaling for different window/screen sizes.
-- Overflow warning is a pulsing red ring — consider whether near-capacity states need earlier/gentler visual cues (e.g. color ramp before red).
+- Overflow warning is a pulsing red ring — consider whether near-capacity states need earlier/gentler visual cues. Two analysis passes looked for the original's per-station warning visual and couldn't pin one down conclusively at 360p (see `mini_metro_original_analysis_2_ui_timing.md` §1) — but did confirm a clean, cheap, high-confidence alternative: the pause-button icon in the HUD corner turns solid red while *any* station is in overflow risk, and reverts once resolved. That global cue is worth considering as a low-effort addition regardless of what (if anything) changes about the per-station visual.
 - No dark mode.
 
 ## Scoring
@@ -45,8 +47,13 @@ Current code still has the old behavior (Delivery Events auto-adding a Carrier t
 
 ## Mobile / Responsive
 
-- No touch input support — game only handles mouse events (`useMouseInput.ts`), including the Camera's scroll-to-zoom / drag-to-pan controls (`src/logic/camera.ts`, `core/logic.md` §5). No pinch-to-zoom or touch-drag-to-pan equivalent yet.
-- Canvas is a fixed 800×600 (`GameCanvas.tsx`) — no responsive scaling to viewport size or `devicePixelRatio`. Will render small/cropped/blurry on phone screens as-is.
+Touch input and responsive sizing are now implemented (`useMouseInput.ts`, `GameCanvas.tsx` — see `themes/metro.md` §6 Camera Controls / §6.1 Responsive Presentation for the full rules):
+- Single-finger touch is a full equivalent of the mouse for drawing/extending Lines and panning.
+- Two-finger pinch zooms (centered on the pinch midpoint); two-finger drag pans; both combine in one gesture.
+- The whole 800×600 canvas+HUD stage scales to fit any viewport, never scaling up past native size. On a portrait phone specifically, it rotates 90° before scaling to actually fill the screen, rather than a plain contain-fit that would otherwise leave most of a tall narrow screen empty (`themes/metro.md` §6.1) — confirmed necessary via real-device testing (a plain scale-to-fit alone left the game tiny and letterboxed on an actual phone in portrait).
+- Real-device testing also surfaced that the drag-to-connect-Lines target radius was too tight for touch on a scaled-down screen — releasing near-but-not-exactly-on a Node would silently fail to connect. Fixed by widening (and using nearest-not-first-found for) the drop-tolerance specifically on drag release — see `core/logic.md` §4.
+
+Still a real gap, not addressed: the internal canvas resolution stays fixed at 800×600 regardless of `devicePixelRatio` — on a high-DPI phone the game renders correctly-scaled but not at native sharpness (no supersampling). There's also no portrait-specific HUD layout — the rotate-to-fill above means the existing HUD just rotates along with everything else rather than being redesigned for a tall narrow screen.
 
 ### Android Packaging (decision pending)
 
@@ -73,7 +80,7 @@ Working lean: Capacitor, since it's the only remaining option that doesn't fork 
 
 ## Onboarding / UX
 
-- No pause functionality outside of debug mode's speed controls.
+- No pause functionality outside of debug mode's speed controls. The original treats pause/normal/fast-forward as three always-visible, player-facing buttons, not debug-only tooling — confirmed directly (not inferred) via `mini_metro_original_analysis_2_ui_timing.md` §3, including a skilled player routinely using fast-forward through quiet stretches.
 - No confirmation before restart from the game over screen.
 
 ### First-Time User Experience (FTUE)
@@ -106,7 +113,7 @@ Current onboarding is a single static modal (`StartScreen.tsx`) shown before eve
 
 ## Known Gaps Already Tracked
 
-See `specs/themes/metro.md` §10 "Known Divergences from Original Mini Metro" for the baseline list (delivery choice, line deletion, mobile support, sound, high scores, etc.) — cross-check before duplicating work here.
+See `specs/themes/metro.md` §10 "Known Divergences from Original Mini Metro" for the baseline list (delivery choice, mobile support, sound, high scores, etc.) — cross-check before duplicating work here. Line deletion is no longer a gap: implemented on the `mini-metro-original-parity` branch using the confirmed original gesture (press/hold the line's own color swatch in the bottom HUD legend — it grows into a red circle with an X, hold to completion deletes, release early cancels — see `mini_metro_original_analysis_2_ui_timing.md` §5). Still open: a Creative Mode continuation option, confirmed on the Game Over screen in two separate research-video sessions (`mini_metro_original_analysis_2_ui_timing.md` §7), now also tracked in `metro.md` §10. Pausing to edit is a real, repeated skilled-player technique — now surfaced as a real player-facing affordance rather than debug-only, per the pause/fast-forward note above.
 
 ## Bugs (found in review, not yet fixed)
 
@@ -114,5 +121,6 @@ Found during a full code-vs-spec pass. Not fixed — flagged here to revisit lat
 
 - **Dead reachability function duplicates a bug that was already fixed.** `canReach` in `src/logic/passengers.ts:26-52` is an unbounded BFS across all connected lines/stations and is never called anywhere — superseded by `canReachAhead` in `trains.ts`, which added the one-hop + anti-bounce rules specifically to fix bug B5 (see `themes/metro.md` §11). Harmless while unused, but reintroducing it would reopen the passenger-bounce bug.
 - **`redistributeTrains` float-precision edge case.** `src/logic/trains.ts:216-238` — if `cumLen + segLen` never quite reaches `targetDist` on the final segment due to floating-point drift, that train is never repositioned, left at its previous spot. Rare, low severity.
+- **`weekly-upgrade.spec.ts` now fails on `main`, independent of this branch.** Confirmed via a clean `git worktree` of `main` with none of this branch's changes — the test draws no lines, enables 4x debug speed, and waits 95s expecting to still be in the `playing` phase at week 5; instead `hud-week` is gone, meaning the game has already reached `gameover`. Almost certainly a side effect of the B8 fix ("game over can never trigger" gate, `metro.md` §11) landing after this test was last green: with zero lines drawn, every spawning passenger is instantly stranded, so overflow — now that it can actually fire — ends the run well before week 5. The test's premise (idle at 4x speed reaches week 5 unattended) no longer holds; it needs either a drawn line to relieve pressure or a shorter/mocked path to the Milestone Event. Not fixed here — out of scope for this pass, flagging so it isn't mistaken for a regression introduced by `mini-metro-original-parity`.
 
 Fixed since the last pass (see `themes/metro.md` §11 Bug Log for B8): the "game over can never trigger" gate, the unused `DeliveryModal` component (repurposed into `MilestoneChoiceModal`), and the HUD toast opacity formula exceeding 1.

@@ -127,6 +127,8 @@ These are the concrete values for the tunable parameters defined abstractly in `
 | Frame dt cap | 100 ms | Prevents spiral-of-death |
 | End marker tab length | 20 px | Projects past the terminal station |
 | End marker hit radius | 10 px | For grabbing a specific Line's end |
+| Station hit radius | 20 px | For starting a drag (precise — core §4) |
+| Station drop radius | 40 px | For completing a drag (more forgiving than starting one — core §4); kept under half of Station min spacing (90px) so it can't overlap two stations at once |
 
 ---
 
@@ -138,8 +140,23 @@ Metro's concrete controls for the abstract Camera behavior in core §5 Map & Vie
 |-------|--------|
 | Scroll wheel / trackpad pinch | Zooms in or out, centered on the cursor position |
 | Drag on empty map space (not a Station, Line end, or Line segment) | Pans the Camera |
+| One-finger touch drag on empty map space | Same as a mouse drag — pans the Camera. A single touch is otherwise a full equivalent of the mouse for every interaction in §3/§4 (drawing/extending/inserting into Lines) |
+| Two-finger pinch | Zooms in or out, centered on the pinch midpoint |
+| Two-finger drag (both touches moving together, pinch distance roughly constant) | Pans the Camera by the midpoint's movement — combines with pinch-zoom in the same gesture |
 
 Either input immediately and permanently disables the automatic keep-everything-in-view behavior for the rest of the session.
+
+Touch and mouse are equivalent input methods throughout — nothing in core or this theme distinguishes them. The one exception is the Line-deletion hold gesture (§4-equivalent, HUD legend swatch): touch uses `touchstart`/`touchend`/`touchcancel` in place of `mousedown`/`mouseup`/`mouseleave`, since long-press semantics differ slightly between the two on the web.
+
+### 6.1 Responsive Presentation
+
+The full game (canvas and HUD together) is designed at a fixed size and presented scaled to fit whatever viewport it's actually running in, rather than redesigning the layout per screen size:
+
+- On a viewport at least as large as the design size in both dimensions (typical desktop), the game renders at its native size, unscaled.
+- On a smaller viewport whose long axis is horizontal (landscape phones, small windows), the game scales down uniformly (preserving aspect ratio) to fit, still right-side-up.
+- On a smaller viewport whose long axis is vertical (portrait phones — the common case, since the design is landscape-shaped), the whole game rotates 90° to align its own long axis with the viewport's long axis, *then* scales to fit — filling far more of a portrait screen than scaling alone would (which would otherwise only ever be limited by the narrow width, leaving most of the screen empty). The player sees the game sideways in this case; physically rotating the device to landscape removes the need for this and returns the game to right-side-up, scaled to fit normally.
+- Never scales up past native size — a very large viewport still renders at the design's native size, not stretched larger.
+- Every input method (mouse and touch alike) accounts for whichever of the above is currently active, so a click/tap always lands on the same game-world point the player sees on screen, rotated presentation included.
 
 ---
 
@@ -151,8 +168,8 @@ Drawn back to front each frame, with items 2–10 subject to the Camera transfor
 2. Line strokes (colored, thick; between stations that aren't already aligned to a straight or 45° path, drawn as a diagonal run then a straight run — two straight legs, with only a short rounded curve where they meet, not a curve along the whole segment. Trains travel along this same straight-legs-plus-rounded-corner shape, and it's what mid-Line insertion hit-testing checks against, so movement, hit-testing, and what's drawn all agree)
 3. Line end markers (colored tab + perpendicular crossbar at each Line terminus — one per Line ending at a Node, independently draggable)
 4. Drag preview (dashed line to cursor, only while drawing)
-5. Station shapes (white fill, neutral dark border — a Station is never colored by the Lines it belongs to)
-6. Station at Risk indicator (pulsing red glow plus a shrinking countdown arc showing Risk Timer remaining)
+5. Station shapes (white fill, neutral dark border — a Station is never colored by the Lines it belongs to). A newly-created Station fades and scales in over a short spawn animation (a shrinking, fading gray halo behind a shape growing from small to full size) rather than appearing instantly — driven by game time, so it freezes along with everything else while the Game Clock is paused (§6 in core/logic.md; see `mini_metro_original_analysis_2_ui_timing.md` §2 for the original's equivalent).
+6. Station at Risk indicator (pulsing red glow plus a shrinking countdown arc showing Risk Timer remaining). The HUD's day-of-week clock badge doubles as a global version of this cue: it recolors solid red for as long as any Station anywhere is in Overflow Risk, independent of which Station(s) are currently visible on screen, and reverts as soon as none are.
 7. Station labels (C1, T2… above each station)
 8. Passenger icons waiting at stations (small black destination shapes)
 9. Train rectangles (dark fill, colored border, rotated to direction of travel)
@@ -167,7 +184,7 @@ Drawn back to front each frame, with items 2–10 subject to the Camera transfor
 |-------|---------------------|
 | home | Top-level landing phase shown before a run begins — see `home_screen.md` |
 | start | Welcome/instructions overlay with a Start button, shown over the fixed starting stations |
-| playing | Full canvas + HUD bar (score, Level number, day-of-week/clock indicator showing progress through the current week, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) |
+| playing | Full canvas + HUD bar (score, Level number, day-of-week/clock indicator showing progress through the current week, Pause/Play/Fast-Forward controls, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) |
 | gameover | Canvas dimmed, game over overlay with final score, Level reached, and restart button, plus Best Level / Picture progress — see §9 |
 
 Best Level Reached, the current Picture, and the Collection gallery entry point (§9) live on the `home` phase, not the `start` overlay — see `home_screen.md`.
@@ -216,13 +233,13 @@ The game-over screen additionally shows this session's contribution to the curre
 
 | Feature | Original | This version |
 |---------|----------|-------------|
-| Station shapes | 7+ shapes | 3 shapes |
+| Station shapes | 7+ shapes | 6 shapes (circle/triangle/square from start; star/hexagon/plus unlock by week — §2) |
 | Map | Multiple cities | One fixed map |
 | River / tunnels | Yes | No |
 | Sound | Yes | No |
-| Line deletion | Yes | No |
 | Mobile support | Yes | No |
 | High score | Persistent leaderboard | None |
+| Creative Mode (post-Game-Over sandbox) | Yes | No |
 
 ---
 
@@ -240,3 +257,4 @@ The game-over screen additionally shows this session's contribution to the curre
 | B8 | Station overflow could never end the game — the queue could reach exactly `maxCapacity` but the check required strictly exceeding it | Every code path that pushes into a Station's queue (`trySpawnPassenger`, the transfer branch of `disembarkPassengers`, the debug add-passenger handler) gated on `< maxCapacity`, so `checkOverflow`'s `> maxCapacity` test was unreachable | Replaced with the Overflow Risk / Grace Timer state machine — a Station at/over capacity starts a Grace Timer instead of ending the game instantly; expiry while still over capacity ends it — see core/logic.md §3 Node Overflow, core/progression.md §5 |
 | B9 | Selecting a Depot Train/Carriage from the HUD while debug mode is on and then clicking a Line/Train did nothing — the selection stayed visually "active" with no way to place it short of Escape or toggling debug off | `onMouseDown` checked `state.debugMode` and routed to the debug popup handler before ever reaching the `selectedReserveItem` branches, so every canvas click was swallowed by debug tooling regardless of a pending Depot selection | Reordered `onMouseDown` so the Reserve-assignment branches are checked first, before the debug-mode branch — Depot placement now works identically whether debug mode is on or off |
 | B10 | `reserveCarriers`/`reserveCarriages` could in principle be driven negative by a fast repeated click while a Depot item was selected | The Reserve-assignment branches in `onMouseDown` decremented the count unconditionally on any hit, with no check that a reserve was actually available | Added a `> 0` guard before assigning and decrementing each Reserve count |
+| B11 | Holding two different Lines' HUD legend swatches at once with two fingers produced the wrong outcome for both — releasing one early (should cancel) deleted it anyway, while holding the other past the threshold (should delete) got silently cancelled instead | `HUD.tsx`'s hold-to-delete tracking (`holdingLineId` + `holdTimerRef`) was a single shared value, not per-Line — a second swatch's `touchstart` overwrote the first swatch's timer reference, orphaning it | Keyed the hold state per-Line (`Set<string>` + `Map<string, number>`) so concurrent holds on different Lines can't interfere with each other's timer lifecycle — found via the `game-tester` agent's real two-finger touch dispatch, only reachable via multi-touch (impossible with a single mouse) |

@@ -20,6 +20,16 @@ export const CONFIG = {
   MIN_LINE_CLEARANCE: 45, // px a new Station must stay clear of any drawn Line segment
   STATION_INITIAL_CAPACITY: 6,
   STATION_RADIUS: 14,
+  STATION_SPAWN_ANIM_MS: 600, // spawn-in fade/scale duration for a newly-created Station
+  // Hit radius for STARTING a drag (precise — an accidental drag from empty space should
+  // never silently grab the wrong station). core/logic.md §4.
+  STATION_HIT_RADIUS: 20,
+  // Hit radius for COMPLETING a drag (mouseup/touchend) — deliberately more generous than
+  // STATION_HIT_RADIUS since release precision is typically worse than the start of a drag
+  // (the pointer/finger obscures the target), especially on a scaled-down touch screen.
+  // Kept comfortably under half of MIN_STATION_DISTANCE (90) so it can't ambiguously
+  // overlap two stations at once. core/logic.md §4.
+  STATION_DROP_RADIUS: 40,
 
   // Additional station shapes unlock gradually by week number so new shapes don't
   // all appear at once — circle/triangle/square are available from week 0 (unlisted here).

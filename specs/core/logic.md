@@ -45,6 +45,7 @@ An ordered sequence of Nodes connected by segments. One or more Carriers travel 
 - A Route cannot contain the same Node twice.
 - The player draws Routes by dragging between Nodes.
 - A fixed number of Routes are unlocked at game start; more unlock as the total Node count grows (see `progression.md` §4) — Route unlocking is not tied to Milestone Events.
+- A Route with at least one Node can be deleted outright by the player (§4 Route Drawing Interaction covers the gesture). Deleting a Route removes every Carrier on it — any Resources those Carriers were holding are discarded, not returned to any Node's queue — and detaches every Node that was only reachable via this Route. The Route's identifier/color is not consumed: it immediately becomes an empty, already-unlocked Route ready to be drawn again, exactly as if it had never been drawn.
 
 ### Carrier
 
@@ -143,6 +144,8 @@ There is no win condition. The game ends when any Node overflows, and the final 
 - Clicking on a segment between two Nodes on an existing Route (rather than on a Node) begins a mid-Route insertion drag for that Route.
 - Releasing a mid-Route insertion drag on a Node not already on the Route inserts that Node between the two Nodes of the grabbed segment.
 - Releasing anywhere other than a valid Node cancels the drag.
+- Completing a drag (the two bullets above, plus the mid-Route insertion release) uses a more generous hit tolerance around each Node than starting one does — a release within that tolerance counts as releasing on the nearest such Node, not only a release exactly on its body. Precision at the end of a drag is typically worse than at the start (the pointer/finger itself obscures the target), so this asymmetry is intentional: starting a Route stays precise (so an accidental drag from empty space never silently grabs the wrong Node), while finishing one forgives a near miss.
+- Deleting a Route is a separate gesture from the drawing interactions above: the player presses and holds the Route's own legend swatch (its color indicator in the persistent UI, not a point on the map) for a fixed duration. Releasing before that duration elapses cancels with no effect; releasing anywhere is equivalent to a release since the target is the swatch itself, not a map position. Holding it to completion deletes the Route (per §2 Route). This is a deliberate, confirmable action rather than a stray-drag risk — a Route is never deleted by anything that happens on the map/canvas itself.
 
 ---
 
@@ -162,6 +165,10 @@ The map (the full space in which Nodes can spawn) is larger than the visible vie
 ## 6. Game Clock
 
 All timers use game time, not wall time. Game time advances only while the game is in the playing state. Pausing freezes all timers.
+
+Two independent things can pause the clock — a Milestone Event Choice being presented (§3) and the player's own Pause control — either one freezes every timer via the same mechanism; nothing else about the game (drawing/editing Routes, panning/zooming the camera) is blocked while paused.
+
+The player may also run the clock at a faster rate than normal (Fast-Forward) rather than only pausing it. Pause, normal speed, and Fast-Forward are three mutually exclusive states the player can select at any time during play — selecting a speed while paused resumes the clock at that speed. This is a normal, always-available player control, not a debug/QA-only feature.
 
 ---
 

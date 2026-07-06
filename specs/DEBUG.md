@@ -60,6 +60,8 @@ Available in debug mode only. Keys affect the `dt` multiplier passed to the game
 
 Speed resets to 1× when debug mode is turned off.
 
+This is separate from the player-facing Pause/Play/Fast-Forward HUD control (`core/logic.md` §6 Game Clock), which is always available regardless of debug mode. While debug mode is on, these keyed speeds take precedence over the player's HUD speed selection; turning debug mode off hands control back to whatever the player last selected in the HUD.
+
 ---
 
 ## Add Passenger

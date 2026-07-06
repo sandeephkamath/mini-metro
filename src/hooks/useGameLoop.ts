@@ -23,7 +23,7 @@ export function useGameLoop({ stateRef, canvasRef, syncReactState }: UseGameLoop
       const state = stateRef.current;
 
       if (state.phase === 'playing') {
-        const speedMult = state.debugMode ? state.debugSpeed : 1;
+        const speedMult = state.debugMode ? state.debugSpeed : state.playerSpeedMultiplier;
         tick(state, dt * speedMult);
       }
 

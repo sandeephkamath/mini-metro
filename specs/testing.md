@@ -15,7 +15,7 @@ An isolated harness and agent that plays the running game, drives it through def
 
 ## 2. Isolation Rules
 
-- The testing harness must never modify anything under `src/`. It only observes and drives the game through the same inputs a player (or debug mode) has: mouse clicks/drags on the canvas and key presses on the window.
+- The testing harness must never modify anything under `src/`. It only observes and drives the game through the same inputs a player (or debug mode) has: mouse clicks/drags or single/multi-touch gestures on the canvas, and key presses on the window.
 - The harness lives entirely under `testing/`, as its own package with its own dependencies. It is not a dependency of the game app and must not appear in the root `package.json`.
 - The harness may read `specs/` to decide whether a finding is a bug, a known divergence, or already tracked. It must not write to `specs/` — findings are written to `testing/reports/` only. Promoting a finding into `specs/memo.md` or the Bug Log in `themes/metro.md` §9 is a human decision.
 - Running the harness must never require changes to game source to add hooks, test IDs, or instrumentation. Debug mode (see `DEBUG.md`) is the only sanctioned instrumentation surface — it already exists for this purpose.
@@ -45,6 +45,22 @@ Each flow below is a scenario the harness can run headlessly. "Trigger" is the i
 | Debug Mode Toggle | Press `D` | Debug overlay appears/disappears; turning off clears the event log and resets spawn toggles and speed to 1x (`DEBUG.md` Activation, Rules) |
 | Spawn Controls | Press `S` / `P` in debug mode | Station/passenger auto-spawn pause independently; timers still advance (`DEBUG.md` Spawn Controls) |
 | Speed Controls | Press `0`/`1`/`2`/`3` in debug mode | dt multiplier changes accordingly, capped at 4x (`DEBUG.md` Speed Control) |
+
+### 3.1 Mobile / Touch Flows
+
+A separate `mobile` Playwright project (`testing/playwright.config.ts`, `testing/flows/mobile/**`) runs a small-viewport, `hasTouch`/`isMobile` device profile against the same running game — real touch gestures (not just mouse), dispatched via CDP's `Input.dispatchTouchEvent` (`testing/helpers/touchDriver.ts`) since Playwright's built-in `page.touchscreen` only supports a single tap. Still Chromium underneath (§7 — this is device/viewport emulation, not a second browser engine).
+
+| Flow | Trigger | Expected (spec ref) |
+|------|---------|---------------------|
+| Responsive Fit | Load the app at a phone-sized viewport | Canvas+HUD stage scales to fit without horizontal page overflow (`themes/metro.md` §6, `memo.md` Mobile/Responsive) |
+| Rotate-to-Fill | Load the app at a portrait-shaped (taller-than-wide) viewport | Stage rotates 90° before scaling, filling meaningfully more of the screen than a plain contain-fit would (`themes/metro.md` §6.1) |
+| Touch Draw | Single-finger touch-drag between two stations | Same as Draw a Line above — touch is a full equivalent of the mouse, correct even when the stage is rotated (`themes/metro.md` §6, §6.1) |
+| Touch Pan | Single-finger touch-drag on empty map space | Pans the Camera, same as a mouse drag (`themes/metro.md` §6) |
+| Pinch Zoom | Two-finger pinch in/out | Zooms in/out around the pinch midpoint, clamped to `CAMERA_MIN_ZOOM`/`CAMERA_MAX_ZOOM` same as scroll-wheel zoom (`themes/metro.md` §6) |
+| Two-Finger Pan | Two fingers moving together, pinch distance ~constant | Pans the Camera by the midpoint's movement (`themes/metro.md` §6) |
+| Touch Hold-to-Delete | Touch-hold a Line's HUD legend swatch past the hold threshold | Line is deleted, same as the mouse hold gesture (`core/logic.md` §2 Route, §4; `mini_metro_original_analysis_2_ui_timing.md` §5) |
+| Concurrent Touch Hold-to-Delete | Two fingers hold two different Lines' swatches at once, released at different times relative to the hold threshold | Each Line's outcome depends only on its own touch's timing, independent of the other (`core/logic.md` §4) |
+| Snap-to-Node Drop Tolerance | Mouse/touch-drag released near but not exactly on a destination Station | Connects to the nearest Station within the wider drop tolerance, same as an exact hit (`core/logic.md` §4) |
 
 ---
 
@@ -87,4 +103,4 @@ Each run produces one report file under `testing/reports/`. Each finding is a ro
 
 - No performance/load testing (frame rate, memory) — functional correctness only, for now.
 - No visual regression testing (pixel diffing of canvas output) — behavior and state only.
-- No cross-browser matrix — a single Chromium run is sufficient at this stage.
+- No cross-browser matrix — a single Chromium run is sufficient at this stage. The `mobile` project (§3.1) emulates a phone viewport/touch/UA within Chromium; it does not test real WebKit/Safari or Android Chrome.

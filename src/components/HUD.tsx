@@ -1,10 +1,15 @@
+import { useRef, useState } from 'react';
 import type { ReserveItemKind } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
 
 interface LineSlot {
+  id: string;
   color: string;
   isUnlocked: boolean;
+  hasStations: boolean;
 }
+
+const DELETE_HOLD_MS = 600;
 
 interface HUDProps {
   score: number;
@@ -19,9 +24,19 @@ interface HUDProps {
   selectedReserveItem: ReserveItemKind | null;
   onSelectReserveCarrier: () => void;
   onSelectReserveCarriage: () => void;
+  overflowRiskActive: boolean; // true while any Station is in Overflow Risk — recolors the clock badge
+  playerPaused: boolean;
+  playerSpeedMultiplier: 1 | 2;
+  onPause: () => void;
+  onPlayNormal: () => void;
+  onFastForward: () => void;
+  onDeleteLine: (lineId: string) => void;
 }
 
-function ClockBadge({ weekProgress }: { weekProgress: number }) {
+// The clock badge doubles as the original's global danger cue: it recolors solid
+// red while any Station is in Overflow Risk, reverting once every station recovers
+// (see specs/mini_metro_original_analysis_2_ui_timing.md §1).
+function ClockBadge({ weekProgress, overflowRiskActive }: { weekProgress: number; overflowRiskActive: boolean }) {
   const dayCount = CONFIG.DAY_NAMES.length;
   const dayIndex = Math.floor(weekProgress * dayCount) % dayCount;
   const hourAngle = weekProgress * 360; // one slow sweep per week
@@ -32,15 +47,18 @@ function ClockBadge({ weekProgress }: { weekProgress: number }) {
       <span style={{ fontSize: '12px', letterSpacing: '1px', opacity: 0.85 }}>
         {CONFIG.DAY_NAMES[dayIndex]}
       </span>
-      <div style={{
-        position: 'relative',
-        width: 24,
-        height: 24,
-        borderRadius: '50%',
-        background: '#b5675c',
-        border: '2px solid #8b4a42',
-        flexShrink: 0,
-      }}>
+      <div
+        data-testid="hud-overflow-clock"
+        style={{
+          position: 'relative',
+          width: 24,
+          height: 24,
+          borderRadius: '50%',
+          background: overflowRiskActive ? '#c0392b' : '#b5675c',
+          border: overflowRiskActive ? '2px solid #7a221a' : '2px solid #8b4a42',
+          flexShrink: 0,
+          transition: 'background 0.2s, border-color 0.2s',
+        }}>
         <div style={{
           position: 'absolute', top: '50%', left: '50%', width: 2, height: 8,
           background: '#fdf6ec', borderRadius: 1, transformOrigin: '50% 100%',
@@ -56,13 +74,90 @@ function ClockBadge({ weekProgress }: { weekProgress: number }) {
   );
 }
 
+// Player-facing Pause / Play / Fast-Forward — promoted from debug-only speed
+// controls to a normal in-game feature (see mini_metro_original_analysis_2_ui_timing.md §3).
+function SpeedControls({ playerPaused, playerSpeedMultiplier, onPause, onPlayNormal, onFastForward }: {
+  playerPaused: boolean;
+  playerSpeedMultiplier: 1 | 2;
+  onPause: () => void;
+  onPlayNormal: () => void;
+  onFastForward: () => void;
+}) {
+  function btnStyle(active: boolean) {
+    return {
+      background: active ? '#444' : 'transparent',
+      color: active ? '#fff' : '#999',
+      border: 'none',
+      borderRadius: '4px',
+      width: 22,
+      height: 22,
+      fontSize: '11px',
+      lineHeight: '22px',
+      padding: 0,
+      cursor: 'pointer',
+      pointerEvents: 'auto' as const,
+    };
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+      <button style={btnStyle(playerPaused)} onClick={onPause} title="Pause">II</button>
+      <button style={btnStyle(!playerPaused && playerSpeedMultiplier === 1)} onClick={onPlayNormal} title="Play">▶</button>
+      <button style={btnStyle(!playerPaused && playerSpeedMultiplier === 2)} onClick={onFastForward} title="Fast-forward">▶▶</button>
+    </div>
+  );
+}
+
 export function HUD({
   score, weekNumber, level, weekProgress, lineSlots, milestoneMessage, milestoneAge,
   reserveCarriers, reserveCarriages, selectedReserveItem,
   onSelectReserveCarrier, onSelectReserveCarriage,
+  overflowRiskActive, playerPaused, playerSpeedMultiplier, onPause, onPlayNormal, onFastForward,
+  onDeleteLine,
 }: HUDProps) {
   const toastVisible = milestoneAge < 3000 && milestoneMessage;
   const toastOpacity = toastVisible ? Math.min(1, Math.max(0, 1 - (milestoneAge - 2000) / 1000)) : 0;
+
+  // Hold-to-delete on a Line's own legend swatch — grows into a red circle with an
+  // X over DELETE_HOLD_MS; releasing early cancels. Matches the original's gesture
+  // (specs/mini_metro_original_analysis_2_ui_timing.md §5). Pure UI feedback state —
+  // the actual deletion is a single onDeleteLine call once the hold completes.
+  //
+  // Keyed per-Line (Set + Map), not a single shared value — two fingers can hold two
+  // different Lines' swatches at once on touch (impossible with a single mouse, so this
+  // was missed until a real multi-touch pass caught it): a single shared value meant a
+  // second touchstart overwrote the first hold's tracking, silently orphaning its timer.
+  const [holdingLineIds, setHoldingLineIds] = useState<Set<string>>(new Set());
+  const holdTimersRef = useRef<Map<string, number>>(new Map());
+
+  function startHold(lineId: string, hasStations: boolean) {
+    if (!hasStations || holdTimersRef.current.has(lineId)) return;
+    setHoldingLineIds(prev => new Set(prev).add(lineId));
+    const timer = window.setTimeout(() => {
+      onDeleteLine(lineId);
+      holdTimersRef.current.delete(lineId);
+      setHoldingLineIds(prev => {
+        const next = new Set(prev);
+        next.delete(lineId);
+        return next;
+      });
+    }, DELETE_HOLD_MS);
+    holdTimersRef.current.set(lineId, timer);
+  }
+
+  function cancelHold(lineId: string) {
+    const timer = holdTimersRef.current.get(lineId);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      holdTimersRef.current.delete(lineId);
+    }
+    setHoldingLineIds(prev => {
+      if (!prev.has(lineId)) return prev;
+      const next = new Set(prev);
+      next.delete(lineId);
+      return next;
+    });
+  }
 
   function depotButtonStyle(count: number, selected: boolean) {
     return {
@@ -102,7 +197,14 @@ export function HUD({
         </span>
         <span style={{ opacity: 0.6, fontSize: '12px' }}>drag between stations to draw lines</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <ClockBadge weekProgress={weekProgress} />
+          <SpeedControls
+            playerPaused={playerPaused}
+            playerSpeedMultiplier={playerSpeedMultiplier}
+            onPause={onPause}
+            onPlayNormal={onPlayNormal}
+            onFastForward={onFastForward}
+          />
+          <ClockBadge weekProgress={weekProgress} overflowRiskActive={overflowRiskActive} />
           <span data-testid="hud-score" style={{ fontSize: '22px', fontWeight: 'bold' }}>{score}</span>
         </div>
       </div>
@@ -131,19 +233,45 @@ export function HUD({
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {lineSlots.map((slot, i) => (
-            slot.isUnlocked ? (
-              <div key={i} style={{
-                width: 20, height: 20, borderRadius: '50%',
-                background: slot.color, border: '1px solid rgba(255,255,255,0.3)',
-              }} />
-            ) : (
-              <div key={i} style={{
-                width: 8, height: 8, borderRadius: '50%',
-                background: '#666',
-              }} />
-            )
-          ))}
+          {lineSlots.map((slot, i) => {
+            if (!slot.isUnlocked) {
+              return <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#666' }} />;
+            }
+            const holding = holdingLineIds.has(slot.id);
+            return (
+              <div
+                key={i}
+                data-testid={`hud-line-swatch-${slot.id}`}
+                onMouseDown={() => startHold(slot.id, slot.hasStations)}
+                onMouseUp={() => cancelHold(slot.id)}
+                onMouseLeave={() => cancelHold(slot.id)}
+                onTouchStart={() => startHold(slot.id, slot.hasStations)}
+                onTouchEnd={() => cancelHold(slot.id)}
+                onTouchCancel={() => cancelHold(slot.id)}
+                title={slot.hasStations ? 'Hold to delete this line' : undefined}
+                style={{
+                  width: holding ? 34 : 20,
+                  height: holding ? 34 : 20,
+                  borderRadius: '50%',
+                  background: holding ? '#e74c3c' : slot.color,
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  transition: `width ${DELETE_HOLD_MS}ms linear, height ${DELETE_HOLD_MS}ms linear, background ${DELETE_HOLD_MS}ms linear`,
+                  cursor: slot.hasStations ? 'pointer' : 'default',
+                  pointerEvents: 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  WebkitTouchCallout: 'none',
+                  touchAction: 'none',
+                }}
+              >
+                {holding && <span style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', lineHeight: 1 }}>×</span>}
+              </div>
+            );
+          })}
         </div>
 
         <button
