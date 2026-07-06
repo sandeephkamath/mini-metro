@@ -74,3 +74,39 @@ test('one-finger drag on empty map space pans the camera', async ({ page }) => {
   await test.info().attach('before-pan', { body: before, contentType: 'image/png' });
   await test.info().attach('after-pan', { body: after, contentType: 'image/png' });
 });
+
+// specs/testing.md §3.1 "Two-Finger Pan" — touchPan() already existed in touchDriver.ts
+// but a QA pass found no committed test actually called it. Two fingers moving together
+// (pinch distance constant) should translate the Camera by exactly the midpoint's
+// canvas-local movement (mouseHandler.ts/camera.ts), with zoom unchanged — checked here
+// by predicting exactly where a known Station ends up (not just "something changed").
+test('two-finger pan (constant pinch distance) translates the camera without zooming', async ({ page }) => {
+  await page.goto('/');
+  await startGame(page);
+
+  // Dead center of a Station's shape is its white fill (`#ffffff`), reliably distinct
+  // from the canvas background fill (`#f5f0e8` = [245,240,232], renderer.ts) — used as
+  // the "is a Station drawn here" signal instead of alpha (the background itself is
+  // fully opaque, so alpha is 255 everywhere and can't distinguish the two).
+  const BACKGROUND: [number, number, number] = [245, 240, 232];
+  const square = FIXED_STATIONS.square;
+  const beforePixel = await getCanvasPixel(page, square.x, square.y);
+  expect([beforePixel[0], beforePixel[1], beforePixel[2]]).not.toEqual(BACKGROUND); // sanity: Station is drawn here first
+
+  // Pan by a known canvas-local delta: canvasPoint() converts these two logical points'
+  // separation into the equivalent page-pixel delta, whatever the current scale/rotation.
+  const dx = 100, dy = -60;
+  const centerPage = await canvasPoint(page, 400, 300);
+  const shiftedPage = await canvasPoint(page, 400 + dx, 300 + dy);
+  const pageDelta = { x: shiftedPage.x - centerPage.x, y: shiftedPage.y - centerPage.y };
+  await touchPan(page, centerPage, pageDelta);
+  await page.waitForTimeout(200);
+
+  // Same dx/dy = new-minus-last convention as mouse-drag panning (mouseHandler.ts):
+  // the world visually shifts by +dx/+dy on screen at zoom 1 (a fresh session's default,
+  // unchanged by a pure pan). The Station should now render at its old position + delta.
+  const afterAtOldPos = await getCanvasPixel(page, square.x, square.y);
+  const afterAtNewPos = await getCanvasPixel(page, square.x + dx, square.y + dy);
+  expect([afterAtNewPos[0], afterAtNewPos[1], afterAtNewPos[2]]).not.toEqual(BACKGROUND); // Station now at the predicted shifted position
+  expect([afterAtOldPos[0], afterAtOldPos[1], afterAtOldPos[2]]).toEqual(BACKGROUND); // old position reverted to background
+});
