@@ -3,13 +3,13 @@ import { getPhase, getScoreAndWeek, startGame } from '../helpers/gameDriver';
 
 test('boot shows the home screen', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByText('Play', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
   expect(await getPhase(page)).toBe('home');
 });
 
 test('home transitions to the start instructions overlay', async ({ page }) => {
   await page.goto('/');
-  await page.getByText('Play', { exact: true }).click();
+  await page.getByRole('button', { name: 'Play' }).click();
   await expect(page.getByText('Start Game')).toBeVisible();
   expect(await getPhase(page)).toBe('start');
 });

@@ -127,8 +127,8 @@ export async function getCanvasPixelAtLocal(page: Page, localX: number, localY: 
 }
 
 export async function startGame(page: Page) {
-  if (await page.getByText('Play').isVisible().catch(() => false)) {
-    await page.getByText('Play', { exact: true }).click();
+  if (await page.getByRole('button', { name: 'Play' }).isVisible().catch(() => false)) {
+    await page.getByRole('button', { name: 'Play' }).click();
   }
   await page.getByText('Start Game').click();
 }
@@ -139,7 +139,7 @@ export async function restartGame(page: Page) {
 }
 
 export async function getPhase(page: Page): Promise<'home' | 'start' | 'playing' | 'gameover'> {
-  if (await page.getByText('Play', { exact: true }).isVisible().catch(() => false)) return 'home';
+  if (await page.getByRole('button', { name: 'Play' }).isVisible().catch(() => false)) return 'home';
   if (await page.getByText('Start Game').isVisible().catch(() => false)) return 'start';
   if (await page.getByText('Back to Home').isVisible().catch(() => false)) return 'gameover';
   return 'playing';
