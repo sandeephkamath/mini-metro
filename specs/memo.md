@@ -2,17 +2,17 @@
 
 Running list of things not yet decided or implemented. Not a spec — just a backlog to work through and turn into real spec entries (`specs/`) once decided.
 
-See also `specs/mini_metro_original_analysis.md` — gameplay analysis of an original Mini Metro playthrough (spawn/upgrade pacing, overflow warning UX, route editing/deletion), referenced from a few items below. And `specs/mini_metro_original_analysis_2_ui_timing.md` — a second pass with captions/commentary as source, focused on UI/timing specifics (what exactly triggers the overflow indicator, pausable animations, player-facing speed controls, line bend geometry, the confirmed line-deletion gesture); includes reference screenshots in `specs/reference_screenshots/nyc_analysis/`.
+See also `specs/research/mini_metro_original_analysis.md` — gameplay analysis of an original Mini Metro playthrough (spawn/upgrade pacing, overflow warning UX, route editing/deletion), referenced from a few items below. And `specs/research/mini_metro_original_analysis_2_ui_timing.md` — a second pass with captions/commentary as source, focused on UI/timing specifics (what exactly triggers the overflow indicator, pausable animations, player-facing speed controls, line bend geometry, the confirmed line-deletion gesture); includes reference screenshots in `specs/research/reference_screenshots/nyc_analysis/`.
 
 ---
 
 ## Styling / Visual Polish
 
 - Only one visual theme exists (Metro). Decide if alternate themes (e.g. water pipes, blood vessels, airline routes) are worth building on top of `core/logic.md`.
-- Station spawn now fades/scales in (matching the original's shrinking-gray-halo look, `mini_metro_original_analysis_2_ui_timing.md` §2) — implemented on the `mini-metro-original-parity` branch. Passenger boarding/alighting and train arrival still pop in/out instantly with no animation.
+- Station spawn now fades/scales in (matching the original's shrinking-gray-halo look, `research/mini_metro_original_analysis_2_ui_timing.md` §2) — implemented on the `mini-metro-original-parity` branch. Passenger boarding/alighting and train arrival still pop in/out instantly with no animation.
 - No sound effects or music (noted in metro.md divergences).
 - Canvas is a fixed 800×600 — no responsive scaling for different window/screen sizes.
-- Overflow warning is a pulsing red ring — consider whether near-capacity states need earlier/gentler visual cues. Two analysis passes looked for the original's per-station warning visual and couldn't pin one down conclusively at 360p (see `mini_metro_original_analysis_2_ui_timing.md` §1) — but did confirm a clean, cheap, high-confidence alternative: the pause-button icon in the HUD corner turns solid red while *any* station is in overflow risk, and reverts once resolved. That global cue is worth considering as a low-effort addition regardless of what (if anything) changes about the per-station visual.
+- Overflow warning is a pulsing red ring — consider whether near-capacity states need earlier/gentler visual cues. Two analysis passes looked for the original's per-station warning visual and couldn't pin one down conclusively at 360p (see `research/mini_metro_original_analysis_2_ui_timing.md` §1) — but did confirm a clean, cheap, high-confidence alternative: the pause-button icon in the HUD corner turns solid red while *any* station is in overflow risk, and reverts once resolved. That global cue is worth considering as a low-effort addition regardless of what (if anything) changes about the per-station visual.
 - No dark mode.
 
 ## Scoring
@@ -80,7 +80,7 @@ Working lean: Capacitor, since it's the only remaining option that doesn't fork 
 
 ## Onboarding / UX
 
-- No pause functionality outside of debug mode's speed controls. The original treats pause/normal/fast-forward as three always-visible, player-facing buttons, not debug-only tooling — confirmed directly (not inferred) via `mini_metro_original_analysis_2_ui_timing.md` §3, including a skilled player routinely using fast-forward through quiet stretches.
+- No pause functionality outside of debug mode's speed controls. The original treats pause/normal/fast-forward as three always-visible, player-facing buttons, not debug-only tooling — confirmed directly (not inferred) via `research/mini_metro_original_analysis_2_ui_timing.md` §3, including a skilled player routinely using fast-forward through quiet stretches.
 - No confirmation before restart from the game over screen.
 
 ### First-Time User Experience (FTUE)
@@ -113,7 +113,7 @@ Current onboarding is a single static modal (`StartScreen.tsx`) shown before eve
 
 ## Known Gaps Already Tracked
 
-See `specs/themes/metro.md` §10 "Known Divergences from Original Mini Metro" for the baseline list (delivery choice, mobile support, sound, high scores, etc.) — cross-check before duplicating work here. Line deletion is no longer a gap: implemented on the `mini-metro-original-parity` branch using the confirmed original gesture (press/hold the line's own color swatch in the bottom HUD legend — it grows into a red circle with an X, hold to completion deletes, release early cancels — see `mini_metro_original_analysis_2_ui_timing.md` §5). Still open: a Creative Mode continuation option, confirmed on the Game Over screen in two separate research-video sessions (`mini_metro_original_analysis_2_ui_timing.md` §7), now also tracked in `metro.md` §10. Pausing to edit is a real, repeated skilled-player technique — now surfaced as a real player-facing affordance rather than debug-only, per the pause/fast-forward note above.
+See `specs/themes/metro.md` §10 "Known Divergences from Original Mini Metro" for the baseline list (delivery choice, mobile support, sound, high scores, etc.) — cross-check before duplicating work here. Line deletion is no longer a gap: implemented on the `mini-metro-original-parity` branch using the confirmed original gesture (press/hold the line's own color swatch in the bottom HUD legend — it grows into a red circle with an X, hold to completion deletes, release early cancels — see `research/mini_metro_original_analysis_2_ui_timing.md` §5). Still open: a Creative Mode continuation option, confirmed on the Game Over screen in two separate research-video sessions (`research/mini_metro_original_analysis_2_ui_timing.md` §7), now also tracked in `metro.md` §10. Pausing to edit is a real, repeated skilled-player technique — now surfaced as a real player-facing affordance rather than debug-only, per the pause/fast-forward note above.
 
 ## Bugs (found in review, not yet fixed)
 

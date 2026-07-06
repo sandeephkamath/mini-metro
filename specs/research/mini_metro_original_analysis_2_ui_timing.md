@@ -4,7 +4,7 @@
 
 **Source**: YouTube video `"DOMINATING New York in \"Mini Metro\""` (quill18, uploaded 2023-11-14, 41:32 runtime). Two full playthroughs on the **New York** map (chapters: 0:00 Intro, 1:40 Game 1 "Explanation & Warm-Up," 19:50 Game 2 "SERIOUS TIME"), **with continuous spoken commentary** — a meaningfully better source than the first video because the player narrates *why* he's doing things and occasionally states the mechanic explicitly out loud.
 
-**Method**: downloaded via `yt-dlp` (format 18/360p) same as before. This video **has auto-generated captions**, unlike the first — pulled the `.vtt`, deduplicated the rolling-caption overlap into a clean transcript, and grepped it for mechanic-relevant keywords before doing any frame sampling. Then extracted full-resolution frames at the exact timestamps the transcript flagged as interesting, plus dense 0.5s-interval sampling across the two windows that mattered most (the overflow-timer sequence, and the line-deletion demo). Reference screenshots are saved in `specs/reference_screenshots/nyc_analysis/` (see §8 for the index).
+**Method**: downloaded via `yt-dlp` (format 18/360p) same as before. This video **has auto-generated captions**, unlike the first — pulled the `.vtt`, deduplicated the rolling-caption overlap into a clean transcript, and grepped it for mechanic-relevant keywords before doing any frame sampling. Then extracted full-resolution frames at the exact timestamps the transcript flagged as interesting, plus dense 0.5s-interval sampling across the two windows that mattered most (the overflow-timer sequence, and the line-deletion demo). Reference screenshots are saved in `specs/research/reference_screenshots/nyc_analysis/` (see §8 for the index).
 
 **Correction notices**: two things I initially misread from small/compressed crops, then caught by sampling more densely and zooming in — flagged inline in §2 and §8 so the same mistake isn't repeated. Leaving the trail in because it's informative about what *not* to conclude from a single low-res frame.
 
@@ -20,7 +20,7 @@ And later, at 00:19:42–00:19:47, the player states an explicit (but self-admit
 
 > "I don't think you can lose while a train is working the station — I think the timer pauses."
 
-**Confirmed by direct frame inspection**: the clearest, most reliable visual cue for "a station somewhere is in overflow risk" is **the pause-button icon in the top-right HUD turning from its normal black/white clock-face into a solid dark red/maroon fill**. Verified by sampling the exact window the player is narrating over (578–598s, 0.5s resolution): the icon is normal black/white for the first ~30 of 40 sampled frames, then turns solid red for the last several, then — 35–50 real seconds later, once the player has relieved the congestion with a spare locomotive — reverts to normal black/white. See `specs/reference_screenshots/nyc_analysis/03_overflow_clock_icon_progression.png` for the exact sequence (8 crops across the transition) and `02_overflow_warning_context.png` for the full-map context at the moment it's red.
+**Confirmed by direct frame inspection**: the clearest, most reliable visual cue for "a station somewhere is in overflow risk" is **the pause-button icon in the top-right HUD turning from its normal black/white clock-face into a solid dark red/maroon fill**. Verified by sampling the exact window the player is narrating over (578–598s, 0.5s resolution): the icon is normal black/white for the first ~30 of 40 sampled frames, then turns solid red for the last several, then — 35–50 real seconds later, once the player has relieved the congestion with a spare locomotive — reverts to normal black/white. See `specs/research/reference_screenshots/nyc_analysis/03_overflow_clock_icon_progression.png` for the exact sequence (8 crops across the transition) and `02_overflow_warning_context.png` for the full-map context at the moment it's red.
 
 **Not confirmed / inconclusive**: a distinct *per-station* ring or pie-countdown visual. I looked hard for one (see the false leads in §8) and could not find a clean, unambiguous example at 360p — the player's own phrase "there may have been a slightly different glow around this" (said tentatively, not confidently) suggests it's genuinely subtle even to someone watching live at full resolution. It's plausible the real per-station cue is a color/tint shift on the queued-passenger icons at that station (they may render in a warning tint once over capacity) rather than a separate ring shape, but I couldn't verify this cleanly from compressed 360p footage. **Don't treat "no ring" as confirmed absence — treat the global red-icon cue as the one high-confidence finding here, and the per-station visual as an open question.**
 
@@ -99,7 +99,7 @@ New York's map introduces shapes beyond the London set observed in Part 1: confi
 
 ---
 
-## 8. Screenshot Index (`specs/reference_screenshots/nyc_analysis/`)
+## 8. Screenshot Index (`specs/research/reference_screenshots/nyc_analysis/`)
 
 | File | Shows |
 |---|---|

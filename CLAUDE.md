@@ -14,6 +14,7 @@ Before touching game rules, read the specs in this order:
 6. **`specs/DEBUG.md`** — debug-mode overlay, spawn/speed controls, manual station/passenger injection. Only relevant when testing or adding debug tooling.
 7. **`specs/testing.md`** — behavior spec for the automated testing agent/harness (flows covered, bug classification rules, report format). Read this before running or extending `testing/`.
 8. **`memo.md`** — backlog of undecided/unimplemented future work (styling, scoring, analytics, mobile, persistence, onboarding). Check here before assuming a gap is unintentional, and add to it rather than solving ad hoc if a request expands scope.
+9. **`specs/research/`** — not specs. Research notes from watching original Mini Metro playthroughs (frame-by-frame analysis, transcripts, reference screenshots) that informed some of the decisions in `themes/metro.md` and `memo.md`. Cited by path from those docs as supporting evidence; never treat a research note itself as the source of truth for behavior.
 
 Rule of thumb: if a change affects *game rules or entity relationships*, update `core/logic.md`. If it changes *pacing or difficulty* (spawn rates, unlock schedules), update `core/progression.md`. If it changes *cross-session progress* (levels, high scores, collectibles), update `core/meta_progression.md`. If it's *metro-flavored* (colors, shapes, config numbers, terminology), update `themes/metro.md`. Don't duplicate the same rule across documents — core stays abstract, themes only add mappings/values/visuals.
 
