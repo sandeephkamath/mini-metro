@@ -18,7 +18,7 @@ function lineLength(line: MetroLine, state: GameState): number {
   for (let i = 0; i < line.stationIds.length - 1; i++) {
     const a = state.stations[line.stationIds[i]]?.pos;
     const b = state.stations[line.stationIds[i + 1]]?.pos;
-    if (a && b) total += buildSegmentShape(a, b, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(state, line, i)).length;
+    if (a && b) total += buildSegmentShape(a, b, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(line, i)).length;
   }
   return total;
 }
@@ -31,7 +31,7 @@ function segmentLength(line: MetroLine, targetIndex: number, direction: number, 
   const a = state.stations[line.stationIds[lowIndex]]?.pos;
   const b = state.stations[line.stationIds[highIndex]]?.pos;
   if (!a || !b) return 1;
-  return Math.max(1, buildSegmentShape(a, b, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(state, line, lowIndex)).length);
+  return Math.max(1, buildSegmentShape(a, b, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(line, lowIndex)).length);
 }
 
 // computeElbow (inside buildSegmentShape) isn't symmetric — the diagonal leg always sits next
@@ -50,7 +50,7 @@ function sampleTrainSegment(train: Train, line: MetroLine, state: GameState): { 
   const b = state.stations[line.stationIds[highIndex]]?.pos;
   if (!a || !b) return null;
 
-  const shape = buildSegmentShape(a, b, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(state, line, lowIndex));
+  const shape = buildSegmentShape(a, b, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(line, lowIndex));
   // train.progress runs 0→1 from wherever it departed toward wherever it's headed. The shape
   // is always parametrized low-index-end (t=0) to high-index-end (t=1), so moving forward
   // (departed low, heading high) maps progress directly; moving backward, it's reversed.
@@ -251,7 +251,7 @@ export function redistributeTrains(lineId: string, state: GameState): void {
       const to = state.stations[line.stationIds[segIdx + 1]]?.pos;
       if (!from || !to) continue;
 
-      const segLen = buildSegmentShape(from, to, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(state, line, segIdx)).length;
+      const segLen = buildSegmentShape(from, to, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(line, segIdx)).length;
       if (cumLen + segLen >= targetDist) {
         const progress = segLen > 0 ? Math.min((targetDist - cumLen) / segLen, 0.999) : 0;
         trains[i].targetStationIndex = segIdx + 1;

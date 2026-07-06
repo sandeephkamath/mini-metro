@@ -45,7 +45,7 @@ export interface MetroLine {
   stationIds: string[];
   trainIds: string[];
   isUnlocked: boolean;
-  drawOrder: number | null; // set once the line first connects 2 stations; null = not yet drawn
+  elbows: (Vec2 | null)[]; // one per segment (stationIds.length - 1); chosen at segment creation, frozen after (themes/metro.md §7 item 2)
 }
 
 export interface Train {
@@ -122,7 +122,7 @@ export interface GameState {
   milestoneChoicePending: boolean; // true while the Weekly Upgrade choice popup is open (freezes all timers)
   selectedReserveItem: ReserveItemKind | null; // player has clicked a Depot item and is now picking a target
   // ID counters live in state — never in module scope, to avoid re-render side-effects
-  nextIds: { station: number; passenger: number; train: number; lineDraw: number };
+  nextIds: { station: number; passenger: number; train: number };
   playerPaused: boolean; // player-facing pause (Pause button) — independent of Milestone-choice pausing
   playerSpeedMultiplier: 1 | 2; // player-facing Play/Fast-Forward toggle; ignored while debugMode overrides speed
   debugMode: boolean;

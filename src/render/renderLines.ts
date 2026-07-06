@@ -1,6 +1,6 @@
 import type { GameState, MetroLine, Vec2 } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
-import { getLineEndpoints, getSegmentElbow, getDrawingChain } from '../logic/lines';
+import { getLineEndpoints, getSegmentElbow, chooseSegmentElbow, getDrawingChain } from '../logic/lines';
 import { computeBentSegment } from '../logic/geometry';
 
 // Stroke the stations from index `from` to index `to` (inclusive) of a line as one path,
@@ -19,7 +19,7 @@ function strokeLineRun(
   for (let i = from; i < to; i++) {
     const a = positions[i];
     const b = positions[i + 1];
-    const seg = computeBentSegment(a, b, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(state, line, i));
+    const seg = computeBentSegment(a, b, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(line, i));
     if (seg) {
       // Straight leg into the bend, a short rounded curve at the corner, straight leg
       // out — the segment as a whole stays straight, only the corner itself is smoothed.
@@ -116,16 +116,17 @@ export function renderLines(ctx: CanvasRenderingContext2D, state: GameState): vo
         ctx.setLineDash([]);
       }
     } else {
-      const chain = getDrawingChain(state)
-        .map(id => state.stations[id]?.pos)
-        .filter((p): p is Vec2 => !!p);
+      const chainIds = getDrawingChain(state).filter(id => state.stations[id]);
+      const chain = chainIds.map(id => state.stations[id].pos);
 
       if (chain.length >= 2) {
         ctx.globalAlpha = 0.7;
         ctx.beginPath();
         ctx.moveTo(chain[0].x, chain[0].y);
         for (let i = 0; i < chain.length - 1; i++) {
-          const seg = computeBentSegment(chain[i], chain[i + 1], CONFIG.LINE_BEND_RADIUS);
+          // Same elbow choice the commit will make, so the preview is the real geometry.
+          const elbow = d.lineId ? chooseSegmentElbow(state, d.lineId, chainIds[i], chainIds[i + 1]) : undefined;
+          const seg = computeBentSegment(chain[i], chain[i + 1], CONFIG.LINE_BEND_RADIUS, elbow);
           if (seg) {
             ctx.lineTo(seg.t1.x, seg.t1.y);
             ctx.quadraticCurveTo(seg.elbow.x, seg.elbow.y, seg.t2.x, seg.t2.y);

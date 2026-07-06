@@ -43,7 +43,7 @@ function createInitialState(): GameState {
     milestoneAutoIndex: 0,
     milestoneChoicePending: false,
     selectedReserveItem: null,
-    nextIds: { station: 0, passenger: 0, train: 0, lineDraw: 0 },
+    nextIds: { station: 0, passenger: 0, train: 0 },
     playerPaused: false,
     playerSpeedMultiplier: 1,
     debugMode: false,

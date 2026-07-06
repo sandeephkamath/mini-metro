@@ -22,24 +22,23 @@ function angleBetween(u: Vec2, v: Vec2): number {
   return Math.acos(dot);
 }
 
-// Direction each OTHER, earlier-drawn line departs `stationId` toward its neighbor(s)
-// there — a proxy for "which way that track visually runs near this station", used to
-// judge whether our own bend would overlap it. Only lines drawn before this one count:
-// a line adapts to what's already on the board when it's drawn, but once drawn it never
-// gets redrawn just because a later line shows up — otherwise every new line could ripple
-// changes through tracks the player already routed.
-function otherDepartureDirections(state: GameState, stationId: string, line: MetroLine): Vec2[] {
+// Direction each OTHER line's track actually departs `stationId`: toward the adjacent
+// segment's stored elbow when it bends, else toward the far station. Elbow-accurate (not
+// the straight station-to-station proxy) so two lines joining the same station pair read
+// as a decisive 0°-clearance conflict instead of a symmetric tie — see B16 in
+// themes/metro.md §10. Only used at segment creation; committed elbows never change.
+function otherDepartureDirections(state: GameState, stationId: string, lineId: string): Vec2[] {
   const station = state.stations[stationId];
-  if (!station || line.drawOrder == null) return [];
+  if (!station) return [];
   const dirs: Vec2[] = [];
   for (const other of Object.values(state.lines)) {
-    if (other.id === line.id) continue;
-    if (other.drawOrder == null || other.drawOrder >= line.drawOrder) continue;
-    const idx = other.stationIds.indexOf(stationId);
-    if (idx === -1) continue;
-    for (const ni of [idx - 1, idx + 1]) {
-      const neighborPos = state.stations[other.stationIds[ni]]?.pos;
-      if (neighborPos) dirs.push(legDirection(station.pos, neighborPos));
+    if (other.id === lineId) continue;
+    for (let i = 0; i < other.stationIds.length - 1; i++) {
+      const aId = other.stationIds[i];
+      const bId = other.stationIds[i + 1];
+      if (aId !== stationId && bId !== stationId) continue;
+      const toward = other.elbows[i] ?? state.stations[aId === stationId ? bId : aId]?.pos;
+      if (toward) dirs.push(legDirection(station.pos, toward));
     }
   }
   return dirs;
@@ -60,18 +59,26 @@ function elbowClearance(elbow: Vec2, a: Vec2, b: Vec2, otherDirsA: Vec2[], other
   );
 }
 
+// The frozen elbow for a committed segment — decided by chooseSegmentElbow when the
+// segment was created, never recomputed (themes/metro.md §7 item 2 / bug B16).
+export function getSegmentElbow(line: MetroLine, index: number): Vec2 | null {
+  return line.elbows[index] ?? null;
+}
+
 // A bend can round the corner either "near a" (diagonal leg by a, flat leg by b) or
 // mirrored (flat leg by a, diagonal leg by b) — computeElbow(a,b) gives the former,
 // computeElbow(b,a) the latter. Both are equally valid tracks; we only prefer the
 // mirror when the default one would visually overlap another line at a shared station,
 // and only when the mirror is actually less crowded (never distort for no gain).
-export function getSegmentElbow(state: GameState, line: MetroLine, index: number): Vec2 | null {
-  const a = state.stations[line.stationIds[index]]?.pos;
-  const b = state.stations[line.stationIds[index + 1]]?.pos;
+// Called once per segment, at creation — the result is stored and frozen so later
+// drawing can never ripple changes through tracks the player already routed.
+export function chooseSegmentElbow(state: GameState, lineId: string, aId: string, bId: string): Vec2 | null {
+  const a = state.stations[aId]?.pos;
+  const b = state.stations[bId]?.pos;
   if (!a || !b) return null;
 
-  const otherDirsA = otherDepartureDirections(state, line.stationIds[index], line);
-  const otherDirsB = otherDepartureDirections(state, line.stationIds[index + 1], line);
+  const otherDirsA = otherDepartureDirections(state, aId, lineId);
+  const otherDirsB = otherDepartureDirections(state, bId, lineId);
 
   const defaultElbow = computeElbow(a, b);
   if (defaultElbow) {
@@ -120,7 +127,7 @@ export function getSegmentAt(state: GameState, pos: Vec2): { lineId: string; aft
       const a = state.stations[line.stationIds[i]]?.pos;
       const b = state.stations[line.stationIds[i + 1]]?.pos;
       if (!a || !b) continue;
-      const shape = buildSegmentShape(a, b, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(state, line, i));
+      const shape = buildSegmentShape(a, b, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(line, i));
 
       let hit = false;
       let prev = a;
@@ -144,7 +151,7 @@ export function createInitialLines(state: GameState): void {
       stationIds: [],
       trainIds: [],
       isUnlocked: i < CONFIG.INITIAL_LINES_UNLOCKED,
-      drawOrder: null,
+      elbows: [],
     };
   }
 }
@@ -178,7 +185,7 @@ function endpointAngle(state: GameState, lineId: string, endId: string, neighbor
   // elbow (if the segment bends) or the neighbor (if it doesn't). Goes through getSegmentElbow
   // (not a raw computeElbow call) so the tab matches whichever bend orientation got rendered.
   const index = isFront ? 0 : line.stationIds.length - 2;
-  const elbow = getSegmentElbow(state, line, index);
+  const elbow = getSegmentElbow(line, index);
   const from = elbow ?? neighbor;
   return Math.atan2(end.y - from.y, end.x - from.x);
 }
@@ -271,11 +278,13 @@ function appendStation(state: GameState, lineId: string, stationId: string): voi
   const station = state.stations[stationId];
   if (!line || !station || line.stationIds.includes(stationId)) return;
 
+  if (line.stationIds.length >= 1) {
+    line.elbows.push(chooseSegmentElbow(state, lineId, line.stationIds[line.stationIds.length - 1], stationId));
+  }
   line.stationIds.push(stationId);
   if (!station.lineIds.includes(lineId)) station.lineIds.push(lineId);
 
   if (line.stationIds.length === 2 && line.trainIds.length === 0) {
-    line.drawOrder = ++state.nextIds.lineDraw;
     const train = createTrain(lineId, state);
     state.trains[train.id] = train;
     line.trainIds.push(train.id);
@@ -289,6 +298,7 @@ function prependStation(state: GameState, lineId: string, stationId: string): vo
   const station = state.stations[stationId];
   if (!line || !station || line.stationIds.includes(stationId)) return;
 
+  line.elbows.unshift(chooseSegmentElbow(state, lineId, stationId, line.stationIds[0]));
   line.stationIds.unshift(stationId);
   if (!station.lineIds.includes(lineId)) station.lineIds.push(lineId);
 
@@ -357,8 +367,15 @@ export function insertStationIntoLine(
     }
   }
 
+  const prevId = line.stationIds[afterIndex];
+  const nextId = line.stationIds[insertAt];
   line.stationIds.splice(insertAt, 0, stationId);
   if (!station.lineIds.includes(lineId)) station.lineIds.push(lineId);
+  // The split segment's elbow is replaced by fresh choices for both halves.
+  line.elbows.splice(afterIndex, 1,
+    chooseSegmentElbow(state, lineId, prevId, stationId),
+    chooseSegmentElbow(state, lineId, stationId, nextId),
+  );
 
   for (const trainId of line.trainIds) {
     const train = state.trains[trainId];
@@ -453,6 +470,7 @@ export function removeStationFromLineEnd(state: GameState, lineId: string, end: 
   }
 
   line.stationIds.splice(removedIndex, 1);
+  if (end === 'front') line.elbows.shift(); else line.elbows.pop();
   const removedStation = state.stations[removedId];
   if (removedStation) {
     removedStation.lineIds = removedStation.lineIds.filter(id => id !== lineId);
@@ -553,6 +571,6 @@ export function removeLine(state: GameState, lineId: string): boolean {
 
   line.stationIds = [];
   line.trainIds = [];
-  line.drawOrder = null;
+  line.elbows = [];
   return true;
 }
