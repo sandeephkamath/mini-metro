@@ -108,6 +108,23 @@ export const CONFIG = {
   CARRIAGE_GAP: 2, // px gap between a Train's linked carriage boxes
   MILESTONE_BONUS_MODE: 'choice' as const, // 'auto' | 'choice' — see core/progression.md §6.1
 
+  // Decorative in-run backdrop: procedural city (themes/metro.md §7.1) — purely visual.
+  // Building density runs on game time; car/churn motion runs on wall-clock time.
+  BG_BLOCK_SIZE: 120, // city-block pitch; roads run along block edges
+  BG_ROAD_COLOR: '#ede7da',
+  BG_BUILDING_COLOR: '#ece4d5',
+  BG_CAR_COLOR: '#d9ceba',
+  BG_DENSITY_BASE: 0.12, // fraction of blocks with a standing building at week 0
+  BG_DENSITY_PER_WEEK: 0.06,
+  BG_DENSITY_MAX: 0.55,
+  BG_BUILDING_POP_MS: 400, // scale/fade-in on appearance; also the churn fade
+  BG_CHURN_CYCLE_MS: 40000, // each standing building blinks out about once per cycle
+  BG_CHURN_OFF_MS: 3000,
+  BG_CARS_PER_DENSITY: 70, // car count = this × building density (≈8 at week 0, ≈38 at cap)
+  BG_CAR_LENGTH: 9,
+  BG_CAR_WIDTH: 4,
+  BG_CAR_SPEED_PX_PER_SEC: 25, // ±20% per-car jitter
+
   LINE_WIDTH: 6,
   LINE_BEND_RADIUS: 28, // px of corner-rounding at a Line's bend point — the rest of each leg stays straight
   LINE_HIT_RADIUS: 10, // screen-space per core §4 (scaled by 1/zoom below 1x)

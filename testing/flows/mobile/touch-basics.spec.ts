@@ -98,11 +98,12 @@ test('two-finger pan (constant pinch distance) translates the camera without zoo
   // holds once the Camera has stopped drifting on its own.
   await page.waitForTimeout(2000);
 
-  // Dead center of a Station's shape is its white fill (`#ffffff`), reliably distinct
-  // from the canvas background fill (`#f5f0e8` = [245,240,232], renderer.ts) — used as
-  // the "is a Station drawn here" signal instead of alpha (the background itself is
-  // fully opaque, so alpha is 255 everywhere and can't distinguish the two).
-  const BACKGROUND: [number, number, number] = [245, 240, 232];
+  // Dead center of a Station's shape is its pure-white fill (`#ffffff`) — used as the
+  // "is a Station drawn here" signal. The backdrop (fill, roads, buildings, cars —
+  // themes/metro.md §7.1) is never pure white, so exact white ⇔ station present. Don't
+  // compare against the `#f5f0e8` fill color instead: the decorative grid/water means
+  // "empty" points aren't a single uniform color anymore (see isBackdropPixel).
+  const STATION_FILL: [number, number, number] = [255, 255, 255];
   const square = FIXED_STATIONS.square;
 
   // Snapshot the camera once and reason entirely in that fixed local/screen frame from
@@ -112,7 +113,7 @@ test('two-finger pan (constant pinch distance) translates the camera without zoo
   const before = await getLiveCameraViewportSnapshot(page);
   const squareLocal = projectWorldToLocal(square, before.camera, before.viewport);
   const beforePixel = await getCanvasPixelAtLocal(page, squareLocal.x, squareLocal.y);
-  expect([beforePixel[0], beforePixel[1], beforePixel[2]]).not.toEqual(BACKGROUND); // sanity: Station is drawn here first
+  expect([beforePixel[0], beforePixel[1], beforePixel[2]]).toEqual(STATION_FILL); // sanity: Station is drawn here first
 
   // Pan by a known world-space delta, expressed in the snapshotted local frame (a world
   // delta of (dx,dy) is a local delta of (dx*zoom,dy*zoom) — camera.ts's screenToWorld is
@@ -129,9 +130,10 @@ test('two-finger pan (constant pinch distance) translates the camera without zoo
   // Same dx/dy = new-minus-last convention as mouse-drag panning (mouseHandler.ts): the
   // world visually shifts by +dx/+dy world units on screen. The Station should now
   // render at its old (snapshotted) LOCAL position + localDelta, and its old local
-  // position should have reverted to background.
+  // position should have reverted to empty backdrop (which may be a grid line or water,
+  // not necessarily the plain fill color — hence "no longer white", not an exact match).
   const afterAtOldPos = await getCanvasPixelAtLocal(page, squareLocal.x, squareLocal.y);
   const afterAtNewPos = await getCanvasPixelAtLocal(page, shiftedLocal.x, shiftedLocal.y);
-  expect([afterAtNewPos[0], afterAtNewPos[1], afterAtNewPos[2]]).not.toEqual(BACKGROUND); // Station now at the predicted shifted position
-  expect([afterAtOldPos[0], afterAtOldPos[1], afterAtOldPos[2]]).toEqual(BACKGROUND); // old position reverted to background
+  expect([afterAtNewPos[0], afterAtNewPos[1], afterAtNewPos[2]]).toEqual(STATION_FILL); // Station now at the predicted shifted position
+  expect([afterAtOldPos[0], afterAtOldPos[1], afterAtOldPos[2]]).not.toEqual(STATION_FILL); // old position reverted to empty backdrop
 });

@@ -63,7 +63,7 @@ export interface MetroLine {
   stationIds: string[];
   trainIds: string[];
   isUnlocked: boolean;
-  elbows: (Vec2 | null)[]; // one per segment (stationIds.length - 1); chosen at segment creation, frozen after (themes/metro.md §7 item 2)
+  elbows: (Vec2 | null)[]; // one per segment (stationIds.length - 1); chosen at segment creation, frozen after (themes/metro.md §7 item 3)
 }
 
 export interface Train {

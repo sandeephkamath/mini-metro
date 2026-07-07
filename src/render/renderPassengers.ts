@@ -2,7 +2,7 @@ import type { GameState } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
 import { traceShapePath } from './shapePaths';
 
-// Ghost flourishes for passenger board/deliver events (themes/metro.md §7 item 8):
+// Ghost flourishes for passenger board/deliver events (themes/metro.md §7 item 9):
 // board — the icon shrinks and fades at the queue area, drifting toward the station;
 // deliver — the icon grows and fades, drifting upward from the station center.
 // Driven by game time, so they freeze with the Game Clock.

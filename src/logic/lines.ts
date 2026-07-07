@@ -60,7 +60,7 @@ function elbowClearance(elbow: Vec2, a: Vec2, b: Vec2, otherDirsA: Vec2[], other
 }
 
 // The frozen elbow for a committed segment — decided by chooseSegmentElbow when the
-// segment was created, never recomputed (themes/metro.md §7 item 2 / bug B16).
+// segment was created, never recomputed (themes/metro.md §7 item 3 / bug B16).
 export function getSegmentElbow(line: MetroLine, index: number): Vec2 | null {
   return line.elbows[index] ?? null;
 }

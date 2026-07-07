@@ -126,6 +126,20 @@ export async function getCanvasPixelAtLocal(page: Page, localX: number, localY: 
   }, [localX, localY]);
 }
 
+// True if a sampled pixel is part of the decorative backdrop rather than a gameplay
+// element. The canvas is no longer a uniform `#f5f0e8` fill — themes/metro.md §7.1 draws
+// a procedural city under gameplay: roads (`#ede7da`), buildings (`#ece4d5`, popping
+// in/out over time), and moving cars (`#d9ceba`, the darkest backdrop tone — the reason
+// for the 180 floor here). Every backdrop color is a light, desaturated paper tone,
+// while gameplay ink is either saturated (line strokes), dark (trains, station
+// borders), or pure white (station fill — deliberately excluded here, so don't use
+// this to detect stations; compare against exact [255,255,255] instead). Never assert
+// `toEqual([245,240,232])` for "nothing drawn here" — a road, building, or passing car
+// under the sample point breaks it.
+export function isBackdropPixel([r, g, b]: [number, number, number] | [number, number, number, number]): boolean {
+  return Math.min(r, g, b) >= 180 && Math.max(r, g, b) - Math.min(r, g, b) <= 50 && !(r === 255 && g === 255 && b === 255);
+}
+
 export async function startGame(page: Page) {
   if (await page.getByRole('button', { name: 'Play' }).isVisible().catch(() => false)) {
     await page.getByRole('button', { name: 'Play' }).click();

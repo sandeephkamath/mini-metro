@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { FIXED_STATIONS, canvasPoint, getCanvasPixel, startGame } from '../../helpers/gameDriver';
+import { FIXED_STATIONS, canvasPoint, getCanvasPixel, isBackdropPixel, startGame } from '../../helpers/gameDriver';
 import { touchDrag, touchHold, touchStart, touchEndKeeping } from '../../helpers/touchDriver';
 
 // Confirms the HUD legend swatch's hold-to-delete gesture (HUD.tsx onTouchStart/onTouchEnd)
@@ -52,9 +52,9 @@ test('a short touch (below the hold threshold) cancels and does not delete the l
   // Not asserting the exact line color here: enough wall time has passed since drawing
   // that the Train (rendered as a darkened shade of the line color, renderTrains.ts)
   // may now be passing over this exact sample point instead of the plain stroke. Either
-  // color confirms the line is still there — only the plain background color would mean
-  // it got deleted.
-  expect([pixel[0], pixel[1], pixel[2]]).not.toEqual([245, 240, 232]); // line (or its train) still there, not deleted
+  // color confirms the line is still there — only an empty backdrop pixel (plain fill,
+  // road, building, or car — themes/metro.md §7.1) would mean it got deleted.
+  expect(isBackdropPixel(pixel)).toBe(false); // line (or its train) still there, not deleted
 });
 
 // Regression test for a bug the game-tester agent found via real two-finger touch
@@ -97,8 +97,9 @@ test('holding two different line swatches at once with two fingers is independen
   const pixel1 = await getCanvasPixel(page, leg1.x, leg1.y);
   const pixel2 = await getCanvasPixel(page, leg2.x, leg2.y);
 
-  // Line 1's touch was released early (200ms) -> should still exist, not background.
-  expect([pixel1[0], pixel1[1], pixel1[2]]).not.toEqual([245, 240, 232]);
-  // Line 2's touch was held past the threshold (~700ms) -> should be deleted, background.
-  expect([pixel2[0], pixel2[1], pixel2[2]]).toEqual([245, 240, 232]);
+  // Line 1's touch was released early (200ms) -> should still exist, not empty backdrop.
+  expect(isBackdropPixel(pixel1)).toBe(false);
+  // Line 2's touch was held past the threshold (~700ms) -> should be deleted, leaving
+  // only backdrop (plain fill, road, or building) at its sample point.
+  expect(isBackdropPixel(pixel2)).toBe(true);
 });

@@ -106,7 +106,7 @@ function renderPassengerDots(ctx: CanvasRenderingContext2D, station: Station, ga
     const col = i % cols;
     const row = Math.floor(i / cols);
     // Queue-in animation — newly queued passengers (spawn/transfer/debug) fade and
-    // scale in instead of popping (themes/metro.md §7 item 8). Game-time driven.
+    // scale in instead of popping (themes/metro.md §7 item 9). Game-time driven.
     const queueT = Math.max(0, Math.min(1, (gameTimeMs - p.queuedAtMs) / CONFIG.PASSENGER_QUEUE_ANIM_MS));
     ctx.globalAlpha = queueT < 1 ? 0.2 + 0.8 * queueT : 1;
     drawPassengerIcon(ctx, startX + col * spacing, startY + row * spacing, p.destinationShape, 4 * (0.4 + 0.6 * queueT));

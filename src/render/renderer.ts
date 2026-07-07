@@ -1,4 +1,5 @@
 import type { GameState } from '../types/game';
+import { renderBackground } from './renderBackground';
 import { renderLines } from './renderLines';
 import { renderStations } from './renderStations';
 import { renderPassengerFx } from './renderPassengers';
@@ -20,6 +21,7 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState, now: num
   ctx.scale(camera.zoom, camera.zoom);
   ctx.translate(-camera.x, -camera.y);
 
+  renderBackground(ctx, state, now); // decorative procedural city (themes/metro.md §7.1)
   renderLines(ctx, state);
   renderStations(ctx, state, now);
   renderPassengerFx(ctx, state);
