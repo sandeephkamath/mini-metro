@@ -3,6 +3,7 @@ import type { MutableRefObject } from 'react';
 import type { GameState, Vec2 } from '../types/game';
 import { onMouseDown, onMouseMove, onMouseUp, onWheel } from '../input/mouseHandler';
 import { zoomAtScreenPoint, panCameraByScreenDelta } from '../logic/camera';
+import { startTutorial, exitTutorial } from '../logic/tutorial';
 
 interface UseMouseInputOptions {
   canvasRef: MutableRefObject<HTMLCanvasElement | null>;
@@ -59,6 +60,12 @@ export function useMouseInput({ canvasRef, stateRef, rotatedRef }: UseMouseInput
 
     const handleKey = (e: KeyboardEvent) => {
       const s = stateRef.current;
+      // While the tutorial runs, Escape skips it and every other key (including
+      // the D toggle and all debug keys) is suspended — specs/TUTORIAL.md §3.
+      if (s.tutorial) {
+        if (e.key === 'Escape') exitTutorial(s);
+        return;
+      }
       if (e.key === 'Escape' && s.selectedReserveItem) {
         s.selectedReserveItem = null;
         return;
@@ -85,6 +92,8 @@ export function useMouseInput({ canvasRef, stateRef, rotatedRef }: UseMouseInput
       else if (e.key === 'a' || e.key === 'A') {
         s.debugAction = null;
         s.debugPlacingStation = !s.debugPlacingStation;
+      } else if (e.key === 't' || e.key === 'T') {
+        startTutorial(s); // no-op unless the board is startable (specs/TUTORIAL.md §1)
       } else if (e.key === 'Escape') {
         s.debugAction = null;
         s.debugPlacingStation = false;

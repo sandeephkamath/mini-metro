@@ -105,11 +105,13 @@ Current onboarding is a single static modal (`StartScreen.tsx`) shown before eve
 - No tips or difficulty ramp-down offered after a fast early loss (e.g. game over within the first Week).
 - No tracking of session count (1st vs. 2nd vs. 50th game), so there's no way to progressively fade out hints as a player demonstrates competence.
 
-**Open questions to resolve before implementing**
-- One-time scripted tutorial (forced modal steps + a guided first connection) vs. always-available contextual first-occurrence toasts vs. some hybrid?
-- Should hints ever reappear for returning players, or show only once per browser ever (requires local storage — see Persistence)?
+**Resolved**: the tutorial-style question (scripted vs. contextual vs. hybrid) is settled in favor of a **scripted sandbox tutorial**, now spec'd in `specs/TUTORIAL.md` — guided first Line, scripted board/ride/deliver, and a can't-fail overflow rescue, with a Skip control on every step. For now it is debug-triggered only (`T` in debug mode).
+
+**Still open**
+- Player-facing entry points for the tutorial: a home-screen Tutorial button, and/or auto-running it on the first-ever session (needs "has played before" persistence — see Persistence section above).
+- Should hints/tutorial ever reappear for returning players, or show only once per browser ever (requires local storage — see Persistence)?
 - Should a first-time session use an easier spawn/decay curve than `core/progression.md`'s default, or should difficulty be identical from game one?
-- Is a "skip tutorial" control needed, and if so, does it gate just the pre-game modal or also in-canvas first-occurrence hints?
+- Contextual first-occurrence toasts for events the scripted tutorial can't cover live (first real Weekly Upgrade choice, first Line unlock) — worth adding on top of the scripted tutorial, or is the wrap-up step's mention enough?
 - No instrumentation exists to learn where new players actually get stuck or quit (ties into the empty Analytics section above) — without that data, any FTUE design is a guess rather than something validated.
 
 ## Known Gaps Already Tracked

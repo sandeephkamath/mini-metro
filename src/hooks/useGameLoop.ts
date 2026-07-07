@@ -23,7 +23,9 @@ export function useGameLoop({ stateRef, canvasRef, syncReactState }: UseGameLoop
       const state = stateRef.current;
 
       if (state.phase === 'playing') {
-        const speedMult = state.debugMode ? state.debugSpeed : state.playerSpeedMultiplier;
+        // The tutorial owns the clock at 1x (specs/TUTORIAL.md §3) — a debug speed
+        // keyed before it started must not fast-forward the scripted steps.
+        const speedMult = state.tutorial ? 1 : state.debugMode ? state.debugSpeed : state.playerSpeedMultiplier;
         tick(state, dt * speedMult);
       }
 

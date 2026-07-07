@@ -6,6 +6,24 @@ export type MilestoneBonusMode = 'auto' | 'choice';
 export type MilestoneBonusKind = 'carrier' | 'carriage' | 'grace';
 export type ReserveItemKind = 'carrier' | 'carriage';
 
+// Scripted tutorial steps in order (specs/TUTORIAL.md §5). "Wait" steps run the
+// clock until a game event fires; the rest hold the clock while a card is shown.
+export type TutorialStepId =
+  | 'welcome'
+  | 'firstLine'
+  | 'train'
+  | 'passenger'
+  | 'boardingWait'
+  | 'boardingCard'
+  | 'deliveryWait'
+  | 'deliveryCard'
+  | 'overflowDemo'
+  | 'overflowCard'
+  | 'rescueAct'
+  | 'rescueWait'
+  | 'averted'
+  | 'wrapup';
+
 export interface Vec2 {
   x: number;
   y: number;
@@ -92,6 +110,19 @@ export interface ViewportSize {
   height: number;
 }
 
+// Active tutorial session (specs/TUTORIAL.md). The three fixed starting stations
+// are resolved once at start so every scripted step targets stable ids.
+export interface TutorialState {
+  step: TutorialStepId;
+  circleId: string;
+  triangleId: string;
+  squareId: string;
+  passengerId: string | null; // the scripted boarding/delivery passenger (steps 4-6)
+  demoTimer: number; // ms remaining in the overflow demo run (step 7.2)
+  prevPauseStations: boolean; // debug spawn toggles restored on exit (TUTORIAL.md §6)
+  prevPausePassengers: boolean;
+}
+
 export interface GameState {
   phase: GamePhase;
   score: number;
@@ -134,4 +165,5 @@ export interface GameState {
   debugPlacingStation: boolean; // true after pressing A, waiting for canvas click
   debugPauseStations: boolean; // suppress automatic station spawning
   debugPausePassengers: boolean; // suppress automatic passenger spawning
+  tutorial: TutorialState | null; // active scripted tutorial, debug-triggered (specs/TUTORIAL.md)
 }

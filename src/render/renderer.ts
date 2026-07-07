@@ -3,6 +3,7 @@ import { renderLines } from './renderLines';
 import { renderStations } from './renderStations';
 import { renderPassengerFx } from './renderPassengers';
 import { renderTrains } from './renderTrains';
+import { renderTutorial } from './renderTutorial';
 import { renderDebug } from './renderDebug';
 
 export function render(ctx: CanvasRenderingContext2D, state: GameState, now: number): void {
@@ -23,6 +24,7 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState, now: num
   renderStations(ctx, state, now);
   renderPassengerFx(ctx, state);
   renderTrains(ctx, state);
+  renderTutorial(ctx, state, now); // world-space highlights/hints, above game layers, below debug (TUTORIAL.md §4)
 
   ctx.restore();
 

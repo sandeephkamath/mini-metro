@@ -1,6 +1,6 @@
 # Debug Mode Specification
 
-**Version**: 1.1
+**Version**: 1.2
 **Last updated**: 2026-07-06
 
 Debug mode is a developer tool layered on top of the running game. It does not alter game rules — it only provides visibility and controlled injection of state for testing.
@@ -81,6 +81,12 @@ Clicking anywhere outside the popup cancels the action.
 **Result**: A shape-picker popup appears at the click location showing all shapes, including any not yet unlocked by the current week (debug bypasses the unlock gate — see `core/progression.md`). Clicking a shape places a new station of that shape at the click position (skipping the distance check). The station is assigned the next sequential label for its shape (e.g. T3).
 
 Pressing `Escape` or `A` again cancels placement mode.
+
+---
+
+## Start Tutorial
+
+Press **`T`** to start the scripted tutorial — see `TUTORIAL.md` for the full flow, preconditions (no Lines drawn, no Station at risk), and what it teaches. While the tutorial is active, debug click-capture and all debug keys are suspended until it exits.
 
 ---
 

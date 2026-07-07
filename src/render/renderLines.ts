@@ -7,7 +7,6 @@ import { computeBentSegment } from '../logic/geometry';
 // using the same straight-legs-plus-rounded-corner shape trains travel along.
 function strokeLineRun(
   ctx: CanvasRenderingContext2D,
-  state: GameState,
   line: MetroLine,
   positions: Vec2[],
   from: number,
@@ -56,16 +55,16 @@ export function renderLines(ctx: CanvasRenderingContext2D, state: GameState): vo
     if (d.isDrawing && d.lineId === line.id && d.detachCount > 0 && d.extendEnd !== null) {
       const solidFrom = d.extendEnd === 'front' ? d.detachCount : 0;
       const solidTo = d.extendEnd === 'front' ? last : last - d.detachCount;
-      strokeLineRun(ctx, state, line, positions, solidFrom, solidTo);
+      strokeLineRun(ctx, line, positions, solidFrom, solidTo);
       ctx.globalAlpha = 0.25;
       if (d.extendEnd === 'front') {
-        strokeLineRun(ctx, state, line, positions, 0, d.detachCount);
+        strokeLineRun(ctx, line, positions, 0, d.detachCount);
       } else {
-        strokeLineRun(ctx, state, line, positions, last - d.detachCount, last);
+        strokeLineRun(ctx, line, positions, last - d.detachCount, last);
       }
       ctx.globalAlpha = 1;
     } else {
-      strokeLineRun(ctx, state, line, positions, 0, last);
+      strokeLineRun(ctx, line, positions, 0, last);
     }
   }
 

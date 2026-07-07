@@ -128,7 +128,9 @@ export function onMouseDown(state: GameState, canvasX: number, canvasY: number):
     return;
   }
 
-  if (state.debugMode) {
+  // The tutorial suspends debug's click-capture so drags draw Lines — the taught
+  // interaction — instead of opening debug popups (specs/TUTORIAL.md §3).
+  if (state.debugMode && !state.tutorial) {
     onDebugMouseDown(state, canvasX, canvasY);
     return;
   }

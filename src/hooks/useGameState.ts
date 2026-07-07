@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from 'react';
 import type { MutableRefObject } from 'react';
-import type { GameState, GamePhase, ReserveItemKind } from '../types/game';
+import type { GameState, GamePhase, ReserveItemKind, TutorialStepId } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
 import { createInitialStations } from '../logic/stations';
 import { createInitialLines } from '../logic/lines';
@@ -53,6 +53,7 @@ function createInitialState(): GameState {
     debugPlacingStation: false,
     debugPauseStations: false,
     debugPausePassengers: false,
+    tutorial: null,
   };
 
   createInitialLines(state);
@@ -79,6 +80,7 @@ export function useGameState() {
   const [selectedReserveItem, setSelectedReserveItemState] = useState<ReserveItemKind | null>(null);
   const [playerPaused, setPlayerPausedState] = useState(false);
   const [playerSpeedMultiplier, setPlayerSpeedMultiplierState] = useState<1 | 2>(1);
+  const [tutorialStep, setTutorialStep] = useState<TutorialStepId | null>(null);
 
   // Stable identity — empty deps because stateRef is a ref and setters are stable
   const syncReactState = useCallback(() => {
@@ -94,6 +96,7 @@ export function useGameState() {
     setSelectedReserveItemState(s.selectedReserveItem);
     setPlayerPausedState(s.playerPaused);
     setPlayerSpeedMultiplierState(s.playerSpeedMultiplier);
+    setTutorialStep(s.tutorial?.step ?? null);
   }, []);
 
   // Writes through to both the mutable ref (so game logic/input sees it immediately)
@@ -128,6 +131,7 @@ export function useGameState() {
     setSelectedReserveItemState(null);
     setPlayerPausedState(false);
     setPlayerSpeedMultiplierState(1);
+    setTutorialStep(null);
   }
 
   function startGame() {
@@ -151,7 +155,7 @@ export function useGameState() {
   return {
     stateRef: stateRef as MutableRefObject<GameState>,
     score, phase, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending, selectedReserveItem,
-    playerPaused, playerSpeedMultiplier,
+    playerPaused, playerSpeedMultiplier, tutorialStep,
     startGame, goToStart, goHome, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
   };
 }

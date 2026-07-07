@@ -123,6 +123,12 @@ export const CONFIG = {
 
   MAX_DT: 100,
 
+  // Scripted tutorial (specs/TUTORIAL.md §7)
+  TUTORIAL_RESCUE_WINDOW_MS: 30000, // Risk Timer granted at rescue commit / on skip-safety exit
+  TUTORIAL_DEMO_MS: 2000, // how long the clock runs so the player sees the risk arc shrink
+  TUTORIAL_PULSE_MS: 1000, // highlight halo pulse period (wall-time driven)
+  TUTORIAL_HINT_LOOP_MS: 1500, // gesture-hint dot traversal time (wall-time driven)
+
   SHAPE_COLORS: {
     circle:   '#e74c3c',
     triangle: '#3498db',

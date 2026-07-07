@@ -6,7 +6,9 @@ import { useGameLoop } from '../hooks/useGameLoop';
 import { useMouseInput } from '../hooks/useMouseInput';
 import { resolveMilestoneChoice } from '../logic/milestone';
 import { removeLine } from '../logic/lines';
+import { advanceTutorial, exitTutorial } from '../logic/tutorial';
 import { HUD } from './HUD';
+import { TutorialCard } from './TutorialCard';
 import { HomeScreen } from './HomeScreen';
 import { StartScreen } from './StartScreen';
 import { GameOverScreen } from './GameOverScreen';
@@ -16,7 +18,7 @@ export function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const {
     stateRef, score, phase, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending,
-    selectedReserveItem, playerPaused, playerSpeedMultiplier,
+    selectedReserveItem, playerPaused, playerSpeedMultiplier, tutorialStep,
     startGame, goToStart, goHome, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
   } = useGameState();
 
@@ -118,17 +120,35 @@ export function GameCanvas() {
   // as fresh as the ~10Hz syncReactState tick that already drives a re-render here.
   const overflowRiskActive = Object.values(state.stations).some(s => s.riskTimer !== null);
 
+  // The tutorial owns the clock and the board's shape while active — the HUD's
+  // speed controls, depot placement, and line deletion are suspended so a stray
+  // click can't derail a scripted step (specs/TUTORIAL.md §3).
+  const tutorialActive = tutorialStep !== null;
+
   function selectReserveCarrier() {
+    if (tutorialActive) return;
     setSelectedReserveItem(selectedReserveItem === 'carrier' ? null : 'carrier');
   }
   function selectReserveCarriage() {
+    if (tutorialActive) return;
     setSelectedReserveItem(selectedReserveItem === 'carriage' ? null : 'carriage');
   }
   function chooseMilestoneBonus(kind: MilestoneBonusKind) {
     resolveMilestoneChoice(state, kind);
   }
   function deleteLine(lineId: string) {
+    if (tutorialActive) return;
     removeLine(state, lineId);
+  }
+  // syncReactState right after mutating so the card swaps instantly instead of
+  // waiting out the ~10Hz sync tick.
+  function tutorialNext() {
+    advanceTutorial(state);
+    syncReactState();
+  }
+  function tutorialSkip() {
+    exitTutorial(state);
+    syncReactState();
   }
 
   // Outer box is sized to the actual on-screen footprint (rotated: width/height
@@ -179,11 +199,15 @@ export function GameCanvas() {
           overflowRiskActive={overflowRiskActive}
           playerPaused={playerPaused}
           playerSpeedMultiplier={playerSpeedMultiplier}
-          onPause={() => setPlayerPaused(true)}
-          onPlayNormal={() => setPlayerSpeedMultiplier(1)}
-          onFastForward={() => setPlayerSpeedMultiplier(2)}
+          onPause={() => { if (!tutorialActive) setPlayerPaused(true); }}
+          onPlayNormal={() => { if (!tutorialActive) setPlayerSpeedMultiplier(1); }}
+          onFastForward={() => { if (!tutorialActive) setPlayerSpeedMultiplier(2); }}
           onDeleteLine={deleteLine}
         />
+      )}
+
+      {phase === 'playing' && tutorialStep && (
+        <TutorialCard step={tutorialStep} onNext={tutorialNext} onSkip={tutorialSkip} />
       )}
 
       {phase === 'playing' && milestoneChoicePending && (
