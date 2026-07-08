@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import type { GameState, Vec2 } from '../types/game';
 import { onMouseDown, onMouseMove, onMouseUp, onWheel } from '../input/mouseHandler';
@@ -12,9 +12,20 @@ interface UseMouseInputOptions {
   // viewport — themes/metro.md §6.1). A ref, not a prop passed by value, so these
   // native listeners always read the latest state without needing to re-attach.
   rotatedRef: MutableRefObject<boolean>;
+  // DEBUG.md § Debug Leaderboard Sign-In (key L) — the actual sign-in is async and
+  // lives in the React-level useLeaderboard hook, outside the mutable GameState
+  // this hook otherwise operates on, so it's a callback rather than a ref mutation.
+  onDebugLeaderboardSignIn?: () => void;
 }
 
-export function useMouseInput({ canvasRef, stateRef, rotatedRef }: UseMouseInputOptions) {
+export function useMouseInput({ canvasRef, stateRef, rotatedRef, onDebugLeaderboardSignIn }: UseMouseInputOptions) {
+  // A ref, not a dependency of the effect below — keeps the native listeners'
+  // identity stable across renders (they must not re-attach on every parent
+  // re-render, matching the existing rotatedRef pattern) even though this
+  // callback's own identity may change each render.
+  const onDebugLeaderboardSignInRef = useRef(onDebugLeaderboardSignIn);
+  onDebugLeaderboardSignInRef.current = onDebugLeaderboardSignIn;
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -79,6 +90,7 @@ export function useMouseInput({ canvasRef, stateRef, rotatedRef }: UseMouseInput
           s.debugPlacingStation = false;
           s.debugPauseStations = false;
           s.debugPausePassengers = false;
+          s.debugAdForcedUnavailable = false;
         }
         return;
       }
@@ -94,6 +106,12 @@ export function useMouseInput({ canvasRef, stateRef, rotatedRef }: UseMouseInput
         s.debugPlacingStation = !s.debugPlacingStation;
       } else if (e.key === 't' || e.key === 'T') {
         startTutorial(s); // no-op unless the board is startable (specs/TUTORIAL.md §1)
+      } else if (e.key === 'v' || e.key === 'V') {
+        // DEBUG.md § Debug Ad Availability — 'playing' phase only.
+        if (s.phase === 'playing') s.debugAdForcedUnavailable = !s.debugAdForcedUnavailable;
+      } else if (e.key === 'l' || e.key === 'L') {
+        // DEBUG.md § Debug Leaderboard Sign-In — 'home'/'gameover' phases only.
+        if (s.phase === 'home' || s.phase === 'gameover') onDebugLeaderboardSignInRef.current?.();
       } else if (e.key === 'Escape') {
         s.debugAction = null;
         s.debugPlacingStation = false;

@@ -14,6 +14,9 @@ export function tick(state: GameState, dt: number): void {
   // Presenting the Weekly Upgrade choice pauses every timer in the game — the
   // same mechanism as the phase !== 'playing' guard above (core §6 Game Clock).
   if (state.milestoneChoicePending) return;
+  // A Rewarded Ad offer (confirm prompt, playing, or bonus choice) pauses the
+  // clock the same way (core/monetization.md §1).
+  if (state.adFlow) return;
   // The tutorial owns the clock while active (specs/TUTORIAL.md §2): its step
   // conditions are checked every frame (line commits happen via input, not ticks),
   // and card steps freeze simulation time via the same guard as pause.
@@ -56,6 +59,10 @@ export function tick(state: GameState, dt: number): void {
     if (state.tutorial) exitTutorial(state);
     return;
   }
+  // updateOverflowRisk may have just presented a Game-Over Continue offer
+  // (core/monetization.md §3) — the clock freezes from this instant, same as the
+  // gameover case above, so week/milestone advancement must not sneak in first.
+  if (state.adFlow) return;
 
   // Advance nextWeekTime/nextMilestoneTime from their own prior (exact-multiple) value,
   // not from the current (possibly overshot, per-tick-capped) gameTimeMs — otherwise each

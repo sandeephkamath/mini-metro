@@ -102,11 +102,17 @@ export const CONFIG = {
   DAY_NAMES: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'], // cosmetic HUD clock — days per week, cycles within WEEK_DURATION_MS
   MILESTONE_EVENT_WEEKS: 5, // Milestone Event (Weekly Upgrade) fires every this-many weeks, not every week
 
-  RISK_TIMER_BASE_MS: 8000, // Grace Duration a station starts with, at session start
-  RISK_TIMER_INCREMENT_MS: 4000, // added by a single "More Time" Milestone bonus
+  RISK_TIMER_BASE_MS: 8000, // Grace Duration for the whole session — fixed, no bonus increases it (core/monetization.md)
   CARRIAGE_CAPACITY_BONUS: 2, // passenger capacity added by attaching a Depot Carriage
   CARRIAGE_GAP: 2, // px gap between a Train's linked carriage boxes
   MILESTONE_BONUS_MODE: 'choice' as const, // 'auto' | 'choice' — see core/progression.md §6.1
+
+  // Ad-gated monetization (core/monetization.md, metro.md §4.2)
+  CONTINUE_LIMIT: 1, // Game-Over Continues available per session
+  SIMULATED_AD_DURATION_MS: 3000, // development stand-in Ad Provider's fixed playback length
+
+  // Leaderboard (core/meta_progression.md §7-8, metro.md §9.6)
+  LEADERBOARD_TOP_N: 50, // players shown before falling back to just the player's own rank
 
   // Decorative in-run backdrop: procedural city (themes/metro.md §7.1) — purely visual.
   // Building density runs on game time; car/churn motion runs on wall-clock time.
@@ -139,6 +145,21 @@ export const CONFIG = {
   OVERFLOW_FLASH_INTERVAL_MS: 400,
 
   MAX_DT: 100,
+
+  // Picture Collection (core/meta_progression.md §3, themes/metro.md §9.3) — fallback
+  // values used until the Firestore-backed pool (§9.3.1) is wired up in a later phase.
+  PICTURE_BASE_REQUIREMENT: 20, // Required Progress (Week-units) for Picture 1
+  PICTURE_GROWTH_RATE: 1.5, // multiplier applied per subsequent Picture
+  PICTURE_TILE_COUNT: 20, // 5×4 grid — also the Collectible Reward's Reveal Step count
+  PICTURE_TILE_COLS: 5,
+  PICTURE_TILE_ROWS: 4,
+  PICTURE_RENDER_WIDTH: 400, // internal resolution the "full" Picture is rendered at once
+  PICTURE_RENDER_HEIGHT: 320,
+  PICTURE_BG_COLOR: '#f5f0e8',
+  PICTURE_LINE_WIDTH: 5,
+  PICTURE_STATION_RADIUS: 6,
+  PICTURE_INTERCHANGE_RADIUS: 9, // outer ring radius for an interchange station's double-ring
+  PICTURE_REVEAL_ANIM_MS: 1200, // metro.md §9.4 — count-up/tile-pop-in duration per Picture segment
 
   // Scripted tutorial (specs/TUTORIAL.md §7)
   TUTORIAL_RESCUE_WINDOW_MS: 30000, // Risk Timer granted at rescue commit / on skip-safety exit

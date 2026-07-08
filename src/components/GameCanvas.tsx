@@ -4,6 +4,7 @@ import { CONFIG } from '../config/gameConfig';
 import { useGameState } from '../hooks/useGameState';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useMouseInput } from '../hooks/useMouseInput';
+import { useLeaderboard, type LeaderboardResult } from '../hooks/useLeaderboard';
 import { resolveMilestoneChoice } from '../logic/milestone';
 import { removeLine } from '../logic/lines';
 import { advanceTutorial, exitTutorial } from '../logic/tutorial';
@@ -12,23 +13,41 @@ import { TutorialCard } from './TutorialCard';
 import { HomeScreen } from './HomeScreen';
 import { StartScreen } from './StartScreen';
 import { GameOverScreen } from './GameOverScreen';
-import { MilestoneChoiceModal } from './MilestoneChoiceModal';
+import { BonusChoiceModal } from './BonusChoiceModal';
+import { AdConfirmModal } from './AdConfirmModal';
+import { SimulatedAdModal } from './SimulatedAdModal';
 
 export function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const {
     stateRef, score, phase, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending,
-    selectedReserveItem, playerPaused, playerSpeedMultiplier, tutorialStep,
+    selectedReserveItem, playerPaused, playerSpeedMultiplier, tutorialStep, metaProgression, pictureRevealSegments, isNewBest,
+    finalWeeksSurvived, adFlow, adAvailable,
     startGame, goToStart, goHome, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
+    requestOnDemandBonus, acceptAdOffer, declineAdOffer, completeAdPlayback, resolveAdBonusChoice,
   } = useGameState();
 
   useGameLoop({ stateRef, canvasRef, syncReactState });
+
+  const leaderboard = useLeaderboard();
 
   // Rotation state is read by useMouseInput.ts's coordinate math (a ref, not just
   // React state — the native touch/mouse listeners need the current value
   // synchronously without re-attaching on every resize). See themes/metro.md §6.1.
   const rotatedRef = useRef(false);
-  useMouseInput({ canvasRef, stateRef, rotatedRef });
+  useMouseInput({ canvasRef, stateRef, rotatedRef, onDebugLeaderboardSignIn: leaderboard.signIn });
+
+  // Submits this session's score and resolves its rank the moment the game ends
+  // (core/meta_progression.md §7 — "the same moment Best Weeks Survived is
+  // evaluated locally"), exactly once per session.
+  const [leaderboardResult, setLeaderboardResult] = useState<LeaderboardResult | null>(null);
+  const leaderboardSubmittedRef = useRef(false);
+  useEffect(() => {
+    if (phase === 'gameover' && leaderboard.available && !leaderboardSubmittedRef.current) {
+      leaderboardSubmittedRef.current = true;
+      leaderboard.submitAndFetchRank(finalWeeksSurvived).then(setLeaderboardResult);
+    }
+  }, [phase, leaderboard, finalWeeksSurvived]);
 
   // The design (canvas + HUD, all pixel-based) renders at its native 800x600 size
   // whenever the real viewport is at least that big in both dimensions (typical
@@ -97,11 +116,15 @@ export function GameCanvas() {
     startGame();
     stateRef.current.viewport.width = viewportRef.current.width;
     stateRef.current.viewport.height = viewportRef.current.height;
+    leaderboardSubmittedRef.current = false;
+    setLeaderboardResult(null);
   }
   function handleGoHome() {
     goHome();
     stateRef.current.viewport.width = viewportRef.current.width;
     stateRef.current.viewport.height = viewportRef.current.height;
+    leaderboardSubmittedRef.current = false;
+    setLeaderboardResult(null);
   }
 
   const state = stateRef.current;
@@ -203,6 +226,8 @@ export function GameCanvas() {
           onPlayNormal={() => { if (!tutorialActive) setPlayerSpeedMultiplier(1); }}
           onFastForward={() => { if (!tutorialActive) setPlayerSpeedMultiplier(2); }}
           onDeleteLine={deleteLine}
+          adAvailable={adAvailable}
+          onRequestBonus={() => { if (!tutorialActive) requestOnDemandBonus(); }}
         />
       )}
 
@@ -211,15 +236,50 @@ export function GameCanvas() {
       )}
 
       {phase === 'playing' && milestoneChoicePending && (
-        <MilestoneChoiceModal level={level} onChoose={chooseMilestoneBonus} />
+        <BonusChoiceModal title={`Level ${level}!`} subtitle="Pick one upgrade" onChoose={chooseMilestoneBonus} />
       )}
 
-      {phase === 'home' && <HomeScreen onPlay={goToStart} />}
+      {adFlow?.stage === 'confirm' && (
+        <AdConfirmModal
+          message={
+            adFlow.kind === 'onDemand'
+              ? 'Watch an ad to get a free Train or Carriage?'
+              : 'Station Overflow! Watch an ad to continue?'
+          }
+          onAccept={acceptAdOffer}
+          onDecline={declineAdOffer}
+        />
+      )}
+
+      {adFlow?.stage === 'playing' && <SimulatedAdModal onComplete={completeAdPlayback} />}
+
+      {adFlow?.stage === 'choice' && (
+        <BonusChoiceModal title="Choose your reward" subtitle="Pick one" onChoose={resolveAdBonusChoice} />
+      )}
+
+      {phase === 'home' && (
+        <HomeScreen
+          onPlay={goToStart}
+          bestWeeksSurvived={metaProgression.bestWeeksSurvived}
+          collectionSize={metaProgression.collectionSize}
+          currentPictureProgress={metaProgression.currentPictureProgress}
+          leaderboardIdentity={leaderboard.available ? leaderboard.identity : null}
+        />
+      )}
 
       {phase === 'start' && <StartScreen onStart={handleStartGame} />}
 
       {phase === 'gameover' && (
-        <GameOverScreen score={score} level={level} onRestart={handleGoHome} />
+        <GameOverScreen
+          score={score}
+          level={level}
+          weekNumber={weekNumber}
+          bestWeeksSurvived={metaProgression.bestWeeksSurvived}
+          isNewBest={isNewBest}
+          leaderboardResult={leaderboardResult}
+          pictureRevealSegments={pictureRevealSegments}
+          onRestart={handleGoHome}
+        />
       )}
     </div>
     </div>

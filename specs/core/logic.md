@@ -119,7 +119,7 @@ A Milestone Event's bonus is always free — it never requires watching an ad. `
 A single session-wide setting decides how the bonus kind is picked, the same way for every Milestone Event in the session (`progression.md` §6):
 
 - **Auto mode**: the game picks the kind itself, with no player input.
-- **Choice mode**: all three kinds are offered as options. Presenting the choice pauses game time using the same mechanism as §6 Game Clock — every timer in the game, including other Nodes' Grace Timers and the countdown to the next Milestone Event, freezes until the player picks. Only the chosen kind is granted; the other two are discarded, not banked for later.
+- **Choice mode**: both kinds are offered as options. Presenting the choice pauses game time using the same mechanism as §6 Game Clock — every timer in the game, including other Nodes' Grace Timers and the countdown to the next Milestone Event, freezes until the player picks. Only the chosen kind is granted; the other is discarded, not banked for later.
 
 Route unlocking is not part of a Milestone Event — Routes unlock purely from total Node count (`progression.md` §4).
 

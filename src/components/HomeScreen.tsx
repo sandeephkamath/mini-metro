@@ -1,10 +1,19 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CONFIG } from '../config/gameConfig';
 import { traceShapePath } from '../render/shapePaths';
+import { getRevealedTileCount } from '../logic/collectibles';
+import { PictureThumbnail } from './PictureThumbnail';
+import { CollectiblesScreen } from './CollectiblesScreen';
+import { LeaderboardScreen } from './LeaderboardScreen';
+import type { LeaderboardIdentity } from '../firebase/leaderboard';
 import type { StationShape } from '../types/game';
 
 interface HomeScreenProps {
   onPlay: () => void;
+  bestWeeksSurvived: number;
+  collectionSize: number;
+  currentPictureProgress: number;
+  leaderboardIdentity: LeaderboardIdentity | null; // metro.md §9.6 — only non-null once available
 }
 
 const BG = '#f5f0e8';
@@ -275,9 +284,13 @@ function drawScene(ctx: CanvasRenderingContext2D, scene: Scene, now: number, dt:
   ctx.fillRect(0, 0, w, h);
 }
 
-export function HomeScreen({ onPlay }: HomeScreenProps) {
+export function HomeScreen({
+  onPlay, bestWeeksSurvived, collectionSize, currentPictureProgress, leaderboardIdentity,
+}: HomeScreenProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [showCollectibles, setShowCollectibles] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -448,7 +461,75 @@ export function HomeScreen({ onPlay }: HomeScreenProps) {
         }}>
           PLAY
         </div>
+
+        <div style={{
+          marginTop: 30,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 10,
+          pointerEvents: 'auto',
+          animation: 'mmFadeUp 0.7s ease-out 0.85s both',
+        }}>
+          {bestWeeksSurvived > 0 && (
+            <div style={{ fontFamily: fontStack, fontSize: 13, color: '#6b6459' }}>
+              Best: Week {Math.floor(bestWeeksSurvived)}
+            </div>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <PictureThumbnail
+              index={collectionSize + 1}
+              revealedTileCount={getRevealedTileCount(collectionSize + 1, currentPictureProgress)}
+              width={110}
+              height={88}
+            />
+            <button
+              onClick={() => setShowCollectibles(true)}
+              style={{
+                background: 'none',
+                border: `1px solid ${INK}`,
+                borderRadius: 6,
+                padding: '5px 14px',
+                fontSize: 12,
+                fontFamily: fontStack,
+                color: INK,
+                cursor: 'pointer',
+              }}
+            >
+              View Collectibles
+            </button>
+            {leaderboardIdentity && (
+              <button
+                onClick={() => setShowLeaderboard(true)}
+                style={{
+                  background: 'none',
+                  border: `1px solid ${INK}`,
+                  borderRadius: 6,
+                  padding: '5px 14px',
+                  fontSize: 12,
+                  fontFamily: fontStack,
+                  color: INK,
+                  cursor: 'pointer',
+                }}
+              >
+                View Leaderboard
+              </button>
+            )}
+          </div>
+        </div>
       </div>
+
+      {showCollectibles && (
+        <CollectiblesScreen
+          collectionSize={collectionSize}
+          currentPictureProgress={currentPictureProgress}
+          onClose={() => setShowCollectibles(false)}
+        />
+      )}
+
+      {showLeaderboard && leaderboardIdentity && (
+        <LeaderboardScreen identity={leaderboardIdentity} onClose={() => setShowLeaderboard(false)} />
+      )}
     </div>
   );
 }

@@ -1,17 +1,20 @@
 import type { MilestoneBonusKind } from '../types/game';
 
-interface MilestoneChoiceModalProps {
-  level: number;
+interface BonusChoiceModalProps {
+  title: string;
+  subtitle: string;
   onChoose: (kind: MilestoneBonusKind) => void;
 }
 
 const OPTIONS: Array<{ kind: MilestoneBonusKind; label: string; desc: string }> = [
   { kind: 'carrier', label: 'New Train', desc: 'Adds a train to the Depot — place it on any line' },
   { kind: 'carriage', label: 'New Carriage', desc: 'Adds a carriage to the Depot — attach it to any train' },
-  { kind: 'grace', label: 'More Time', desc: 'Extends every station’s Risk Timer, immediately' },
 ];
 
-export function MilestoneChoiceModal({ level, onChoose }: MilestoneChoiceModalProps) {
+// The Weekly Upgrade's Choice-mode popup (core/logic.md §3 Milestone Events) — also
+// reused, same presentation, for the ad-gated bonus-kind pick after a completed
+// Rewarded Ad (core/monetization.md §2, §3 — "using the same choice presentation").
+export function BonusChoiceModal({ title, subtitle, onChoose }: BonusChoiceModalProps) {
   return (
     <div style={{
       position: 'absolute',
@@ -30,8 +33,8 @@ export function MilestoneChoiceModal({ level, onChoose }: MilestoneChoiceModalPr
         textAlign: 'center',
         minWidth: 320,
       }}>
-        <h3 style={{ margin: '0 0 4px', fontFamily: 'monospace' }}>Level {level}!</h3>
-        <p style={{ color: '#666', margin: '0 0 20px', fontSize: '13px' }}>Pick one upgrade</p>
+        <h3 style={{ margin: '0 0 4px', fontFamily: 'monospace' }}>{title}</h3>
+        <p style={{ color: '#666', margin: '0 0 20px', fontSize: '13px' }}>{subtitle}</p>
         <div style={{ display: 'flex', gap: 12 }}>
           {OPTIONS.map(opt => (
             <button

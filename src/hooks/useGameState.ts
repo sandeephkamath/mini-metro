@@ -1,10 +1,22 @@
 import { useRef, useState, useCallback } from 'react';
 import type { MutableRefObject } from 'react';
-import type { GameState, GamePhase, ReserveItemKind, TutorialStepId } from '../types/game';
+import type { GameState, GamePhase, ReserveItemKind, TutorialStepId, AdFlowState, MilestoneBonusKind } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
 import { createInitialStations } from '../logic/stations';
 import { createInitialLines } from '../logic/lines';
 import { createInitialCamera } from '../logic/camera';
+import { getWeekProgress, getWeeksSurvived } from '../logic/metaProgression';
+import type { RevealSegment } from '../logic/collectibles';
+import type { MetaProgressionData } from '../storage/metaProgression';
+import { loadMetaProgression, recordSessionEnd } from '../storage/metaProgression';
+import {
+  isAdAvailable,
+  requestOnDemandBonus as requestOnDemandBonusAction,
+  acceptAdOffer as acceptAdOfferAction,
+  declineAdOffer as declineAdOfferAction,
+  completeAdPlayback as completeAdPlaybackAction,
+  resolveAdBonusChoice as resolveAdBonusChoiceAction,
+} from '../logic/monetization';
 
 function createInitialState(): GameState {
   const state: GameState = {
@@ -54,6 +66,9 @@ function createInitialState(): GameState {
     debugPauseStations: false,
     debugPausePassengers: false,
     tutorial: null,
+    continuesRemaining: CONFIG.CONTINUE_LIMIT,
+    adFlow: null,
+    debugAdForcedUnavailable: false,
   };
 
   createInitialLines(state);
@@ -81,6 +96,20 @@ export function useGameState() {
   const [playerPaused, setPlayerPausedState] = useState(false);
   const [playerSpeedMultiplier, setPlayerSpeedMultiplierState] = useState<1 | 2>(1);
   const [tutorialStep, setTutorialStep] = useState<TutorialStepId | null>(null);
+  // Read once on load, before the home screen renders (core/meta_progression.md §6).
+  const [metaProgression, setMetaProgression] = useState<MetaProgressionData>(() => loadMetaProgression());
+  // This session's Game-Over Reveal segments (metro.md §9.4) — null until a session ends.
+  const [pictureRevealSegments, setPictureRevealSegments] = useState<RevealSegment[] | null>(null);
+  // Whether this session's Final Weeks Survived raised Best Weeks Survived (metro.md §9.2).
+  const [isNewBest, setIsNewBest] = useState(false);
+  // This session's Final Weeks Survived (core/meta_progression.md §1), frozen at game end —
+  // exposed so the Leaderboard (§7) can submit the exact same value Best Weeks Survived used.
+  const [finalWeeksSurvived, setFinalWeeksSurvived] = useState(0);
+  // On-Demand Bonus Request / Game-Over Continue flow (core/monetization.md §1-3).
+  const [adFlow, setAdFlowState] = useState<AdFlowState | null>(null);
+  const [adAvailable, setAdAvailable] = useState(true);
+  // Guards against re-recording every ~10Hz sync while phase sits at 'gameover'.
+  const sessionEndRecordedRef = useRef(false);
 
   // Stable identity — empty deps because stateRef is a ref and setters are stable
   const syncReactState = useCallback(() => {
@@ -89,7 +118,7 @@ export function useGameState() {
     setPhase(s.phase);
     setWeekNumber(s.weekNumber);
     setLevel(s.level);
-    setWeekProgress(Math.max(0, Math.min(0.9999, 1 - (s.nextWeekTime - s.gameTimeMs) / CONFIG.WEEK_DURATION_MS)));
+    setWeekProgress(getWeekProgress(s));
     setReserveCarriers(s.reserveCarriers);
     setReserveCarriages(s.reserveCarriages);
     setMilestoneChoicePending(s.milestoneChoicePending);
@@ -97,6 +126,18 @@ export function useGameState() {
     setPlayerPausedState(s.playerPaused);
     setPlayerSpeedMultiplierState(s.playerSpeedMultiplier);
     setTutorialStep(s.tutorial?.step ?? null);
+    setAdFlowState(s.adFlow);
+    setAdAvailable(isAdAvailable(s));
+
+    if (s.phase === 'gameover' && !sessionEndRecordedRef.current) {
+      sessionEndRecordedRef.current = true;
+      const finalWeeks = getWeeksSurvived(s);
+      const { data, segments, isNewBest: newBest } = recordSessionEnd(finalWeeks);
+      setMetaProgression(data);
+      setPictureRevealSegments(segments);
+      setIsNewBest(newBest);
+      setFinalWeeksSurvived(finalWeeks);
+    }
   }, []);
 
   // Writes through to both the mutable ref (so game logic/input sees it immediately)
@@ -120,6 +161,34 @@ export function useGameState() {
     setPlayerSpeedMultiplierState(mult);
   }, []);
 
+  const requestOnDemandBonus = useCallback(() => {
+    requestOnDemandBonusAction(stateRef.current!);
+    setAdFlowState(stateRef.current!.adFlow);
+  }, []);
+
+  const acceptAdOffer = useCallback(() => {
+    acceptAdOfferAction(stateRef.current!);
+    setAdFlowState(stateRef.current!.adFlow);
+  }, []);
+
+  const declineAdOffer = useCallback(() => {
+    declineAdOfferAction(stateRef.current!);
+    setAdFlowState(stateRef.current!.adFlow);
+    setPhase(stateRef.current!.phase); // a declined Continue flips phase to 'gameover'
+  }, []);
+
+  const completeAdPlayback = useCallback(() => {
+    completeAdPlaybackAction(stateRef.current!);
+    setAdFlowState(stateRef.current!.adFlow);
+  }, []);
+
+  const resolveAdBonusChoice = useCallback((kind: MilestoneBonusKind) => {
+    resolveAdBonusChoiceAction(stateRef.current!, kind);
+    setAdFlowState(stateRef.current!.adFlow);
+    setReserveCarriers(stateRef.current!.reserveCarriers);
+    setReserveCarriages(stateRef.current!.reserveCarriages);
+  }, []);
+
   function resetReactState() {
     setScore(0);
     setWeekNumber(0);
@@ -132,6 +201,8 @@ export function useGameState() {
     setPlayerPausedState(false);
     setPlayerSpeedMultiplierState(1);
     setTutorialStep(null);
+    setAdFlowState(null);
+    setAdAvailable(true);
   }
 
   function startGame() {
@@ -139,6 +210,10 @@ export function useGameState() {
     stateRef.current.phase = 'playing';
     setPhase('playing');
     resetReactState();
+    sessionEndRecordedRef.current = false;
+    setPictureRevealSegments(null);
+    setIsNewBest(false);
+    setFinalWeeksSurvived(0);
   }
 
   function goToStart() {
@@ -150,12 +225,18 @@ export function useGameState() {
     stateRef.current = createInitialState();
     setPhase('home');
     resetReactState();
+    sessionEndRecordedRef.current = false;
+    setPictureRevealSegments(null);
+    setIsNewBest(false);
+    setFinalWeeksSurvived(0);
   }
 
   return {
     stateRef: stateRef as MutableRefObject<GameState>,
     score, phase, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending, selectedReserveItem,
-    playerPaused, playerSpeedMultiplier, tutorialStep,
+    playerPaused, playerSpeedMultiplier, tutorialStep, metaProgression, pictureRevealSegments, isNewBest, finalWeeksSurvived,
+    adFlow, adAvailable,
     startGame, goToStart, goHome, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
+    requestOnDemandBonus, acceptAdOffer, declineAdOffer, completeAdPlayback, resolveAdBonusChoice,
   };
 }

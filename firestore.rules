@@ -1,0 +1,39 @@
+rules_version = '2';
+
+// Leaderboard (core/meta_progression.md §7-8, metro.md §9.6). No dedicated server
+// exists — these rules are the only integrity check on a submitted score
+// (memo.md § Leaderboard: reject negative/absurd values, never let a submission
+// regress a player's own prior best). Deploy with:
+//   firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // One document per player, keyed by their Firebase Auth uid.
+    match /leaderboard/{uid} {
+      // Reads require identity, matching the Leaderboard's own availability rule
+      // (Android + Play Games sign-in, or the debug web sign-in stand-in) — not
+      // open to the public internet.
+      allow read: if request.auth != null;
+
+      // A player can only ever write their own document, and only a score that's
+      // a real number, non-negative, under a sane ceiling, and never lower than
+      // whatever's already stored — the client (core/monetization.md-style "fail
+      // gracefully" philosophy) never needs to compare against the previous value
+      // itself; these rules are what actually enforce "best submission wins".
+      allow create: if request.auth != null
+                    && request.auth.uid == uid
+                    && request.resource.data.displayName is string
+                    && request.resource.data.weeksSurvived is number
+                    && request.resource.data.weeksSurvived >= 0
+                    && request.resource.data.weeksSurvived < 100000;
+
+      allow update: if request.auth != null
+                    && request.auth.uid == uid
+                    && request.resource.data.displayName is string
+                    && request.resource.data.weeksSurvived is number
+                    && request.resource.data.weeksSurvived >= resource.data.weeksSurvived
+                    && request.resource.data.weeksSurvived < 100000;
+
+      allow delete: if false;
+    }
+  }
+}

@@ -1,10 +1,21 @@
+import type { RevealSegment } from '../logic/collectibles';
+import type { LeaderboardResult } from '../hooks/useLeaderboard';
+import { PictureReveal } from './PictureReveal';
+
 interface GameOverScreenProps {
   score: number;
   level: number;
+  weekNumber: number;
+  bestWeeksSurvived: number;
+  isNewBest: boolean;
+  leaderboardResult: LeaderboardResult | null;
+  pictureRevealSegments: RevealSegment[] | null;
   onRestart: () => void;
 }
 
-export function GameOverScreen({ score, level, onRestart }: GameOverScreenProps) {
+export function GameOverScreen({
+  score, level, weekNumber, bestWeeksSurvived, isNewBest, leaderboardResult, pictureRevealSegments, onRestart,
+}: GameOverScreenProps) {
   return (
     <div style={{
       position: 'absolute',
@@ -26,7 +37,23 @@ export function GameOverScreen({ score, level, onRestart }: GameOverScreenProps)
         <h2 style={{ margin: '0 0 4px', color: '#e74c3c', fontFamily: 'monospace', fontSize: '1.8rem' }}>Game Over</h2>
         <p style={{ color: '#666', margin: '0 0 16px' }}>A station overflowed</p>
         <div style={{ fontSize: '3rem', fontWeight: 'bold', fontFamily: 'monospace', marginBottom: 8 }}>{score}</div>
-        <div style={{ color: '#888', marginBottom: 24 }}>passengers delivered · Level {level}</div>
+        <div style={{ color: '#888', marginBottom: 8 }}>passengers delivered · Level {level}</div>
+        {isNewBest ? (
+          <div style={{ color: '#e67e22', fontWeight: 'bold', fontFamily: 'monospace', marginBottom: 8 }}>
+            New Best! Week {weekNumber}
+          </div>
+        ) : (
+          <div style={{ color: '#aaa', fontSize: '0.85rem', marginBottom: 8 }}>
+            You survived to Week {weekNumber} — Personal Best is Week {Math.floor(bestWeeksSurvived)}
+          </div>
+        )}
+        {leaderboardResult && (
+          <div style={{ color: '#888', fontSize: '0.8rem', marginBottom: 8 }}>
+            #{leaderboardResult.rank.toLocaleString()}
+            {leaderboardResult.totalPlayers !== null && ` of ${leaderboardResult.totalPlayers.toLocaleString()} players`}
+          </div>
+        )}
+        {pictureRevealSegments && <PictureReveal segments={pictureRevealSegments} />}
         <button
           onClick={onRestart}
           style={{

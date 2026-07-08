@@ -3,8 +3,18 @@ export type TrainState = 'moving' | 'stopped';
 export type TrainDirection = 1 | -1;
 export type GamePhase = 'home' | 'start' | 'playing' | 'gameover';
 export type MilestoneBonusMode = 'auto' | 'choice';
-export type MilestoneBonusKind = 'carrier' | 'carriage' | 'grace';
+export type MilestoneBonusKind = 'carrier' | 'carriage';
 export type ReserveItemKind = 'carrier' | 'carriage';
+
+// Ad-gated monetization (core/monetization.md §1-3). 'onDemand' is the player-triggered
+// mid-session bonus request; 'continue' is the Game-Over rescue offered when a Node's
+// Grace Timer expires. Both share the same offer -> ad -> bonus-choice flow.
+export type AdFlowKind = 'onDemand' | 'continue';
+export type AdFlowStage = 'confirm' | 'playing' | 'choice';
+export interface AdFlowState {
+  kind: AdFlowKind;
+  stage: AdFlowStage;
+}
 
 // Scripted tutorial steps in order (specs/TUTORIAL.md §5). "Wait" steps run the
 // clock until a game event fires; the rest hold the clock while a card is shown.
@@ -145,13 +155,16 @@ export interface GameState {
   viewport: ViewportSize;
   lastMilestoneMessage: string;
   lastMilestoneTime: number;
-  graceDurationMs: number; // current Grace Duration — grows via "grace" bonuses, never shrinks
+  graceDurationMs: number; // Grace Duration — fixed for the whole session (core/monetization.md removed the old "grace" bonus kind that used to grow it)
   reserveCarriers: number; // unplaced Depot Trains
   reserveCarriages: number; // unplaced Depot Carriages
   milestoneBonusMode: MilestoneBonusMode;
   milestoneAutoIndex: number; // round-robin cursor for Auto mode
   milestoneChoicePending: boolean; // true while the Weekly Upgrade choice popup is open (freezes all timers)
   selectedReserveItem: ReserveItemKind | null; // player has clicked a Depot item and is now picking a target
+  continuesRemaining: number; // Game-Over Continues left this session (core/monetization.md §5) — resets every session
+  adFlow: AdFlowState | null; // On-Demand Bonus Request / Game-Over Continue flow (core/monetization.md §1-3)
+  debugAdForcedUnavailable: boolean; // DEBUG.md § Debug Ad Availability
   // ID counters live in state — never in module scope, to avoid re-render side-effects
   nextIds: { station: number; passenger: number; train: number };
   playerPaused: boolean; // player-facing pause (Pause button) — independent of Milestone-choice pausing

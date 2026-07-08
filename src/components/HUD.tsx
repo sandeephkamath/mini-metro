@@ -31,6 +31,8 @@ interface HUDProps {
   onPlayNormal: () => void;
   onFastForward: () => void;
   onDeleteLine: (lineId: string) => void;
+  adAvailable: boolean; // core/monetization.md §4 — Ad Provider availability
+  onRequestBonus: () => void;
 }
 
 // The clock badge doubles as the original's global danger cue: it recolors solid
@@ -113,7 +115,7 @@ export function HUD({
   reserveCarriers, reserveCarriages, selectedReserveItem,
   onSelectReserveCarrier, onSelectReserveCarriage,
   overflowRiskActive, playerPaused, playerSpeedMultiplier, onPause, onPlayNormal, onFastForward,
-  onDeleteLine,
+  onDeleteLine, adAvailable, onRequestBonus,
 }: HUDProps) {
   const toastVisible = milestoneAge < 3000 && milestoneMessage;
   const toastOpacity = toastVisible ? Math.min(1, Math.max(0, 1 - (milestoneAge - 2000) / 1000)) : 0;
@@ -197,6 +199,25 @@ export function HUD({
         </span>
         <span style={{ opacity: 0.6, fontSize: '12px' }}>drag between stations to draw lines</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {adAvailable && (
+            <button
+              onClick={onRequestBonus}
+              title="Watch an ad to get a free Train or Carriage"
+              style={{
+                background: 'transparent',
+                color: '#ddd',
+                border: '1px solid rgba(255,255,255,0.4)',
+                borderRadius: '4px',
+                padding: '3px 8px',
+                fontSize: '11px',
+                fontFamily: 'monospace',
+                cursor: 'pointer',
+                pointerEvents: 'auto',
+              }}
+            >
+              🎬 Free Bonus
+            </button>
+          )}
           <SpeedControls
             playerPaused={playerPaused}
             playerSpeedMultiplier={playerSpeedMultiplier}
