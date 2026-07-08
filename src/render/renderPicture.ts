@@ -11,6 +11,14 @@ import type { StationShape } from '../types/game';
 // visual variety, the same treatment the home screen ambient scene uses.
 const SHAPE_CYCLE: StationShape[] = ['circle', 'triangle', 'square', 'star', 'hexagon', 'plus'];
 
+// Random shapes for pre-seeding waiting passengers/riders (metro.md §9.3.2) —
+// the scene starts already busy instead of building up from empty over the
+// first several seconds.
+function randomShapes(min: number, max: number): StationShape[] {
+  const count = min + Math.floor(Math.random() * (max - min + 1));
+  return Array.from({ length: count }, () => SHAPE_CYCLE[Math.floor(Math.random() * SHAPE_CYCLE.length)]);
+}
+
 // A pale water band behind a Picture's lines/stations (metro.md §9.3) — the
 // same decorative device as the home screen ambient scene's own water band,
 // carried over so a Picture reads with the same "living city" richness rather
@@ -176,7 +184,7 @@ export function buildPictureTrains(city: PictureCityData): PictureTrain[] {
           dwellUntil: 0,
         },
         stationIndices: line.stationIndices,
-        riders: [],
+        riders: randomShapes(1, CONFIG.PICTURE_TRAIN_SEATS),
       });
     }
   });
@@ -199,7 +207,7 @@ export function buildPictureStations(city: PictureCityData, now: number): Pictur
     index: i,
     pos: s.pos,
     shape: SHAPE_CYCLE[i % SHAPE_CYCLE.length],
-    waiting: [],
+    waiting: randomShapes(1, CONFIG.PICTURE_MAX_WAITING),
     nextSpawnAt: now + CONFIG.PICTURE_PASSENGER_SPAWN_MIN_MS + Math.random() * CONFIG.PICTURE_PASSENGER_SPAWN_JITTER_MS,
   }));
 }
