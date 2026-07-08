@@ -1,6 +1,6 @@
 # Metro Theme Specification
 
-**Version**: 3.9
+**Version**: 3.11
 **Last updated**: 2026-07-08
 **Extends**: `../core/logic.md`, `../core/meta_progression.md`, `../core/monetization.md`
 
@@ -284,10 +284,10 @@ Configuration values:
 
 #### 9.3.2 Animated Presentation
 
-Wherever a Picture is shown large enough to matter — the home screen's current-Picture thumbnail, the Game-Over Reveal (§9.4), and the Collectibles Screen's detail view (`home_screen.md` § Collectibles Screen) — it is not a static frame. Each line's simulated trains travel along that line's real station order (the same ordered path data from §9.3's per-city dataset), ping-ponging between the line's ends and dwelling briefly at each station: the same visual language as the home screen's ambient scene (`home_screen.md` § Ambient metro scene) and live gameplay, reused rather than reinvented. This is decorative simulation only — no passengers, capacity, or resource logic; trains exist purely to make the Picture read as a living map.
+Wherever a Picture is shown large enough to matter — the Game-Over Reveal (§9.4) and the Collectibles Screen's detail view (`home_screen.md` § Collectibles Screen) — it is not a static frame. Each line's simulated trains travel along that line's real station order (the same ordered path data from §9.3's per-city dataset), ping-ponging between the line's ends and dwelling briefly at each station: the same visual language as the home screen's ambient scene (`home_screen.md` § Ambient metro scene) and live gameplay, reused rather than reinvented. This is decorative simulation only — no passengers, capacity, or resource logic; trains exist purely to make the Picture read as a living map. The home screen itself shows no Picture at all — its View Collectibles control is a plain icon button (`home_screen.md` § Content) — so this presentation applies only within the Collectibles Screen and the Game-Over Reveal.
 
 - **Masked by reveal**: the animated scene is only visible within tiles that have already been revealed (§9.3) — the same tile-reveal mask already used to composite a partially-revealed Picture now clips a continuously-animated scene instead of a single static rendered frame. An unrevealed tile shows nothing, exactly as before; a revealed tile shows the live scene passing beneath it. As more tiles reveal, more of the moving network becomes visible — the network visibly "comes alive" as the Picture fills in.
-- **Where it's animated vs. static**: the Collectibles Screen's grid of thumbnails stays static (unchanged, non-animated `PictureThumbnail`-style rendering) — many Complete Pictures can be on-screen at once there, and animating all of them simultaneously isn't worth the cost. The home screen thumbnail, the Game-Over Reveal, and the Collectibles Screen's detail view are each large and singular enough to animate. Locked "up next" placeholders are never animated — nothing has been reached yet, so there's no line data to simulate.
+- **Where it's animated vs. static**: the Collectibles Screen's grid of thumbnails stays static (unchanged, non-animated `PictureThumbnail`-style rendering) — many Complete Pictures can be on-screen at once there, and animating all of them simultaneously isn't worth the cost. The Game-Over Reveal and the Collectibles Screen's detail view are each large and singular enough to animate. Locked "up next" placeholders are never animated — nothing has been reached yet, so there's no line data to simulate.
 
 Configuration values (independent of both live gameplay's train speed and the home screen ambient scene's own tuning table, since a Picture renders at a different scale than either):
 
@@ -316,7 +316,8 @@ Metro's concrete instantiation of `../core/meta_progression.md` §6.
 - Backing store: the browser's `localStorage`, under a single key.
 - Persisted values: Best Weeks Survived, the Collection size (the count of completed Pictures — sufficient to know which Pictures are Complete, since Picture N's image and requirement are both derived from its index, §9.3), and the current Picture's Accumulated Progress.
 - Read once on app load, before the home screen renders. Written once at the end of each session, right after that session's Best Weeks Survived and Picture progress updates are computed.
-- If `localStorage` is unavailable or its value is missing/unreadable, Metro falls back to the zero state (Best Weeks Survived 0, Picture 1 current, 0 Accumulated Progress, empty Collection) for that load — play is unaffected, only meta-progression fails to persist.
+- If `localStorage` is unavailable or its value is missing/unreadable, Metro falls back to a zero-progress state for that load — play is unaffected, only meta-progression fails to persist.
+- **Temporary override (as of 2026-07-08, revisit before real launch)**: that fallback currently pre-seeds the Collection with Picture 1 (London) already Complete — Best Weeks Survived 0, Picture 2 current, 0 Accumulated Progress, Collection size 1 — rather than a genuinely empty Collection. This is a deliberate short-term deviation from `core/meta_progression.md` §6's literal zero state (empty Collection), done so the Collectibles feature has something to show immediately on a fresh install without requiring a full session first. Only affects sessions with no valid saved data at all (first-ever visit, cleared storage, or a read failure) — anyone with real saved progress is unaffected. Revert `ZERO_STATE.collectionSize` to `0` in `src/storage/metaProgression.ts` to restore the true empty-Collection zero state.
 
 ### 9.6 Leaderboard
 

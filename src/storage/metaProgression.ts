@@ -13,9 +13,15 @@ export interface MetaProgressionData {
   currentPictureProgress: number; // Accumulated Progress toward the current Picture
 }
 
+// Temporary override (metro.md §9.5, as of 2026-07-08, revisit before real
+// launch): pre-seeds Picture 1 (London) as already Complete rather than a
+// genuinely empty Collection, so the Collectibles feature has something to
+// show on a fresh install without requiring a full session first. Only
+// applies when there's no valid saved data at all — set back to 0 to restore
+// the true empty-Collection zero state.
 const ZERO_STATE: MetaProgressionData = {
   bestWeeksSurvived: 0,
-  collectionSize: 0,
+  collectionSize: 1,
   currentPictureProgress: 0,
 };
 

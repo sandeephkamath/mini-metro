@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CONFIG } from '../config/gameConfig';
 import { traceShapePath } from '../render/shapePaths';
-import { getRevealedTileCount } from '../logic/collectibles';
 import { buildWalkablePath, pointAt, stepWalker, type WalkablePath } from '../logic/lineWalker';
-import { AnimatedPictureThumbnail } from './AnimatedPictureThumbnail';
 import { CollectiblesScreen } from './CollectiblesScreen';
 import { LeaderboardScreen } from './LeaderboardScreen';
 import type { LeaderboardIdentity } from '../firebase/leaderboard';
@@ -447,37 +445,26 @@ export function HomeScreen({
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-            <div style={{ position: 'relative' }}>
-              <AnimatedPictureThumbnail
-                index={collectionSize + 1}
-                revealedTileCount={getRevealedTileCount(collectionSize + 1, currentPictureProgress)}
-                width={110}
-                height={88}
-              />
-              <button
-                onClick={() => setShowCollectibles(true)}
-                aria-label="View Collectibles"
-                title="View Collectibles"
-                style={{
-                  position: 'absolute',
-                  top: -8,
-                  right: -8,
-                  width: 26,
-                  height: 26,
-                  borderRadius: '50%',
-                  background: '#fff',
-                  border: `1px solid ${INK}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                }}
-              >
-                <CollectiblesIcon color={INK} />
-              </button>
-            </div>
+            <button
+              onClick={() => setShowCollectibles(true)}
+              aria-label="View Collectibles"
+              title="View Collectibles"
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: '50%',
+                background: '#fff',
+                border: `1px solid ${INK}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+              }}
+            >
+              <CollectiblesIcon color={INK} />
+            </button>
             {leaderboardIdentity && (
               <button
                 onClick={() => setShowLeaderboard(true)}
