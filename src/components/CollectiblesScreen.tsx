@@ -144,6 +144,7 @@ export function CollectiblesScreen({ collectionSize, currentPictureProgress, onC
           <div
             onClick={e => e.stopPropagation()}
             style={{
+              position: 'relative',
               textAlign: 'center',
               background: '#fff',
               borderRadius: 12,
@@ -151,26 +152,36 @@ export function CollectiblesScreen({ collectionSize, currentPictureProgress, onC
               boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
             }}
           >
+            <button
+              onClick={() => setDetailIndex(null)}
+              aria-label="Close"
+              title="Close"
+              style={{
+                position: 'absolute',
+                top: -14,
+                right: -14,
+                width: 30,
+                height: 30,
+                borderRadius: '50%',
+                background: '#fff',
+                border: '1px solid #333',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                cursor: 'pointer',
+                fontSize: 16,
+                lineHeight: 1,
+                color: '#333',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+              }}
+            >
+              ×
+            </button>
             <div style={{ marginBottom: 10, fontSize: 18, fontFamily: 'monospace', color: '#333' }}>
               {getPictureForIndex(detailIndex).name}
             </div>
             <AnimatedPictureThumbnail index={detailIndex} revealedTileCount={detailTiles} width={DETAIL_W} height={DETAIL_H} />
-            <button
-              onClick={() => setDetailIndex(null)}
-              style={{
-                marginTop: 16,
-                background: '#3498db',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 8,
-                padding: '10px 28px',
-                fontSize: 15,
-                cursor: 'pointer',
-                fontFamily: 'monospace',
-              }}
-            >
-              Close
-            </button>
           </div>
         </div>
       )}
