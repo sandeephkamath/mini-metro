@@ -243,6 +243,17 @@ function drawScene(ctx: CanvasRenderingContext2D, scene: Scene, now: number, dt:
   ctx.fillRect(0, 0, w, h);
 }
 
+// A small stacked-squares "collection" glyph — the icon-only View Collectibles
+// control overlaid on the Picture thumbnail's corner (home_screen.md § Content).
+function CollectiblesIcon({ color }: { color: string }) {
+  return (
+    <svg width="13" height="13" viewBox="0 0 13 13">
+      <rect x="1" y="4" width="8" height="8" rx="1.5" fill="none" stroke={color} strokeWidth="1.3" />
+      <rect x="4" y="1" width="8" height="8" rx="1.5" fill="#fff" stroke={color} strokeWidth="1.3" />
+    </svg>
+  );
+}
+
 export function HomeScreen({
   onPlay, bestWeeksSurvived, collectionSize, currentPictureProgress, leaderboardIdentity,
 }: HomeScreenProps) {
@@ -436,27 +447,37 @@ export function HomeScreen({
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-            <AnimatedPictureThumbnail
-              index={collectionSize + 1}
-              revealedTileCount={getRevealedTileCount(collectionSize + 1, currentPictureProgress)}
-              width={110}
-              height={88}
-            />
-            <button
-              onClick={() => setShowCollectibles(true)}
-              style={{
-                background: 'none',
-                border: `1px solid ${INK}`,
-                borderRadius: 6,
-                padding: '5px 14px',
-                fontSize: 12,
-                fontFamily: fontStack,
-                color: INK,
-                cursor: 'pointer',
-              }}
-            >
-              View Collectibles
-            </button>
+            <div style={{ position: 'relative' }}>
+              <AnimatedPictureThumbnail
+                index={collectionSize + 1}
+                revealedTileCount={getRevealedTileCount(collectionSize + 1, currentPictureProgress)}
+                width={110}
+                height={88}
+              />
+              <button
+                onClick={() => setShowCollectibles(true)}
+                aria-label="View Collectibles"
+                title="View Collectibles"
+                style={{
+                  position: 'absolute',
+                  top: -8,
+                  right: -8,
+                  width: 26,
+                  height: 26,
+                  borderRadius: '50%',
+                  background: '#fff',
+                  border: `1px solid ${INK}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                }}
+              >
+                <CollectiblesIcon color={INK} />
+              </button>
+            </div>
             {leaderboardIdentity && (
               <button
                 onClick={() => setShowLeaderboard(true)}

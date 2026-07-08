@@ -1,14 +1,28 @@
 import { test, expect } from '@playwright/test';
-import { FIXED_STATIONS, debugAddPassenger, getPhase, setDebugSpeed, startGame, toggleDebugMode } from '../helpers/gameDriver';
+import {
+  FIXED_STATIONS,
+  debugAddPassenger,
+  forceAdUnavailable,
+  getPhase,
+  setDebugSpeed,
+  startGame,
+  toggleDebugMode,
+} from '../helpers/gameDriver';
 
 // core/logic.md §3 Node Overflow: reaching capacity starts a Grace Timer (Overflow
 // Risk) rather than ending the game immediately — the game only ends once that
 // timer expires while the station is still at/over capacity (core/progression.md §5,
 // themes/metro.md §5: Risk Timer base duration 8000ms).
+//
+// Forces the Ad Provider unavailable first so this test exercises the plain
+// overflow → gameover transition itself, not the separate ad-gated Game-Over
+// Continue (core/monetization.md §3) that would otherwise intercept it with a
+// "Watch an ad to continue?" prompt instead of ending the game.
 test('station overflow ends the game after the Risk Timer expires', async ({ page }) => {
   await page.goto('/');
   await startGame(page);
   await toggleDebugMode(page);
+  await forceAdUnavailable(page);
 
   const station = { ...FIXED_STATIONS.circle, shape: 'circle' as const };
   // Alternate destinations since a passenger's destination must differ from the station's own shape.

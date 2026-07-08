@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
   FIXED_STATIONS,
   debugAddPassenger,
+  forceAdUnavailable,
   getPhase,
   getScoreAndWeek,
   restartGame,
@@ -10,10 +11,14 @@ import {
   toggleDebugMode,
 } from '../helpers/gameDriver';
 
+// Forces the Ad Provider unavailable so overflow ends the game directly instead of
+// offering the ad-gated Game-Over Continue (core/monetization.md §3) — this test is
+// about restart, not the Continue flow. See overflow-gameover.spec.ts.
 test('restart from game over resets to a fresh playing state', async ({ page }) => {
   await page.goto('/');
   await startGame(page);
   await toggleDebugMode(page);
+  await forceAdUnavailable(page);
 
   const station = { ...FIXED_STATIONS.circle, shape: 'circle' as const };
   const destinations = ['triangle', 'square', 'triangle', 'square', 'triangle', 'square'] as const;

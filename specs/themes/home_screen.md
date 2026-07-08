@@ -1,6 +1,6 @@
 # Home Screen Specification
 
-**Version**: 1.9
+**Version**: 2.0
 **Last updated**: 2026-07-08
 **Extends**: `metro.md` §8 Screen States
 
@@ -21,7 +21,7 @@ This document defines the **home screen**: a top-level phase (`home`) the player
 - Title wordmark ("MINI METRO"), a short tagline, and a "Play" control.
 - Best Weeks Survived: small text near the tagline, e.g. "Best: Week 12" (`metro.md` §9.2). Omitted entirely (no line shown) if Best Weeks Survived is still 0 — nothing achieved yet, nothing to claim.
 - The current Picture, partially revealed per its tile grid (`metro.md` §9.3), shown as a small thumbnail. Unrevealed tiles are blank/dimmed; revealed tiles show the animated presentation (`metro.md` §9.3.2) — simulated trains running along that city's real lines, not a static frame. Always shown once any tile has been revealed (per the Minimum Session Contribution guarantee, every completed session reveals at least one, so this appears after a player's very first session).
-- A "View Collectibles" control near the Picture thumbnail, opening the Collectibles Screen (below). Unlike the other additions on this list, it's never fully omitted — the current (in-progress) Picture is always something to look at, even before the first Picture is ever completed.
+- A "View Collectibles" control opening the Collectibles Screen (below) — a small icon-only badge overlaid on a corner of the Picture thumbnail itself, not a separate labeled button sitting below it as its own tile. Unlike the other additions on this list, it's never fully omitted — the current (in-progress) Picture is always something to look at, even before the first Picture is ever completed.
 - A "View Leaderboard" control, opening the Leaderboard (below). Present only when the Leaderboard itself is available (`metro.md` §9.6 — Android build, successful Play Games sign-in); absent on every web session and on an Android session without a signed-in Play Games account, with no placeholder or explanation shown in its place.
 - These additions sit below the tagline/Play control, not competing with them for primary visual weight — Play remains the dominant call to action.
 - The Picture thumbnail and Collectibles Screen both depend on the Picture pool (`metro.md` §9.3.1), which is fetched once per app load alongside meta-progression — by the time the home screen would otherwise render, that fetch has already resolved one way or another (live data, a local cache, or the built-in fallback), so nothing here needs its own loading state the way the Leaderboard does.

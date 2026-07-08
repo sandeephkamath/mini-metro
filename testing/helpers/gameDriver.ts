@@ -198,6 +198,15 @@ export async function togglePassengerSpawn(page: Page) {
   await page.keyboard.press('p');
 }
 
+// Requires debug mode already on, 'playing' phase (DEBUG.md § Debug Ad Availability).
+// Forces the Ad Provider unavailable so Node Overflow ends the game unconditionally
+// instead of offering the ad-gated Game-Over Continue (core/monetization.md §3) —
+// use this in flows that test the plain overflow → gameover transition itself,
+// not the Continue prompt.
+export async function forceAdUnavailable(page: Page) {
+  await page.keyboard.press('v');
+}
+
 // Requires debug mode already on. Click the station, then the shape button in the popup.
 // The popup itself is screen-space UI (mirrors src/input/mouseHandler.ts's clampMenu,
 // which clamps against the raw local click coordinates, not world coordinates), so its
