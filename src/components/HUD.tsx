@@ -10,11 +10,11 @@ interface LineSlot {
 }
 
 const DELETE_HOLD_MS = 600;
+const INK = '#2d2d2d'; // dark text/icon color for the transparent HUD, matching the home screen's ink
 
 interface HUDProps {
   score: number;
   weekNumber: number;
-  level: number;
   weekProgress: number; // 0..1 fraction of the current week elapsed
   lineSlots: LineSlot[];
   milestoneMessage: string;
@@ -88,7 +88,7 @@ function SpeedControls({ playerPaused, playerSpeedMultiplier, onPause, onPlayNor
   function btnStyle(active: boolean) {
     return {
       background: active ? '#444' : 'transparent',
-      color: active ? '#fff' : '#999',
+      color: active ? '#fff' : INK,
       border: 'none',
       borderRadius: '4px',
       width: 22,
@@ -111,7 +111,7 @@ function SpeedControls({ playerPaused, playerSpeedMultiplier, onPause, onPlayNor
 }
 
 export function HUD({
-  score, weekNumber, level, weekProgress, lineSlots, milestoneMessage, milestoneAge,
+  score, weekNumber, weekProgress, lineSlots, milestoneMessage, milestoneAge,
   reserveCarriers, reserveCarriages, selectedReserveItem,
   onSelectReserveCarrier, onSelectReserveCarriage,
   overflowRiskActive, playerPaused, playerSpeedMultiplier, onPause, onPlayNormal, onFastForward,
@@ -227,17 +227,13 @@ export function HUD({
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '8px 16px',
-        background: 'rgba(0,0,0,0.65)',
-        color: '#fff',
+        color: INK,
         fontFamily: 'monospace',
         fontSize: '14px',
         pointerEvents: 'none',
         zIndex: 10,
       }}>
-        <span>
-          <span data-testid="hud-week">Week {weekNumber}</span>
-          <span style={{ opacity: 0.6 }}> · Level {level}</span>
-        </span>
+        <span data-testid="hud-week">Week {weekNumber}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <SpeedControls
             playerPaused={playerPaused}
@@ -261,7 +257,6 @@ export function HUD({
         alignItems: 'center',
         gap: 14,
         padding: '10px 16px',
-        background: 'rgba(0,0,0,0.65)',
         pointerEvents: 'none',
         zIndex: 10,
       }}>

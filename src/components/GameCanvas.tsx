@@ -208,7 +208,6 @@ export function GameCanvas() {
         <HUD
           score={score}
           weekNumber={weekNumber}
-          level={level}
           weekProgress={weekProgress}
           lineSlots={lineSlots}
           milestoneMessage={state.lastMilestoneMessage}

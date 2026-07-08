@@ -1,6 +1,6 @@
 # Metro Theme Specification
 
-**Version**: 3.15
+**Version**: 3.16
 **Last updated**: 2026-07-09
 **Extends**: `../core/logic.md`, `../core/meta_progression.md`, `../core/monetization.md`
 
@@ -230,7 +230,7 @@ Rules:
 | Phase | What the player sees |
 |-------|---------------------|
 | home | Top-level landing phase shown before a run begins — see `home_screen.md` |
-| playing | Full canvas + HUD bar (score, Week number, day-of-week/clock indicator showing progress through the current week, Pause/Play/Fast-Forward controls, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) + ad-offer/simulated-ad/bonus-choice popups when the On-Demand Bonus Request is used (§4.2) |
+| playing | Full canvas + HUD (score, Week number, day-of-week/clock indicator showing progress through the current week, Pause/Play/Fast-Forward controls, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) + ad-offer/simulated-ad/bonus-choice popups when the On-Demand Bonus Request is used (§4.2). The HUD has no background band of its own — its elements sit directly over the canvas, each self-contained (its own colored badge/button/icon) or dark-on-cream text, rather than the top/bottom strips resting on a shared translucent bar. |
 | gameover | Reached only once no Game-Over Continue was available or one was declined/failed (§4.2) — canvas dimmed, game over overlay with final score, Weeks Survived, and restart button, plus Best Weeks Survived / Picture progress — see §9 |
 
 Clicking Play on the `home` phase goes directly to `playing` — there is no intermediate instructions overlay. Best Weeks Survived, the current Picture, and the Collection gallery entry point (§9) live on the `home` phase — see `home_screen.md`.
