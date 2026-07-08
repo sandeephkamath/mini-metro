@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { CONFIG } from '../config/gameConfig';
 import { traceShapePath } from '../render/shapePaths';
 import { getRevealedTileCount } from '../logic/collectibles';
-import { PictureThumbnail } from './PictureThumbnail';
+import { buildWalkablePath, pointAt, stepWalker, type WalkablePath } from '../logic/lineWalker';
+import { AnimatedPictureThumbnail } from './AnimatedPictureThumbnail';
 import { CollectiblesScreen } from './CollectiblesScreen';
 import { LeaderboardScreen } from './LeaderboardScreen';
 import type { LeaderboardIdentity } from '../firebase/leaderboard';
@@ -47,9 +48,7 @@ interface AmbientTrain {
 
 interface AmbientLine {
   color: string;
-  pts: { x: number; y: number }[];
-  cum: number[];
-  total: number;
+  path: WalkablePath;
   stations: AmbientStation[];
   trains: AmbientTrain[];
   revealStart: number;
@@ -82,13 +81,9 @@ function buildLine(
   revealStart: number,
   trainCount: number,
 ): AmbientLine {
-  const cum = [0];
-  for (let i = 1; i < pts.length; i++) {
-    cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
-  }
-  const total = cum[cum.length - 1];
+  const path = buildWalkablePath(pts, stationWaypoints);
   const stations: AmbientStation[] = stationWaypoints.map((wp, i) => ({
-    dist: cum[wp],
+    dist: path.cum[wp],
     x: pts[wp].x,
     y: pts[wp].y,
     shape: SHAPE_CYCLE[(shapeOffset + i) % SHAPE_CYCLE.length],
@@ -99,13 +94,13 @@ function buildLine(
   const trains: AmbientTrain[] = [];
   for (let i = 0; i < trainCount; i++) {
     trains.push({
-      dist: (total * (i + 1)) / (trainCount + 1),
+      dist: (path.total * (i + 1)) / (trainCount + 1),
       dir: i % 2 === 0 ? 1 : -1,
       dwellUntil: 0,
       riders: [],
     });
   }
-  return { color, pts, cum, total, stations, trains, revealStart };
+  return { color, path, stations, trains, revealStart };
 }
 
 function buildScene(w: number, h: number, now: number): Scene {
@@ -134,21 +129,6 @@ function buildScene(w: number, h: number, now: number): Scene {
   };
 }
 
-function pointAt(line: AmbientLine, dist: number): { x: number; y: number; angle: number } {
-  const d = Math.max(0, Math.min(line.total, dist));
-  let i = 1;
-  while (i < line.cum.length - 1 && line.cum[i] < d) i++;
-  const a = line.pts[i - 1];
-  const b = line.pts[i];
-  const segLen = line.cum[i] - line.cum[i - 1] || 1;
-  const t = (d - line.cum[i - 1]) / segLen;
-  return {
-    x: a.x + (b.x - a.x) * t,
-    y: a.y + (b.y - a.y) * t,
-    angle: Math.atan2(b.y - a.y, b.x - a.x),
-  };
-}
-
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
 }
@@ -160,37 +140,16 @@ function easeOutBack(t: number): number {
 }
 
 function updateTrain(line: AmbientLine, train: AmbientTrain, now: number, dt: number): void {
-  if (now < line.revealStart + DRAW_IN_MS || now < train.dwellUntil) return;
-  const prev = train.dist;
-  let next = prev + train.dir * TRAIN_SPEED * (dt / 1000);
-
-  let stopAt: AmbientStation | null = null;
-  for (const s of line.stations) {
-    const crossed = train.dir === 1 ? prev < s.dist && s.dist <= next : next <= s.dist && s.dist < prev;
-    if (crossed && (!stopAt || (train.dir === 1 ? s.dist < stopAt.dist : s.dist > stopAt.dist))) {
-      stopAt = s;
-    }
+  if (now < line.revealStart + DRAW_IN_MS) return;
+  const stopDist = stepWalker(line.path, train, now, dt, TRAIN_SPEED, DWELL_MS);
+  if (stopDist === null) return;
+  const stopAt = line.stations.find(s => s.dist === stopDist);
+  if (!stopAt) return;
+  train.riders = train.riders.filter(() => Math.random() > 0.5);
+  while (stopAt.waiting.length > 0 && train.riders.length < TRAIN_SEATS) {
+    train.riders.push(stopAt.waiting.shift()!);
   }
-  if (stopAt) {
-    train.dist = stopAt.dist;
-    train.dwellUntil = now + DWELL_MS;
-    train.riders = train.riders.filter(() => Math.random() > 0.5);
-    while (stopAt.waiting.length > 0 && train.riders.length < TRAIN_SEATS) {
-      train.riders.push(stopAt.waiting.shift()!);
-    }
-    stopAt.waiting = [];
-    return;
-  }
-  if (next >= line.total) {
-    next = line.total;
-    train.dir = -1;
-    train.dwellUntil = now + 500;
-  } else if (next <= 0) {
-    next = 0;
-    train.dir = 1;
-    train.dwellUntil = now + 500;
-  }
-  train.dist = next;
+  stopAt.waiting = [];
 }
 
 function drawScene(ctx: CanvasRenderingContext2D, scene: Scene, now: number, dt: number): void {
@@ -208,7 +167,7 @@ function drawScene(ctx: CanvasRenderingContext2D, scene: Scene, now: number, dt:
 
   for (const line of scene.lines) {
     const revealT = Math.max(0, Math.min(1, (now - line.revealStart) / DRAW_IN_MS));
-    const revealLen = easeOutCubic(revealT) * line.total;
+    const revealLen = easeOutCubic(revealT) * line.path.total;
     if (revealLen <= 0) continue;
 
     ctx.strokeStyle = line.color;
@@ -217,7 +176,7 @@ function drawScene(ctx: CanvasRenderingContext2D, scene: Scene, now: number, dt:
     ctx.lineJoin = 'round';
     ctx.setLineDash([revealLen, 1e6]);
     ctx.beginPath();
-    line.pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+    line.path.pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
     ctx.stroke();
     ctx.setLineDash([]);
 
@@ -258,7 +217,7 @@ function drawScene(ctx: CanvasRenderingContext2D, scene: Scene, now: number, dt:
     for (const train of line.trains) {
       updateTrain(line, train, now, dt);
       if (now < line.revealStart + DRAW_IN_MS) continue;
-      const p = pointAt(line, train.dist);
+      const p = pointAt(line.path, train.dist);
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(p.angle);
@@ -477,7 +436,7 @@ export function HomeScreen({
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-            <PictureThumbnail
+            <AnimatedPictureThumbnail
               index={collectionSize + 1}
               revealedTileCount={getRevealedTileCount(collectionSize + 1, currentPictureProgress)}
               width={110}

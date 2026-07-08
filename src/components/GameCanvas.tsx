@@ -11,7 +11,6 @@ import { advanceTutorial, exitTutorial } from '../logic/tutorial';
 import { HUD } from './HUD';
 import { TutorialCard } from './TutorialCard';
 import { HomeScreen } from './HomeScreen';
-import { StartScreen } from './StartScreen';
 import { GameOverScreen } from './GameOverScreen';
 import { BonusChoiceModal } from './BonusChoiceModal';
 import { AdConfirmModal } from './AdConfirmModal';
@@ -23,7 +22,7 @@ export function GameCanvas() {
     stateRef, score, phase, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending,
     selectedReserveItem, playerPaused, playerSpeedMultiplier, tutorialStep, metaProgression, pictureRevealSegments, isNewBest,
     finalWeeksSurvived, adFlow, adAvailable,
-    startGame, goToStart, goHome, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
+    startGame, goHome, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
     requestOnDemandBonus, acceptAdOffer, declineAdOffer, completeAdPlayback, resolveAdBonusChoice,
   } = useGameState();
 
@@ -259,15 +258,13 @@ export function GameCanvas() {
 
       {phase === 'home' && (
         <HomeScreen
-          onPlay={goToStart}
+          onPlay={handleStartGame}
           bestWeeksSurvived={metaProgression.bestWeeksSurvived}
           collectionSize={metaProgression.collectionSize}
           currentPictureProgress={metaProgression.currentPictureProgress}
           leaderboardIdentity={leaderboard.available ? leaderboard.identity : null}
         />
       )}
-
-      {phase === 'start' && <StartScreen onStart={handleStartGame} />}
 
       {phase === 'gameover' && (
         <GameOverScreen

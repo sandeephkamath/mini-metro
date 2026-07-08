@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { CONFIG } from '../config/gameConfig';
 import { getPictureCanvas, drawRevealedPicture } from '../render/renderPicture';
 
 interface PictureThumbnailProps {
@@ -27,7 +28,7 @@ export function PictureThumbnail({ index, revealedTileCount, width, height }: Pi
       ref={canvasRef}
       width={width}
       height={height}
-      style={{ borderRadius: 6, display: 'block' }}
+      style={{ borderRadius: 6, display: 'block', background: CONFIG.PICTURE_BG_COLOR }}
     />
   );
 }

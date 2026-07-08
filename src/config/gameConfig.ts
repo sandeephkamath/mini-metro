@@ -160,6 +160,8 @@ export const CONFIG = {
   PICTURE_STATION_RADIUS: 6,
   PICTURE_INTERCHANGE_RADIUS: 9, // outer ring radius for an interchange station's double-ring
   PICTURE_REVEAL_ANIM_MS: 1200, // metro.md §9.4 — count-up/tile-pop-in duration per Picture segment
+  PICTURE_TRAIN_SPEED: 40, // metro.md §9.3.2 — px/s at Picture render resolution
+  PICTURE_TRAIN_DWELL_MS: 700, // metro.md §9.3.2 — matches the home screen ambient scene's dwell time
 
   // Scripted tutorial (specs/TUTORIAL.md §7)
   TUTORIAL_RESCUE_WINDOW_MS: 30000, // Risk Timer granted at rescue commit / on skip-safety exit

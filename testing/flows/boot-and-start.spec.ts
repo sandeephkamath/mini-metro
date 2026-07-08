@@ -7,14 +7,7 @@ test('boot shows the home screen', async ({ page }) => {
   expect(await getPhase(page)).toBe('home');
 });
 
-test('home transitions to the start instructions overlay', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Play' }).click();
-  await expect(page.getByText('Start Game')).toBeVisible();
-  expect(await getPhase(page)).toBe('start');
-});
-
-test('start transitions to playing with score 0, week 0', async ({ page }) => {
+test('clicking Play goes directly to playing with score 0, week 0', async ({ page }) => {
   await page.goto('/');
   await startGame(page);
   expect(await getPhase(page)).toBe('playing');

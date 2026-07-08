@@ -216,11 +216,6 @@ export function useGameState() {
     setFinalWeeksSurvived(0);
   }
 
-  function goToStart() {
-    stateRef.current!.phase = 'start';
-    setPhase('start');
-  }
-
   function goHome() {
     stateRef.current = createInitialState();
     setPhase('home');
@@ -236,7 +231,7 @@ export function useGameState() {
     score, phase, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending, selectedReserveItem,
     playerPaused, playerSpeedMultiplier, tutorialStep, metaProgression, pictureRevealSegments, isNewBest, finalWeeksSurvived,
     adFlow, adAvailable,
-    startGame, goToStart, goHome, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
+    startGame, goHome, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
     requestOnDemandBonus, acceptAdOffer, declineAdOffer, completeAdPlayback, resolveAdBonusChoice,
   };
 }

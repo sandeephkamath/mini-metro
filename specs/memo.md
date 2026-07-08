@@ -100,19 +100,19 @@ Working lean: Capacitor, since it's the only remaining option that doesn't fork 
 
 ### First-Time User Experience (FTUE)
 
-Current onboarding is a single static modal (`StartScreen.tsx`) shown before every game, identical for a brand-new player and someone on their 50th run. Breakdown by moment in the flow:
+Current onboarding is close to nothing: clicking Play on the home screen goes straight into a fresh run (per `themes/metro.md` §8 / `home_screen.md` — the pre-game instructions modal that used to show three bullet hints was removed 2026-07-08 in favor of getting players onto the real board immediately), and the HUD carries no persistent hint text either (the small always-on corner text was removed the same day — it was static and easy to miss anyway). Breakdown by moment in the flow:
 
-**Pre-game (start screen)**
-- Only three static bullet hints ("Drag from station to station...", "Trains carry passengers...", "Don't let stations overflow!") — no visual demonstration (e.g. a looping animated preview of a drag-to-draw-line action) alongside the text.
-- No distinction between a first-ever session and a returning one — there's no persistence to track "has played before" (see Persistence section above), so the same screen shows every time by necessity, not by choice.
-- Doesn't explain what a "Week" is, that Lines unlock as more Stations appear while Trains/Carriages/Risk Timer bonuses come from the Weekly Upgrade, or that an overflowing Station only has a limited Risk Timer window before it's fatal — "don't let stations overflow" states the rule but not the mechanic or the consequence.
+**Pre-game**
+- Nothing is shown pre-game at all now. No distinction between a first-ever session and a returning one either way — there's no persistence to track "has played before" (see Persistence section above).
+- Nothing explains what a "Week" is, that Lines unlock as more Stations appear while Trains/Carriages/Risk Timer bonuses come from the Weekly Upgrade, or that an overflowing Station only has a limited Risk Timer window before it's fatal.
 - No easier/slower pacing option for new players. First-timers get the same spawn-rate decay curve (`core/progression.md`) as an experienced player on run 50.
 
 **First minute of gameplay**
-- No guided first action. Nothing highlights or pulses the first two stations a new player should connect — the drag gesture has to be inferred purely from the pre-game bullet list, with no in-canvas affordance (arrow, glow, cursor hint) pointing at valid click targets.
-- No contextual, first-occurrence hints tied to real events — first passenger spawn, first station nearing capacity, first Weekly Upgrade choice all fire identically for new and veteran players. The only always-on hint is the small HUD corner text (`HUD.tsx`: "drag between stations to draw lines"), which is static and easy to miss.
+- No guided first action. Nothing highlights or pulses the first two stations a new player should connect, and no in-canvas affordance (arrow, glow, cursor hint) points at valid click targets — with both the pre-game bullets and the HUD corner hint gone, there is currently *no* textual guidance anywhere telling a brand-new player to drag between stations.
+- No contextual, first-occurrence hints tied to real events — first passenger spawn, first station nearing capacity, first Weekly Upgrade choice all fire identically for new and veteran players.
 - The only in-game overflow signal is the pulsing red ring (see Styling section) — nothing explains what it means or what happens if it's ignored, before a new player loses because of it.
 - No step-through or pause available to non-debug players during their first game. Debug mode's spawn-pause (`S` key) exists but is explicitly developer/QA tooling per `specs/DEBUG.md`, not a player-facing feature.
+- With the pre-game modal gone, the scripted tutorial (`specs/TUTORIAL.md`) — still debug-triggered only (`T` in debug mode) — is now the *only* onboarding mechanism that exists at all for a real player. Surfacing a player-facing entry point for it (see "Still open" below) is more pressing than before this change.
 
 **Post-game / repeat sessions**
 - `GameOverScreen.tsx` shows score and week reached but no "what went wrong" detail — the message is a generic "A station overflowed" with no identification of which station or replay/highlight of the moment it happened.

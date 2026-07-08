@@ -1,6 +1,6 @@
 # Metro Theme Specification
 
-**Version**: 3.7
+**Version**: 3.8
 **Last updated**: 2026-07-08
 **Extends**: `../core/logic.md`, `../core/meta_progression.md`, `../core/monetization.md`
 
@@ -78,15 +78,15 @@ Metro no longer has a "More Time" bonus kind — Risk Timer duration is fixed fo
 
 ### 4.1 Assigning Depot Items
 
-- **Depot Train**: shown as an icon in a Depot tray in the HUD. The player drags it onto any unlocked Line that already has at least one Train to add it there; Trains on that Line re-space evenly per the existing multi-Train rule (`core/logic.md` §2 Carrier).
-- **Depot Carriage**: shown alongside Depot Trains in the same tray. The player drags it onto any Train currently in service on any Line to attach it, immediately adding the Depot Carriage capacity bonus (§5 Configuration Values) to that Train's capacity.
+- **Depot Train**: shown as an icon in a Depot tray in the HUD, drawn in the same visual language as an in-game Train (§7 item 10 — rounded-carriage shapes, coupled) rather than a generic pictograph, so the icon reads as "a Train" at a glance. The player drags it onto any unlocked Line that already has at least one Train to add it there; Trains on that Line re-space evenly per the existing multi-Train rule (`core/logic.md` §2 Carrier).
+- **Depot Carriage**: shown alongside Depot Trains in the same tray, using the same visual language as a single Train carriage (§7 item 10) — one rounded rectangle rather than a coupled pair, so it reads as "one carriage" distinct from the Train icon. The player drags it onto any Train currently in service on any Line to attach it, immediately adding the Depot Carriage capacity bonus (§5 Configuration Values) to that Train's capacity.
 - Both kinds of Depot item can be assigned at any time, not only right after being granted — they wait in the Depot tray indefinitely until placed.
 
 ### 4.2 Monetization
 
 Metro's concrete instantiation of `../core/monetization.md`. Both paths below grant the same two Depot bonus kinds as the Weekly Upgrade (§4), assigned the same way (§4.1) once granted.
 
-**On-Demand Bonus Request** (`core/monetization.md` §2): a "Get a free Train or Carriage" button sits in the HUD, always available during play whenever the Ad Provider (below) is available. Clicking it presents a confirm prompt ("Watch an ad to get a free Train or Carriage?"); accepting plays the ad, then the player picks New Train or New Carriage exactly as in a Weekly Upgrade (§4), and it's added to the Depot. Declining or closing the prompt leaves everything unchanged. No cap — usable as many times as the player wants, each time gated behind a fresh ad.
+**On-Demand Bonus Request** (`core/monetization.md` §2): there is no separate, standalone button for this — the Depot tray's own Train/Carriage count buttons (§4.1) double as the trigger. Whenever a count button reads ×0 (nothing in the Depot to place) *and* the Ad Provider (below) is available, clicking that same button presents the confirm prompt ("Watch an ad to get a free Train or Carriage?") instead of doing nothing; accepting plays the ad, then the player picks New Train or New Carriage exactly as in a Weekly Upgrade (§4), and it's added to the Depot. Declining or closing the prompt leaves everything unchanged. Whichever of the two count buttons was clicked makes no difference to the outcome — both offer the same choice afterward. No cap — usable as many times as the player wants, each time gated behind a fresh ad. Once a button's count is above 0, clicking it reverts to its normal Depot-placement behavior (§4.1) — the ad trigger only applies at ×0. If the Ad Provider is unavailable, a ×0 button is simply an inert, disabled button exactly as it would be without this feature at all — no separate affordance lingers, per `core/monetization.md` §6.
 
 **Game-Over Continue** (`core/monetization.md` §3): when a Station's Risk Timer would otherwise expire and end the run, and this session still has a Continue available (§5 Configuration Values), the game instead shows "Station Overflow! Watch an ad to continue?" in place of the game-over screen. Accepting and completing the ad lets the player pick New Train or New Carriage (added to the Depot), then every Station currently at risk has its queue trimmed back under capacity (excess Passengers discarded) and its Risk Timer cleared — play resumes immediately with the score, map, and Week progress untouched. Declining, closing the prompt, or having no Continue left instead shows the normal game-over screen (§8, §9).
 
@@ -230,11 +230,10 @@ Rules:
 | Phase | What the player sees |
 |-------|---------------------|
 | home | Top-level landing phase shown before a run begins — see `home_screen.md` |
-| start | Welcome/instructions overlay with a Start button, shown over the fixed starting stations |
-| playing | Full canvas + HUD bar (score, Week number, day-of-week/clock indicator showing progress through the current week, Pause/Play/Fast-Forward controls, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked, On-Demand Bonus button §4.2) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) + ad-offer/simulated-ad/bonus-choice popups when the On-Demand Bonus Request is used (§4.2) |
+| playing | Full canvas + HUD bar (score, Week number, day-of-week/clock indicator showing progress through the current week, Pause/Play/Fast-Forward controls, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) + ad-offer/simulated-ad/bonus-choice popups when the On-Demand Bonus Request is used (§4.2) |
 | gameover | Reached only once no Game-Over Continue was available or one was declined/failed (§4.2) — canvas dimmed, game over overlay with final score, Weeks Survived, and restart button, plus Best Weeks Survived / Picture progress — see §9 |
 
-Best Weeks Survived, the current Picture, and the Collection gallery entry point (§9) live on the `home` phase, not the `start` overlay — see `home_screen.md`.
+Clicking Play on the `home` phase goes directly to `playing` — there is no intermediate instructions overlay. Best Weeks Survived, the current Picture, and the Collection gallery entry point (§9) live on the `home` phase — see `home_screen.md`.
 
 ---
 
@@ -283,11 +282,26 @@ Configuration values:
 | Picture requirement growth rate | 1.5 | Multiplier per subsequent Picture, applied beyond the curated pool (or wherever a curated entry omits an explicit override) — e.g. 20 → 30 → 45 Week-units |
 | Picture tile grid | 5 × 4 (20 tiles) | Reveal granularity — a fixed rendering constant, not part of the Firestore content |
 
+#### 9.3.2 Animated Presentation
+
+Wherever a Picture is shown large enough to matter — the home screen's current-Picture thumbnail, the Game-Over Reveal (§9.4), and the Collectibles Screen's detail view (`home_screen.md` § Collectibles Screen) — it is not a static frame. Each line's simulated trains travel along that line's real station order (the same ordered path data from §9.3's per-city dataset), ping-ponging between the line's ends and dwelling briefly at each station: the same visual language as the home screen's ambient scene (`home_screen.md` § Ambient metro scene) and live gameplay, reused rather than reinvented. This is decorative simulation only — no passengers, capacity, or resource logic; trains exist purely to make the Picture read as a living map.
+
+- **Masked by reveal**: the animated scene is only visible within tiles that have already been revealed (§9.3) — the same tile-reveal mask already used to composite a partially-revealed Picture now clips a continuously-animated scene instead of a single static rendered frame. An unrevealed tile shows nothing, exactly as before; a revealed tile shows the live scene passing beneath it. As more tiles reveal, more of the moving network becomes visible — the network visibly "comes alive" as the Picture fills in.
+- **Where it's animated vs. static**: the Collectibles Screen's grid of thumbnails stays static (unchanged, non-animated `PictureThumbnail`-style rendering) — many Complete Pictures can be on-screen at once there, and animating all of them simultaneously isn't worth the cost. The home screen thumbnail, the Game-Over Reveal, and the Collectibles Screen's detail view are each large and singular enough to animate. Locked "up next" placeholders are never animated — nothing has been reached yet, so there's no line data to simulate.
+
+Configuration values (independent of both live gameplay's train speed and the home screen ambient scene's own tuning table, since a Picture renders at a different scale than either):
+
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| Picture train speed | ~40 px/s at Picture render resolution | Tuned to the smaller, denser Picture canvas — not the same value as gameplay or the ambient scene |
+| Picture trains per line | 1–2 | Alternates per line, same pattern as the ambient scene — enough to read as "alive" without looking busy at thumbnail size |
+| Picture train dwell | ~0.7s | Matches the ambient scene's dwell time |
+
 ### 9.4 Game-Over Reveal
 
 The game-over screen shows the current Picture's percentage revealed — `Accumulated Progress ÷ Required Progress`, e.g. "25% revealed" for a fresh Picture 1 (20 Week-units required) after a 5-week session — as the headline number, with the raw contribution shown smaller underneath (e.g. "+5 weeks"). The percentage shown is driven by the session's *actual* addition to Accumulated Progress, which may exceed that session's Final Weeks Survived when the Minimum Session Contribution guarantee (core/meta_progression.md §3) applies — e.g. a session that ends at 0 Weeks Survived still shows a nonzero contribution (at least one tile's worth), never "+0 weeks / no change."
 
-**Animated reveal**: rather than appearing as a static end value, the percentage counts up from this session's *starting* percentage (Accumulated Progress before this session's contribution) to its *ending* percentage, while the Picture thumbnail's tiles pop in one by one to match — making it visually obvious that more weeks survived means more of the Picture revealed. If this session's contribution completes the current Picture, the count-up animates through to 100%, the existing "Picture Complete!" celebration plays, and then the same count-up pattern immediately repeats for the next Picture's own starting percentage (nonzero if there was carried-over surplus) — so a single very strong session can visibly animate through more than one Picture in sequence.
+**Animated reveal**: rather than appearing as a static end value, the percentage counts up from this session's *starting* percentage (Accumulated Progress before this session's contribution) to its *ending* percentage, while the Picture thumbnail's tiles pop in one by one to match — making it visually obvious that more weeks survived means more of the Picture revealed. If this session's contribution completes the current Picture, the count-up animates through to 100%, the existing "Picture Complete!" celebration plays, and then the same count-up pattern immediately repeats for the next Picture's own starting percentage (nonzero if there was carried-over surplus) — so a single very strong session can visibly animate through more than one Picture in sequence. The thumbnail driving this count-up is the animated presentation from §9.3.2 throughout — as tiles pop in, each newly-revealed tile immediately shows the live moving scene, not a static frame.
 
 Configuration values:
 

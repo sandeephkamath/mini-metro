@@ -77,7 +77,7 @@ you. The three starting stations are fixed at circle `(180,280)`, triangle
 | command | what it does |
 |---|---|
 | `nav [path]` | Navigate to `path` (default `/`) on the dev server |
-| `start-game` | Click through the home screen's Play button (if present) and the start screen's Start Game button, landing in `playing` |
+| `start-game` | Click the home screen's Play button (if present), landing directly in `playing` — there is no intermediate start screen |
 | `screenshot [name]` | Save a PNG to `testing/run-screenshots/` |
 | `click <x> <y>` | Click a canvas-relative point |
 | `drag <x1> <y1> <x2> <y2> [steps]` | Mouse-drag between two canvas-relative points (e.g. draw a line between stations) |

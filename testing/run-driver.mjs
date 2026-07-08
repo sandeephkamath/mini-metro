@@ -129,7 +129,6 @@ async function main() {
         case 'start-game': {
           const playButton = page.getByRole('button', { name: 'Play' });
           if (await playButton.isVisible().catch(() => false)) await playButton.click();
-          await page.getByText('Start Game').click();
           log('ok start-game');
           break;
         }

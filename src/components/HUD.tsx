@@ -161,18 +161,59 @@ export function HUD({
     });
   }
 
-  function depotButtonStyle(count: number, selected: boolean) {
+  // A Depot button reads ×0 in one of two states (metro.md §4.2): genuinely
+  // inert (no ad available, nothing to do) or an On-Demand Bonus Request
+  // trigger in disguise (ad available) — the latter gets a distinct tinted
+  // look so it doesn't read as simply broken.
+  function depotButtonStyle(count: number, selected: boolean, requestable: boolean) {
     return {
-      background: selected ? '#e74c3c' : count > 0 ? '#333' : '#222',
-      color: count > 0 ? '#fff' : '#666',
-      border: selected ? '2px solid #fff' : '2px solid transparent',
+      background: selected ? '#e74c3c' : count > 0 ? '#333' : requestable ? '#28414d' : '#222',
+      color: count > 0 ? '#fff' : requestable ? '#bfe4f5' : '#666',
+      border: selected
+        ? '2px solid #fff'
+        : requestable
+          ? '2px solid #4fa3c4'
+          : '2px solid transparent',
       borderRadius: '6px',
       padding: '4px 10px',
       fontFamily: 'monospace',
       fontSize: '12px',
-      cursor: count > 0 ? 'pointer' : 'default',
+      cursor: count > 0 || requestable ? 'pointer' : 'default',
       pointerEvents: 'auto' as const,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 5,
     };
+  }
+
+  // Depot icons drawn in the game's own visual language (metro.md §4.1, §7 item
+  // 10 — rounded-carriage shapes) rather than generic pictographs: a Train is
+  // two coupled carriages, a Carriage is one, so the two read as distinct at a
+  // glance regardless of button state.
+  function TrainIcon({ color }: { color: string }) {
+    return (
+      <svg width="20" height="12" viewBox="0 0 20 12" style={{ display: 'block', flexShrink: 0 }}>
+        <line x1="9" y1="6" x2="11" y2="6" stroke={color} strokeWidth="1.5" />
+        <rect x="1" y="1" width="8" height="10" rx="3" fill={color} />
+        <rect x="11" y="1" width="8" height="10" rx="3" fill={color} />
+      </svg>
+    );
+  }
+  function CarriageIcon({ color }: { color: string }) {
+    return (
+      <svg width="11" height="12" viewBox="0 0 11 12" style={{ display: 'block', flexShrink: 0 }}>
+        <rect x="1" y="1" width="9" height="10" rx="3" fill={color} />
+      </svg>
+    );
+  }
+
+  function handleCarrierClick() {
+    if (reserveCarriers > 0) onSelectReserveCarrier();
+    else if (adAvailable) onRequestBonus();
+  }
+  function handleCarriageClick() {
+    if (reserveCarriages > 0) onSelectReserveCarriage();
+    else if (adAvailable) onRequestBonus();
   }
 
   return (
@@ -197,27 +238,7 @@ export function HUD({
           <span data-testid="hud-week">Week {weekNumber}</span>
           <span style={{ opacity: 0.6 }}> · Level {level}</span>
         </span>
-        <span style={{ opacity: 0.6, fontSize: '12px' }}>drag between stations to draw lines</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          {adAvailable && (
-            <button
-              onClick={onRequestBonus}
-              title="Watch an ad to get a free Train or Carriage"
-              style={{
-                background: 'transparent',
-                color: '#ddd',
-                border: '1px solid rgba(255,255,255,0.4)',
-                borderRadius: '4px',
-                padding: '3px 8px',
-                fontSize: '11px',
-                fontFamily: 'monospace',
-                cursor: 'pointer',
-                pointerEvents: 'auto',
-              }}
-            >
-              🎬 Free Bonus
-            </button>
-          )}
           <SpeedControls
             playerPaused={playerPaused}
             playerSpeedMultiplier={playerSpeedMultiplier}
@@ -245,12 +266,18 @@ export function HUD({
         zIndex: 10,
       }}>
         <button
-          onClick={onSelectReserveCarrier}
-          disabled={reserveCarriers === 0}
-          style={depotButtonStyle(reserveCarriers, selectedReserveItem === 'carrier')}
-          title="Depot Train — click, then click a line to place it"
+          data-testid="hud-depot-carrier"
+          onClick={handleCarrierClick}
+          disabled={reserveCarriers === 0 && !adAvailable}
+          style={depotButtonStyle(reserveCarriers, selectedReserveItem === 'carrier', reserveCarriers === 0 && adAvailable)}
+          title={reserveCarriers > 0
+            ? 'Depot Train — click, then click a line to place it'
+            : adAvailable
+              ? 'Watch an ad to get a free Train or Carriage'
+              : undefined}
         >
-          🚆 ×{reserveCarriers}
+          <TrainIcon color={reserveCarriers > 0 ? '#fff' : reserveCarriers === 0 && adAvailable ? '#bfe4f5' : '#666'} />
+          ×{reserveCarriers}
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -296,12 +323,18 @@ export function HUD({
         </div>
 
         <button
-          onClick={onSelectReserveCarriage}
-          disabled={reserveCarriages === 0}
-          style={depotButtonStyle(reserveCarriages, selectedReserveItem === 'carriage')}
-          title="Depot Carriage — click, then click a train to attach it"
+          data-testid="hud-depot-carriage"
+          onClick={handleCarriageClick}
+          disabled={reserveCarriages === 0 && !adAvailable}
+          style={depotButtonStyle(reserveCarriages, selectedReserveItem === 'carriage', reserveCarriages === 0 && adAvailable)}
+          title={reserveCarriages > 0
+            ? 'Depot Carriage — click, then click a train to attach it'
+            : adAvailable
+              ? 'Watch an ad to get a free Train or Carriage'
+              : undefined}
         >
-          🚃 ×{reserveCarriages}
+          <CarriageIcon color={reserveCarriages > 0 ? '#fff' : reserveCarriages === 0 && adAvailable ? '#bfe4f5' : '#666'} />
+          ×{reserveCarriages}
         </button>
       </div>
 

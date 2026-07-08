@@ -3,6 +3,7 @@ import { computeBentSegment } from '../logic/geometry';
 import { traceShapePath } from './shapePaths';
 import type { PictureCityData } from '../data/pictureCities';
 import { getPictureForIndex } from '../logic/pictureContent';
+import { buildWalkablePath, pointAt, stepWalker, type Walker, type WalkablePath } from '../logic/lineWalker';
 
 // Renders a Picture's "full" (fully-revealed) image once, using the same
 // bend-geometry and station-shape drawing primitives as live gameplay
@@ -113,4 +114,86 @@ export function drawRevealedPicture(
     );
   }
   destCtx.restore();
+}
+
+// Animated Presentation (themes/metro.md §9.3.2) — a simulated train per
+// PictureLineData, walking that line's real station order. Trains are
+// decorative only (no passengers/capacity); built once per Picture and then
+// stepped every frame by the caller's animation loop.
+export interface PictureTrain {
+  path: WalkablePath;
+  color: string;
+  walker: Walker;
+}
+
+export function buildPictureTrains(city: PictureCityData): PictureTrain[] {
+  const trains: PictureTrain[] = [];
+  city.lines.forEach((line, lineIndex) => {
+    const positions = line.stationIndices.map(i => city.stations[i].pos);
+    if (positions.length < 2) return;
+    const path = buildWalkablePath(positions);
+    const count = lineIndex % 2 === 0 ? 2 : 1; // alternates, matching the home screen ambient scene
+    for (let i = 0; i < count; i++) {
+      trains.push({
+        path,
+        color: line.color,
+        walker: {
+          dist: (path.total * (i + 1)) / (count + 1),
+          dir: i % 2 === 0 ? 1 : -1,
+          dwellUntil: 0,
+        },
+      });
+    }
+  });
+  return trains;
+}
+
+// Reused scratch canvas for compositing a frame's live scene before it's
+// tile-clipped into the destination — safe to share because each call fully
+// draws and composites before returning (no interleaving across RAF callbacks).
+let liveScratchCanvas: HTMLCanvasElement | null = null;
+function getLiveScratchCanvas(width: number, height: number): HTMLCanvasElement {
+  if (!liveScratchCanvas) liveScratchCanvas = document.createElement('canvas');
+  if (liveScratchCanvas.width !== width) liveScratchCanvas.width = width;
+  if (liveScratchCanvas.height !== height) liveScratchCanvas.height = height;
+  return liveScratchCanvas;
+}
+
+// Steps each train and composites the animated Picture into destCtx's rect,
+// masked by revealedTileCount exactly like drawRevealedPicture — trains are
+// only visible within tiles that have already been revealed (metro.md §9.3.2).
+export function drawAnimatedPictureFrame(
+  destCtx: CanvasRenderingContext2D,
+  destX: number,
+  destY: number,
+  destW: number,
+  destH: number,
+  fullCanvas: HTMLCanvasElement,
+  trains: PictureTrain[],
+  now: number,
+  dt: number,
+  revealedTileCount: number,
+): void {
+  for (const train of trains) {
+    stepWalker(train.path, train.walker, now, dt, CONFIG.PICTURE_TRAIN_SPEED, CONFIG.PICTURE_TRAIN_DWELL_MS);
+  }
+
+  const live = getLiveScratchCanvas(fullCanvas.width, fullCanvas.height);
+  const liveCtx = live.getContext('2d')!;
+  liveCtx.clearRect(0, 0, live.width, live.height);
+  liveCtx.drawImage(fullCanvas, 0, 0);
+
+  for (const train of trains) {
+    const p = pointAt(train.path, train.walker.dist);
+    liveCtx.save();
+    liveCtx.translate(p.x, p.y);
+    liveCtx.rotate(p.angle);
+    liveCtx.fillStyle = train.color;
+    liveCtx.beginPath();
+    liveCtx.roundRect(-7, -3.5, 14, 7, 2);
+    liveCtx.fill();
+    liveCtx.restore();
+  }
+
+  drawRevealedPicture(destCtx, destX, destY, destW, destH, live, revealedTileCount);
 }

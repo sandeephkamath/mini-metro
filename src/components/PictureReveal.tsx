@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { CONFIG } from '../config/gameConfig';
 import type { RevealSegment } from '../logic/collectibles';
 import { getRevealedTileCount } from '../logic/collectibles';
-import { getPictureCanvas, drawRevealedPicture } from '../render/renderPicture';
+import { getPictureCanvas, buildPictureTrains, drawAnimatedPictureFrame } from '../render/renderPicture';
+import { getPictureForIndex } from '../logic/pictureContent';
 
 interface PictureRevealProps {
   segments: RevealSegment[];
@@ -61,15 +62,35 @@ export function PictureReveal({ segments }: PictureRevealProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [segmentIndex]);
 
+  const displayProgressRef = useRef(displayProgress);
+  useEffect(() => {
+    displayProgressRef.current = displayProgress;
+  }, [displayProgress]);
+
+  // Runs its own RAF loop (themes/metro.md §9.3.2) rather than redrawing only
+  // when displayProgress changes, so trains keep moving even once the
+  // count-up settles at its final percentage.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !segment) return;
-    const full = getPictureCanvas(segment.index);
+    const index = segment.index;
+    const fullCanvas = getPictureCanvas(index);
+    const trains = buildPictureTrains(getPictureForIndex(index));
     const ctx = canvas.getContext('2d')!;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const tiles = getRevealedTileCount(segment.index, displayProgress);
-    drawRevealedPicture(ctx, 0, 0, canvas.width, canvas.height, full, tiles);
-  }, [segment, displayProgress]);
+    let raf = 0;
+    let last = performance.now();
+
+    function loop(now: number) {
+      const dt = Math.min(50, now - last);
+      last = now;
+      ctx.clearRect(0, 0, canvas!.width, canvas!.height);
+      const tiles = getRevealedTileCount(index, displayProgressRef.current);
+      drawAnimatedPictureFrame(ctx, 0, 0, canvas!.width, canvas!.height, fullCanvas, trains, now, dt, tiles);
+      raf = requestAnimationFrame(loop);
+    }
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [segment]);
 
   if (!segment) return null;
 
@@ -83,7 +104,7 @@ export function PictureReveal({ segments }: PictureRevealProps) {
         ref={canvasRef}
         width={THUMB_W}
         height={THUMB_H}
-        style={{ borderRadius: 8, display: 'block', margin: '0 auto 8px' }}
+        style={{ borderRadius: 8, display: 'block', margin: '0 auto 8px', background: CONFIG.PICTURE_BG_COLOR }}
       />
       <div style={{ fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'monospace' }}>{percent}% revealed</div>
       <div style={{ color: '#999', fontSize: '0.85rem' }}>+{contributionLabel} weeks</div>
