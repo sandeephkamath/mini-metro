@@ -20,12 +20,20 @@ See also `specs/research/mini_metro_original_analysis.md` — gameplay analysis 
 - Current scoring is flat: +1 per delivered passenger, no multipliers or bonus scoring.
 - No distinction between a short trip and a long multi-transfer delivery — consider whether harder deliveries should score more.
 - No combo/streak mechanic.
-- No persistent high score — every session starts from zero and nothing is saved (noted in metro.md divergences).
+- No persistent high score in code yet — every session starts from zero and nothing is saved (noted in metro.md divergences). Best Weeks Survived persistence is now fully spec'd (`core/meta_progression.md` §2, §6; `themes/metro.md` §9.2, §9.5) — not yet implemented.
 
 ## Levels / Maps
 
 - Single fixed map only. Original Mini Metro has multiple cities with different layouts and constraints (rivers, tunnels). Explicitly deferred — no obstacle/river mechanic for MVP; revisit only if a single map's procedural variety proves insufficient.
-- Levels and long-term progression are now specified: `specs/core/meta_progression.md` (theme-neutral Level/Best-Level/Collectible-Reward rules) and `specs/themes/metro.md` §9 (concrete Picture Collection values). Not yet implemented in code.
+- Long-term progression is now specified end-to-end, including persistence and home-screen UI: `specs/core/meta_progression.md` (theme-neutral Weeks-Survived/Best-Weeks-Survived/Collectible-Reward rules, §3 Minimum Session Contribution guarantee, §6 Persistence), `specs/themes/metro.md` §9 (concrete Picture Collection values + §9.5 localStorage persistence), and `specs/themes/home_screen.md` (Best Weeks Survived / Picture thumbnail / Collectibles Screen display). Progression is measured by Weeks Survived (the existing week/day clock), not a separate Level counter — Milestone Events still fire and still grant bonuses, but no longer double as a meta-progression metric. Not yet implemented in code.
+
+## Collectibles
+
+- Content direction and production method are both decided: Pictures depict real-world transit systems (London Underground, Tokyo Metro, NYC Subway, Paris Métro, ...), **procedurally rendered** from a curated per-city station/line dataset using the game's existing line/station-shape drawing code — not static image files, not commissioned/AI-generated art (`themes/metro.md` §9.3, decided 2026-07-08 in favor of avoiding any external art-asset pipeline).
+- **Content is Firestore-backed, not build-time-baked** (`themes/metro.md` §9.3.1, decided 2026-07-08): each city is a Firestore document (dataset + Required Progress), so new cities or threshold tweaks ship without an app update. This is public read-only content — no player identity needed, so unlike the Leaderboard it works on web *and* Android alike. **Real dependency**: each city's dataset (station positions, line topology, real-world line colors) and its Required Progress still need to be hand-authored and uploaded to Firestore before this can ship for real — data entry, not art production. Code can build/test against the small built-in fallback pool (1–2 bundled cities) in the meantime; the real pool size and which cities are live aren't final until Firestore is actually populated.
+- Picture 1's fallback threshold (20 Week-units), the growth rate (1.5), and the animated Game-Over Reveal (`themes/metro.md` §9.4) are all new as of 2026-07-08 — placeholders, not playtested.
+- The Collectibles Screen's "locked" treatment for upcoming, not-yet-current Pictures (blurred render vs. a generic silhouette/"???" placeholder, `home_screen.md` § Collectibles Screen) is explicitly left open until the rendering pipeline exists to judge the real look against.
+- **Not yet decided**: the actual Firestore document shape (field names, how the station/line dataset is encoded), and whether an admin tool/script is worth building for authoring entries vs. editing Firestore documents directly via the console — left to implementation time.
 
 ## Carriers / Trains / Line Unlocks / Overflow Grace
 
@@ -76,8 +84,17 @@ Working lean: Capacitor, since it's the only remaining option that doesn't fork 
 
 ## Persistence
 
-- No save/resume — closing the tab loses all progress.
-- No high score storage. Best Level Reached and Picture Collection progress are now spec'd (`core/meta_progression.md`) as persistent values — local storage is the obvious backing store, but this isn't implemented in code yet.
+- No save/resume — closing the tab loses all progress. In-session state is deliberately never persisted (`core/meta_progression.md` §6) — only meta-progression is.
+- Best Weeks Survived and Picture Collection progress (Collection size + current Picture's Accumulated Progress) are fully spec'd as persistent values, backed by `localStorage` under a single key (`core/meta_progression.md` §6, `themes/metro.md` §9.5) — not yet implemented in code.
+
+## Leaderboard
+
+- Now spec'd end-to-end (`core/meta_progression.md` §7–§8, `themes/metro.md` §9.6, `themes/home_screen.md` § Leaderboard) — global ranking by Best Weeks Survived, Top 50 + own rank, shown on the home screen and after a session ends. Identity and backend are two different services: Google Play Games Services for identity, Firebase for storage/ranking — no dedicated server exists or is planned. Not implemented in code.
+- **No longer blocked on Android packaging.** The only piece that actually requires the Android build is Play Games Sign-In. Everything else — Firestore schema, security rules, submission, rank queries, the Leaderboard/Collection UI — can be built and tested entirely on web today, using Firebase's own browser-compatible "Sign in with Google" as a stand-in identity behind a new debug hook (`DEBUG.md` § Debug Leaderboard Sign-In, key `L`). Swapping in real Play Games Sign-In becomes a small, isolated change made only once Android packaging actually happens, per [[leaderboard_design]].
+- **Remaining packaging dependency**: only the *production identity* swap (Play Games Services) is gated by the still-undecided Android packaging approach (React Native vs. Capacitor/WebView wrapper vs. Trusted Web Activity). A plain Trusted Web Activity/PWA wrapper has no straightforward path to the native Play Games Services SDK, which pushes the packaging decision toward something with native plugin access (e.g. Capacitor with a Play Games plugin, or React Native) if the Leaderboard is a hard requirement — worth weighing explicitly whenever that decision is made, not before. Firebase itself places no such requirement — its JS SDK works from any web context, including inside a WebView.
+- **No server-side score validation.** A client can submit any Weeks Survived value directly to Firebase; whatever integrity checking exists has to live in Firebase Security Rules (e.g. rejecting negative/absurd values, requiring a submission not to regress a player's own prior best) since there's no server-side code to run deeper verification. Accepted deliberately for now (move-fast philosophy) — revisit only if leaderboard abuse actually shows up after launch, not preemptively.
+- **Not yet decided**: how an exact global rank ("#4,382 of 61,203") gets computed against Firebase without a dedicated server at real scale (a naive "count players with a higher score" query gets expensive over a large collection) — likely a Firestore aggregation query or a precomputed structure, but left to implementation time rather than decided here.
+- Web sessions never see a Leaderboard at all (by design, per the spec) — this is not a gap to fill, just a permanent asymmetry between the web and Android builds.
 
 ## Onboarding / UX
 

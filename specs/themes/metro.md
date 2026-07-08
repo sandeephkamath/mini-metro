@@ -1,7 +1,7 @@
 # Metro Theme Specification
 
-**Version**: 2.1
-**Last updated**: 2026-07-06
+**Version**: 3.6
+**Last updated**: 2026-07-08
 **Extends**: `../core/logic.md`, `../core/meta_progression.md`
 
 This document defines the Metro theme. It maps core abstract concepts to metro terminology, specifies metro-specific entities and visual rules, and provides all configuration values. Game mechanics not mentioned here follow core/logic.md exactly.
@@ -73,7 +73,7 @@ Every 5 Weeks (300 seconds of game time) a Weekly Upgrade fires, granting exactl
 - **New Carriage** — adds a Depot Carriage.
 - **More Time** — extends the Risk Timer (§5 Configuration Values) by a fixed amount, immediately, for every Station.
 
-Metro's Milestone bonus mode is **Choice mode**: the HUD pauses and presents all three as options; the player clicks one to resolve it, and the game unpauses immediately after. A brief toast notification then appears in the HUD, announcing the new Level number (core/meta_progression.md §1) alongside what was picked, e.g. "Level 8! New Train added to the Depot" — a Level-up moment rather than a generic notification.
+Metro's Milestone bonus mode is **Choice mode**: the HUD pauses and presents all three as options; the player clicks one to resolve it, and the game unpauses immediately after. A brief toast notification then appears in the HUD announcing what was picked, e.g. "Weekly Upgrade: New Train added to the Depot" — no numbered level-up framing; the HUD's Week counter and day-of-week clock badge (§8) already show ongoing survival progress continuously, so the toast doesn't need to repeat it.
 
 ### 4.1 Assigning Depot Items
 
@@ -219,48 +219,97 @@ Rules:
 |-------|---------------------|
 | home | Top-level landing phase shown before a run begins — see `home_screen.md` |
 | start | Welcome/instructions overlay with a Start button, shown over the fixed starting stations |
-| playing | Full canvas + HUD bar (score, Level number, day-of-week/clock indicator showing progress through the current week, Pause/Play/Fast-Forward controls, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) |
-| gameover | Canvas dimmed, game over overlay with final score, Level reached, and restart button, plus Best Level / Picture progress — see §9 |
+| playing | Full canvas + HUD bar (score, Week number, day-of-week/clock indicator showing progress through the current week, Pause/Play/Fast-Forward controls, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) |
+| gameover | Canvas dimmed, game over overlay with final score, Weeks Survived, and restart button, plus Best Weeks Survived / Picture progress — see §9 |
 
-Best Level Reached, the current Picture, and the Collection gallery entry point (§9) live on the `home` phase, not the `start` overlay — see `home_screen.md`.
+Best Weeks Survived, the current Picture, and the Collection gallery entry point (§9) live on the `home` phase, not the `start` overlay — see `home_screen.md`.
 
 ---
 
-## 9. Levels & Collection
+## 9. Survival & Collection
 
 Metro's concrete instantiation of `../core/meta_progression.md`.
 
-### 9.1 Level Display
+### 9.1 Weeks Survived Display
 
-- The HUD's Level counter (§8) is the same count as Milestone Events fired this session — no separate mechanic, just the player-facing label (core/meta_progression.md §1).
-- The Weekly Upgrade toast announces it — see §4.
+- No separate counter is added for this. The HUD's existing Week number text and day-of-week clock badge (§8) already show Weeks Survived continuously and precisely (whole week plus day-of-week progress) during play.
+- Final Weeks Survived (core/meta_progression.md §1) is simply that same value — whole week number plus fractional day-of-week progress — read at the moment of Node Overflow.
+- The Weekly Upgrade toast (§4) no longer announces a numbered level-up; it just names the bonus granted.
 
-### 9.2 Best Level Reached
+### 9.2 Best Weeks Survived
 
-- Shown on the home screen: "Best: Level 12".
-- Shown on the game-over screen: "You reached Level 8 — Personal Best is Level 12".
-- If the just-finished session's Final Level exceeds the previous Best Level Reached, the game-over screen instead shows a distinct "New Best!" callout.
+- Shown on the home screen: "Best: Week 12".
+- Shown on the game-over screen: "You survived to Week 8 — Personal Best is Week 12".
+- If the just-finished session's Final Weeks Survived exceeds the previous Best Weeks Survived, the game-over screen instead shows a distinct "New Best!" callout.
+- These summary lines round down to the whole week reached, matching the HUD's own Week display — the day-of-week fraction isn't shown here, only used internally for Accumulated Progress precision (§9.3).
 
 ### 9.3 Picture Collection
 
 Metro's Collectible Reward (core/meta_progression.md §3) is a **Picture**: a rectangular image divided into a fixed grid of tiles.
 
+- **Content & production**: each Picture depicts a real-world metro/transit system (e.g. London Underground, Tokyo Metro, New York City Subway, Paris Métro...). Nothing is a static image file or commissioned artwork — each Picture is **procedurally rendered from a curated per-city dataset** (station positions and line topology, hand-authored once per city — data entry, not art production) using the exact same line/station-shape drawing code the game already uses for live gameplay (octilinear lines, rounded joins, the theme's station shape set), rendered once at a fixed frame to produce the "full" image that tiles then reveal over. Not a licensed reproduction of the real system's actual signage — an original rendering, in the game's own visual language, of that system's real layout.
+- Each line in a Picture uses that real system's own real-world line color where iconic/well-known (e.g. the Central line's red), rather than the game's own gameplay Line palette — this is what makes each Picture read as *that specific city* rather than a generic octilinear diagram. Stations render as a single consistent shape (not the gameplay shape set, which encodes destination types that don't apply here), with interchange stations distinguished the way real transit maps conventionally do (e.g. a larger or double-ring circle).
 - Tiles reveal in a fixed order (left-to-right, top-to-bottom) as Accumulated Progress crosses each tile's share of the Required Progress: tile K of T total tiles reveals once Accumulated Progress ≥ Required Progress × (K / T).
-- Pictures are drawn from a curated, finite image pool. Once the Picture sequence advances past the pool's size, images repeat in the same order (Collectible Reward index N uses image `(N - 1) mod pool size`) — later Pictures are distinguished by how hard they are to complete, not by image novelty.
-- A completed Picture moves into the permanent Collection gallery, viewable from the home screen; the next Picture begins accumulating immediately, starting from any surplus per core/meta_progression.md §3.
+- The Picture tile grid (T = 20) *is* the Collectible Reward reveal granularity from core/meta_progression.md §3 — one tile equals one Reveal Step. Because of that spec's Minimum Session Contribution guarantee, every completed session reveals at least one new tile of the current Picture, even a session that ends at 0 Weeks Survived. A strong session can reveal several tiles at once (or even complete the Picture and spill into the next one) if its Final Weeks Survived spans more than one tile's worth of progress.
+- A completed Picture moves into the permanent Collection, viewable from the home screen (`home_screen.md` § Collectibles Screen); the next Picture begins accumulating immediately, starting from any surplus per core/meta_progression.md §3.
+
+#### 9.3.1 Content Source
+
+The Picture pool is **Firestore-backed and editable without an app update** — the same "Firebase, no dedicated server" architecture as the Leaderboard (§9.6), but for public read-only content rather than per-player writes, so it needs no sign-in and works identically on web and Android.
+
+- Each city is one Firestore document: its station/line dataset (§9.3), display name, an explicit ordering value, and an explicit Required Progress for that entry. Collectible Reward index N is the Nth document by ordering value.
+- **Stability**: per core/meta_progression.md §3, an already-reachable entry's dataset and Required Progress must never be edited in place once any player could have Accumulated Progress toward it — adding city #11 is safe at any time; changing city #3 after players have seen it is not. This is an authoring discipline (append new documents, don't rewrite old ones), not something the app enforces.
+- **Beyond the curated pool**: once the Collectible Reward index exceeds the number of curated documents, content repeats in the same order (index N uses document `(N - 1) mod document count`), but Required Progress keeps escalating rather than repeating — computed from the fixed-curve formula (core §3) seeded from the last curated entry's own Required Progress as its base. So curated entries can each be hand-tuned individually, while the sequence still keeps getting harder forever beyond however many cities exist.
+- **Fetch & cache**: the pool is fetched once per app load, at the same time meta-progression is read (core §6) — on success, the fetched pool is cached locally (alongside the local meta-progression data) for use if a later load has no network. If neither a live fetch nor a local cache is available (first-ever launch, offline, Firestore unreachable), the game falls back to a small built-in default pool (1–2 cities) bundled in the app itself, so the feature is never fully broken — same "fail silent, degrade gracefully" principle as meta-progression persistence (core §6).
+- **No player writes**: unlike the Leaderboard, nothing about the Picture pool is ever written by a player's client — Firestore security rules only need to allow public reads, not authenticated writes, for this collection.
 
 Configuration values:
 
 | Parameter | Value | Notes |
 |-----------|-------|-------|
-| Picture base requirement | 50 Level-units | Required Progress for Picture 1 |
-| Picture requirement growth rate | 1.5 | Multiplier per subsequent Picture |
-| Picture tile grid | 5 × 4 (20 tiles) | Reveal granularity |
-| Picture image pool size | 10 (placeholder) | Repeats once exhausted; adjust once real images are sourced |
+| Picture base requirement (fallback) | 20 Week-units | Required Progress for the built-in fallback Picture 1, and the seed base used once the curated pool is exhausted — chosen so a modest ~5-week early session already reveals a meaningful ~25% of it. |
+| Picture requirement growth rate | 1.5 | Multiplier per subsequent Picture, applied beyond the curated pool (or wherever a curated entry omits an explicit override) — e.g. 20 → 30 → 45 Week-units |
+| Picture tile grid | 5 × 4 (20 tiles) | Reveal granularity — a fixed rendering constant, not part of the Firestore content |
 
 ### 9.4 Game-Over Reveal
 
-The game-over screen additionally shows this session's contribution to the current Picture, e.g. "+8 → Picture progress: 42/50". If this session's contribution completed the Picture, a "Picture Complete!" celebration is shown before the next Picture's (now-empty) progress is displayed.
+The game-over screen shows the current Picture's percentage revealed — `Accumulated Progress ÷ Required Progress`, e.g. "25% revealed" for a fresh Picture 1 (20 Week-units required) after a 5-week session — as the headline number, with the raw contribution shown smaller underneath (e.g. "+5 weeks"). The percentage shown is driven by the session's *actual* addition to Accumulated Progress, which may exceed that session's Final Weeks Survived when the Minimum Session Contribution guarantee (core/meta_progression.md §3) applies — e.g. a session that ends at 0 Weeks Survived still shows a nonzero contribution (at least one tile's worth), never "+0 weeks / no change."
+
+**Animated reveal**: rather than appearing as a static end value, the percentage counts up from this session's *starting* percentage (Accumulated Progress before this session's contribution) to its *ending* percentage, while the Picture thumbnail's tiles pop in one by one to match — making it visually obvious that more weeks survived means more of the Picture revealed. If this session's contribution completes the current Picture, the count-up animates through to 100%, the existing "Picture Complete!" celebration plays, and then the same count-up pattern immediately repeats for the next Picture's own starting percentage (nonzero if there was carried-over surplus) — so a single very strong session can visibly animate through more than one Picture in sequence.
+
+Configuration values:
+
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| Picture reveal animation duration | ~1.2s per Picture segment | Game-Over Reveal (above) percentage count-up / tile pop-in; a session spanning multiple Pictures plays one segment per Picture, back to back |
+
+### 9.5 Persistence
+
+Metro's concrete instantiation of `../core/meta_progression.md` §6.
+
+- Backing store: the browser's `localStorage`, under a single key.
+- Persisted values: Best Weeks Survived, the Collection size (the count of completed Pictures — sufficient to know which Pictures are Complete, since Picture N's image and requirement are both derived from its index, §9.3), and the current Picture's Accumulated Progress.
+- Read once on app load, before the home screen renders. Written once at the end of each session, right after that session's Best Weeks Survived and Picture progress updates are computed.
+- If `localStorage` is unavailable or its value is missing/unreadable, Metro falls back to the zero state (Best Weeks Survived 0, Picture 1 current, 0 Accumulated Progress, empty Collection) for that load — play is unaffected, only meta-progression fails to persist.
+
+### 9.6 Leaderboard
+
+Metro's concrete instantiation of `../core/meta_progression.md` §7–§8.
+
+- **Identity**: **Google Play Games Services** supplies the player's identity (display name, avatar) used to attribute and label a Leaderboard entry. This only exists inside the Android-packaged build — a plain web-browser session has no Play Games equivalent, so it never has a Leaderboard, regardless of the backend below. There is no separate nickname/account system.
+- **Backend**: **Firebase** stores and ranks submitted scores. There is no dedicated server, planned or otherwise — the Android client reads and writes Leaderboard data directly against Firebase, with Firebase's own security rules (not custom server-side logic) as the only gate on what a client is allowed to submit.
+- **Availability condition**: the Leaderboard — submission, the game-over rank line, and the home screen's "View Leaderboard" control — exists only when the app is running under the Android wrapper *and* Play Games sign-in has succeeded for this launch. Everywhere else (any web session; an Android session where sign-in didn't succeed), every Leaderboard-related UI element is simply omitted — not shown disabled, not shown with an error, just absent. Best Weeks Survived (§9.2) works identically either way, since it's a purely local value. (Firebase's own SDK runs fine on web too — this gate is entirely about Play Games identity being Android-only, not about Firebase.)
+- **Sign-in**: attempted silently, once, on app launch — Play Games sign-in first, using the device's existing Google account, then that identity is used to authorize the Firebase connection. No sign-in prompt or button is ever shown at any point. If either step doesn't succeed (no Google account, Play Games unavailable, player has never used Play Games), the game proceeds normally for that session with the Leaderboard hidden; the next attempt is on the next app launch, not retried mid-session.
+- **Development/testing identity**: what the Leaderboard's Firebase backend actually requires is a Firebase-authenticated user — Play Games Sign-In is the *production* way to obtain one, but Firebase's own "Sign in with Google" provider (a browser-compatible popup flow, distinct from Play Games' native Games Sign-In) produces the same kind of Firebase user and works in a plain web browser. This lets the entire Leaderboard — Firestore schema, security rules, submission, rank queries, UI — be built and tested on web well before Android packaging happens. This path is debug-only (`DEBUG.md` § Debug Leaderboard Sign-In) and never reachable by a real player; the availability condition above (Android build + Play Games sign-in) is what every non-debug session follows.
+- **Submission**: at the end of every session (the same moment local Best Weeks Survived and Picture progress, §9.2–§9.4, are updated), that session's Final Weeks Survived is written directly to Firebase from the client. Because there's no dedicated server, nothing beyond Firebase's security rules verifies a submission is legitimate — see `memo.md` § Leaderboard for the accepted score-integrity risk this implies.
+- **Game-over display**: when available, the game-over screen additionally shows the player's current rank beneath the Best Weeks Survived line, e.g. "#4,382 of 61,203 players". If this session's submission improved the player's rank, this appears alongside the existing "New Best!" callout (§9.2) rather than as a separate celebration.
+- **Home screen display**: see `home_screen.md` § Leaderboard.
+
+Configuration values:
+
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| Leaderboard Top N | 50 | Players shown in the ranked list before falling back to just the player's own rank line |
 
 ---
 
@@ -273,7 +322,7 @@ The game-over screen additionally shows this session's contribution to the curre
 | River / tunnels | Yes | No |
 | Sound | Yes | No |
 | Mobile support | Yes | No |
-| High score | Persistent leaderboard | None |
+| High score | Persistent leaderboard | Single-device Best Weeks Survived only (§9.2) — no leaderboard, no accounts |
 | Creative Mode (post-Game-Over sandbox) | Yes | No |
 
 ---

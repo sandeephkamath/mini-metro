@@ -1,6 +1,7 @@
 # Home Screen Specification
 
-**Version**: 1.1
+**Version**: 1.7
+**Last updated**: 2026-07-08
 **Extends**: `metro.md` §8 Screen States
 
 This document defines the **home screen**: a top-level phase (`home`) the player lands on before a run begins, and returns to after a run ends. It is distinct from the `start` phase's instructions overlay (title, how-to-play bullets, Start Game button, shown over the fixed starting stations) — the home screen precedes that overlay rather than replacing it.
@@ -18,8 +19,13 @@ This document defines the **home screen**: a top-level phase (`home`) the player
 
 ## Content (current scope)
 
-- Title wordmark ("MINI METRO"), a short tagline, and a "Play" control. No other interactive elements.
-- Best Level Reached, the current Picture (partially revealed), and a "View Collection" control (per `metro.md` §9) are **not** shown yet — no persistence exists for meta-progression. Deferred; see `memo.md`.
+- Title wordmark ("MINI METRO"), a short tagline, and a "Play" control.
+- Best Weeks Survived: small text near the tagline, e.g. "Best: Week 12" (`metro.md` §9.2). Omitted entirely (no line shown) if Best Weeks Survived is still 0 — nothing achieved yet, nothing to claim.
+- The current Picture, partially revealed per its tile grid (`metro.md` §9.3), shown as a small thumbnail. Unrevealed tiles are blank/dimmed; revealed tiles show their portion of the image. Always shown once any tile has been revealed (per the Minimum Session Contribution guarantee, every completed session reveals at least one, so this appears after a player's very first session).
+- A "View Collectibles" control near the Picture thumbnail, opening the Collectibles Screen (below). Unlike the other additions on this list, it's never fully omitted — the current (in-progress) Picture is always something to look at, even before the first Picture is ever completed.
+- A "View Leaderboard" control, opening the Leaderboard (below). Present only when the Leaderboard itself is available (`metro.md` §9.6 — Android build, successful Play Games sign-in); absent on every web session and on an Android session without a signed-in Play Games account, with no placeholder or explanation shown in its place.
+- These additions sit below the tagline/Play control, not competing with them for primary visual weight — Play remains the dominant call to action.
+- The Picture thumbnail and Collectibles Screen both depend on the Picture pool (`metro.md` §9.3.1), which is fetched once per app load alongside meta-progression — by the time the home screen would otherwise render, that fetch has already resolved one way or another (live data, a local cache, or the built-in fallback), so nothing here needs its own loading state the way the Leaderboard does.
 
 ## Visual Design
 
@@ -55,6 +61,29 @@ Styled after the original Mini Metro title screen: a full-bleed map-colored back
 | 3 max | Waiting passenger dots per ambient station |
 | ~2.5–5s | Random interval between ambient passenger arrivals at a station |
 
+## Collectibles Screen
+
+Reached from the home screen's "View Collectibles" control. Not a new top-level phase — it is a modal overlay on top of `home` (same relationship the Weekly Upgrade popup has to `playing`), dismissible without affecting the `home`/`start`/`playing`/`gameover` flow above. Shows Pictures across three states, in a single sequence ordered by Collectible Reward index:
+
+1. **Complete** — every Complete Picture (core/meta_progression.md §3, `metro.md` §9.3), shown as its full (fully-revealed) thumbnail, oldest first.
+2. **Current** — the one in-progress Picture, shown exactly as it appears on the home screen (partially revealed per its tile grid) — the same tile state, not a duplicate separate view.
+3. **Up next** — the following 2–3 Pictures in the sequence (not yet current, nothing accumulated toward them yet), shown as locked placeholders: a blurred/silhouetted version of the rendered Picture or a plain "???" tile grid, with no percentage or other detail. Nothing beyond this short lookahead is shown — the sequence is unbounded, so the screen doesn't try to enumerate it; a "...and more" indicator after the last locked entry makes clear the sequence continues.
+
+A close control returns to the home screen with no other side effect.
+
+## Leaderboard
+
+Reached from the home screen's "View Leaderboard" control — present only when the Leaderboard is available at all (`metro.md` §9.6). Not a new top-level phase — a modal overlay on top of `home`, the same relationship the Collectibles Screen above has.
+
+- Shows a live-fetched ranked list of the Leaderboard Top N (`metro.md` §9.6 config) players by Best Weeks Survived (`core/meta_progression.md` §7), each row showing rank, Play Games display name/avatar, and Weeks Survived.
+- The current player's own row is highlighted within that list if they're in it; if not, a separate row pinned below the list always shows their own rank regardless, e.g. "#4,382 — You — Week 9".
+- While the list is loading, a simple loading state is shown in its place. If the fetch fails (no network, backend error), a short message plus a retry control is shown instead of a blank or broken list — nothing else on the home screen is affected either way.
+- A close control returns to the home screen with no other side effect.
+
 ## Not yet decided
 
-- Where Best Level Reached / Picture / Collection entry land once meta-progression persistence exists (this doc, once written, will absorb the bullets currently sitting under `metro.md` §9 for the `start` row).
+- Collectibles Screen layout once a player has accumulated many Complete Pictures (scroll behavior, grid density) — start with a simple wrapping grid and revisit if it looks crowded.
+- Exact visual treatment of the "locked" placeholder (blurred rendered Picture vs. a generic silhouette/"???" tile grid) — needs a look at a real rendered Picture before deciding; a generic placeholder is the safe default until then.
+- Leaderboard list layout at 50 rows (scroll behavior, pagination) — start with a simple scrollable list.
+- Whether the game-over screen's Leaderboard rank line (`metro.md` §9.6) needs its own loading state if the submission/rank fetch hasn't resolved by the time the screen renders, or whether it simply appears a moment later once ready.
+- Whether Best Weeks Survived / Picture progress should also appear anywhere during `playing` beyond the existing Week counter and day-of-week clock (`metro.md` §8) — currently they're home/game-over-only, per `metro.md` §9.

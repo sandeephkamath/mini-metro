@@ -1,7 +1,7 @@
 # Debug Mode Specification
 
-**Version**: 1.2
-**Last updated**: 2026-07-06
+**Version**: 1.3
+**Last updated**: 2026-07-08
 
 Debug mode is a developer tool layered on top of the running game. It does not alter game rules — it only provides visibility and controlled injection of state for testing.
 
@@ -90,9 +90,21 @@ Press **`T`** to start the scripted tutorial — see `TUTORIAL.md` for the full 
 
 ---
 
+## Debug Leaderboard Sign-In
+
+Development/testing only — never reachable by a real player, and entirely separate from the player-facing Leaderboard availability rule in `themes/metro.md` §9.6 (Android build + Play Games sign-in required).
+
+**How**: Press **`L`** while in debug mode, on the `home` or `gameover` phase.
+
+**Result**: Triggers Firebase's own "Sign in with Google" popup (a browser-compatible flow, distinct from Play Games' native Games Sign-In). On success, the Leaderboard's availability condition is forced true for the rest of this session — the "View Leaderboard" control, score submission, and the game-over rank line all behave as if running on the Android build with Play Games already signed in, so the Firebase integration (Firestore schema, security rules, submission, rank queries, UI) can be exercised end-to-end from a plain web browser. Declining or closing the popup leaves the Leaderboard hidden, same as normal.
+
+This exists purely to let the Leaderboard be built and tested well before Android packaging happens (see `memo.md` § Leaderboard) — the shipped identity source remains exclusively Play Games Sign-In, only inside the Android build.
+
+---
+
 ## Rules
 
-- Debug actions are available only while the game phase is `playing`.
+- Debug actions are available only while the game phase is `playing`, with one exception: Debug Leaderboard Sign-In (`L`) is available on the `home`/`gameover` phases instead, since that's where the Leaderboard itself is shown.
 - Passengers added via debug bypass the "only spawn if destination shape exists" check — any shape can be assigned.
 - Stations added via debug bypass the minimum-distance constraint (useful for stress testing).
 - Speed multiplier is capped at 4× to avoid physics instability.
