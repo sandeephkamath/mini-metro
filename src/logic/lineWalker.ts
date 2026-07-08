@@ -13,6 +13,12 @@ export interface WalkablePath {
   stopDists: number[]; // distances along the path where a walker should dwell
 }
 
+export interface Walker {
+  dist: number;
+  dir: 1 | -1;
+  dwellUntil: number;
+}
+
 // bendRadius matches the corner rounding of whatever draws the line (0 = plain
 // straight segments, e.g. the ambient scene's own synthetic routes). Passing
 // the same radius a renderer used for its elbows (e.g. CONFIG.LINE_BEND_RADIUS
