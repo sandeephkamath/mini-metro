@@ -6,17 +6,18 @@ import { getPictureForIndex } from '../logic/pictureContent';
 import { buildWalkablePath, pointAt, stepWalker, type Walker, type WalkablePath } from '../logic/lineWalker';
 import type { StationShape } from '../types/game';
 
-// Purely cosmetic shape cycle for Picture waiting-passenger/rider dots (metro.md
-// §9.3.2) — Pictures have no real destination-shape concept, so this is just
-// visual variety, the same treatment the home screen ambient scene uses.
-const SHAPE_CYCLE: StationShape[] = ['circle', 'triangle', 'square', 'star', 'hexagon', 'plus'];
+// Picture waiting-passenger/rider dots are always plain circles (metro.md
+// §9.3.2) — matching stations, which also always render as a single circle
+// shape rather than the gameplay shape set (§9.3), since Pictures have no
+// real destination-shape concept to encode.
+const PASSENGER_SHAPE: StationShape = 'circle';
 
-// Random shapes for pre-seeding waiting passengers/riders (metro.md §9.3.2) —
+// Random-count pre-seeding for waiting passengers/riders (metro.md §9.3.2) —
 // the scene starts already busy instead of building up from empty over the
 // first several seconds.
 function randomShapes(min: number, max: number): StationShape[] {
   const count = min + Math.floor(Math.random() * (max - min + 1));
-  return Array.from({ length: count }, () => SHAPE_CYCLE[Math.floor(Math.random() * SHAPE_CYCLE.length)]);
+  return Array.from({ length: count }, () => PASSENGER_SHAPE);
 }
 
 // A pale water band behind a Picture's lines/stations (metro.md §9.3) — the
@@ -197,7 +198,6 @@ export function buildPictureTrains(city: PictureCityData): PictureTrain[] {
 export interface PictureStation {
   index: number; // city.stations index
   pos: { x: number; y: number };
-  shape: StationShape; // cosmetic only, cycles for visual variety
   waiting: StationShape[];
   nextSpawnAt: number;
 }
@@ -206,7 +206,6 @@ export function buildPictureStations(city: PictureCityData, now: number): Pictur
   return city.stations.map((s, i) => ({
     index: i,
     pos: s.pos,
-    shape: SHAPE_CYCLE[i % SHAPE_CYCLE.length],
     waiting: randomShapes(1, CONFIG.PICTURE_MAX_WAITING),
     nextSpawnAt: now + CONFIG.PICTURE_PASSENGER_SPAWN_MIN_MS + Math.random() * CONFIG.PICTURE_PASSENGER_SPAWN_JITTER_MS,
   }));
@@ -242,7 +241,7 @@ export function drawAnimatedPictureFrame(
 ): void {
   for (const s of stations) {
     if (s.waiting.length < CONFIG.PICTURE_MAX_WAITING && now >= s.nextSpawnAt) {
-      s.waiting.push(SHAPE_CYCLE[Math.floor(Math.random() * SHAPE_CYCLE.length)]);
+      s.waiting.push(PASSENGER_SHAPE);
       s.nextSpawnAt = now + CONFIG.PICTURE_PASSENGER_SPAWN_MIN_MS + Math.random() * CONFIG.PICTURE_PASSENGER_SPAWN_JITTER_MS;
     }
   }
