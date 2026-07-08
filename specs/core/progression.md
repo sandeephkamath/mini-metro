@@ -1,7 +1,7 @@
 # Progression & Difficulty Specification
 
-**Version**: 2.1
-**Last updated**: 2026-07-06
+**Version**: 2.2
+**Last updated**: 2026-07-08
 **Extends**: `./logic.md`
 
 This document defines the theme-neutral rules that govern pacing and difficulty: how often Nodes and Resources spawn, how that rate changes over time, and how Route/Carrier unlocks progress. It is the tuning layer that sits between the fixed mechanics in `logic.md` and each theme's concrete numbers (e.g. `themes/metro.md` §5 Configuration Values). It contains no concrete numbers of its own and no rendering/UI references — only the shape of each rule and the parameters a theme must supply.
@@ -109,23 +109,22 @@ Node Overflow (core §3) does not end the game the instant a Node reaches capaci
 
 | Parameter | Meaning |
 |-----------|---------|
-| Grace Duration (base) | How long a Node's Grace Timer runs, at session start, before the game ends |
-| Grace Duration increment | How much a single Grace Duration increase Milestone bonus adds |
+| Grace Duration (base) | How long a Node's Grace Timer runs, before the game ends |
 
-Grace Duration only ever increases during a session (via Milestone bonuses, §6) — nothing in core reduces it.
+Grace Duration is fixed for the entire session — nothing in core increases or decreases it once the session starts.
 
 ---
 
 ## 6. Milestone Event Bonuses
 
-Milestone Events (core §3) fire on a fixed interval and grant exactly one of three bonus kinds: a Reserve Carrier, a Reserve Carriage, or a Grace Duration increase (§5).
+Milestone Events (core §3) fire on a fixed interval and grant exactly one of two bonus kinds: a Reserve Carrier or a Reserve Carriage. This bonus is always free — see `monetization.md` for the separate, optional ad-gated ways to obtain the same two kinds outside of a Milestone Event.
 
 ### 6.1 Auto Mode vs. Choice Mode
 
 A single session-wide setting decides how the bonus kind is picked, the same way for every Milestone Event in the session — it does not vary event-to-event:
 
-- **Auto mode**: the game cycles through all three kinds in a fixed round-robin order (Reserve Carrier → Reserve Carriage → Grace Duration increase → repeat), so all three recur at a predictable, even rate over a long session, with no player input.
-- **Choice mode**: all three kinds are offered as options every time; the player picks exactly one, the other two are discarded for that event (core §3 Milestone Events).
+- **Auto mode**: the game cycles through both kinds in a fixed round-robin order (Reserve Carrier → Reserve Carriage → repeat), so both recur at a predictable, even rate over a long session, with no player input.
+- **Choice mode**: both kinds are offered as options every time; the player picks exactly one, the other is discarded for that event (core §3 Milestone Events).
 
 A theme may expose Auto vs. Choice as a difficulty-preset knob rather than a single fixed value — see §8 Tuning Guidance.
 
@@ -162,8 +161,7 @@ All parameters named above, in one place. A theme fills these in as concrete val
 | Route unlock step | How quickly Route access scales with map growth |
 | Node capacity | Queue size before a Node enters Overflow Risk |
 | Grace Duration (base) | How long a Node can stay over capacity before the game ends |
-| Grace Duration increment | How much each Grace Duration bonus extends that window |
-| Milestone Event interval | How often the player gets relief (Reserve items, Grace Duration) |
+| Milestone Event interval | How often the player gets a free Reserve item |
 | Milestone bonus mode | Whether relief is auto-granted or player-chosen |
 | Reserve Carriage capacity bonus | How much relief one Carriage adds per attachment |
 
@@ -171,7 +169,7 @@ All parameters named above, in one place. A theme fills these in as concrete val
 
 ## 8. Tuning Guidance
 
-- **Easier**: increase Node capacity, increase Grace Duration (base) or its increment, increase Resource spawn base interval/floor or slow the decay rate, lower the batch base/max fraction or slow the batch growth rate, push Node type unlock weeks later (or raise the initial unlocked count so there's less to learn later), increase initial unlocked Routes or lower the Route unlock step, shorten the Milestone Event interval, raise the Reserve Carriage capacity bonus.
-- **Harder**: the inverse of the above — lower Node capacity, shorter/no Grace Duration growth, faster Resource spawn decay, higher batch base/max fraction or faster batch growth rate, pull Node type unlock weeks earlier, fewer starting Routes or a higher Route unlock step, longer Milestone Event interval.
+- **Easier**: increase Node capacity, increase Grace Duration (base), increase Resource spawn base interval/floor or slow the decay rate, lower the batch base/max fraction or slow the batch growth rate, push Node type unlock weeks later (or raise the initial unlocked count so there's less to learn later), increase initial unlocked Routes or lower the Route unlock step, shorten the Milestone Event interval, raise the Reserve Carriage capacity bonus.
+- **Harder**: the inverse of the above — lower Node capacity, shorter Grace Duration, faster Resource spawn decay, higher batch base/max fraction or faster batch growth rate, pull Node type unlock weeks earlier, fewer starting Routes or a higher Route unlock step, longer Milestone Event interval.
 - Auto mode is generally the gentler, more predictable pacing choice; Choice mode adds strategic depth (and a pause point) but puts bonus-allocation judgment on the player, which can be harder for a first-time player under time pressure.
 - Changing any single lever shifts the effective waiting budget (§3) or the Grace Period (§5) rather than the game's win/loss rules — the mechanics in `logic.md` stay fixed regardless of how these values are tuned.

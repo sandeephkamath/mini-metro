@@ -1,7 +1,7 @@
 # Core Logic Specification
 
-**Version**: 1.5
-**Last updated**: 2026-07-06
+**Version**: 1.6
+**Last updated**: 2026-07-08
 
 This document defines the game's mechanics in theme-neutral terms. Themes extend this document by mapping these abstract concepts to named entities and providing configuration values.
 
@@ -103,17 +103,18 @@ After every game tick, each Node is checked against its maximum capacity. Reachi
 
 - **Entering risk**: the instant a Node's queue length reaches or exceeds its maximum capacity, the Node enters **Overflow Risk** and a Grace Timer starts counting down from the Grace Duration (`progression.md` §5).
 - **Recovery**: if the queue length drops back below capacity while the Grace Timer is still running, Overflow Risk ends immediately and the Grace Timer is discarded — a later crossing back over capacity starts a brand-new Grace Timer at full duration, never resuming a discarded one.
-- **Expiry**: if the Grace Timer reaches zero while the Node is still at or over capacity, the game ends immediately.
+- **Expiry**: if the Grace Timer reaches zero while the Node is still at or over capacity, the game ends — unless a Game-Over Continue offer is available and used (`monetization.md` § Game-Over Continue), in which case the session resumes instead: every Node currently in Overflow Risk is relieved (queue trimmed back under capacity, excess Resources discarded, Grace Timer discarded) as part of accepting that offer.
 - Each Node's Grace Timer is independent — multiple Nodes can be in Overflow Risk at once, each on its own countdown.
-- A Grace Duration increase (from a Milestone Event, below) takes effect immediately: it extends the remaining time on every Node currently in Overflow Risk, in addition to lengthening all future Grace Timers for the rest of the session.
+- Grace Duration is fixed for the whole session (`progression.md` §5) — nothing increases or decreases it once a session starts.
 
 ### Milestone Events
 
-At regular time intervals — the Milestone Event interval — a Milestone Event fires, granting exactly one bonus of one of three kinds:
+At regular time intervals — the Milestone Event interval — a Milestone Event fires, granting exactly one bonus of one of two kinds:
 
 1. **Reserve Carrier** — adds one unplaced Carrier to the Reserve.
 2. **Reserve Carriage** — adds one unplaced capacity upgrade to the Reserve.
-3. **Grace Duration increase** — increases the Grace Duration (Node Overflow, above) by a fixed increment, applied immediately.
+
+A Milestone Event's bonus is always free — it never requires watching an ad. `monetization.md` layers two separate, optional ad-gated ways to get the same two bonus kinds on top of this (an on-demand mid-session request, and a Game-Over Continue) — neither replaces or alters the Milestone Event itself.
 
 A single session-wide setting decides how the bonus kind is picked, the same way for every Milestone Event in the session (`progression.md` §6):
 
@@ -208,7 +209,7 @@ The player may also run the clock at a faster rate than normal (Fast-Forward) ra
 | Route | An ordered sequence of Nodes; traversed by Carriers |
 | Carrier | A vehicle that moves along a Route picking up and delivering Resources |
 | Resource | A unit with a destination type waiting at a Node |
-| Milestone Event | A periodic event granting a Reserve Carrier, a Reserve Carriage, or a Grace Duration increase |
+| Milestone Event | A periodic event granting a free Reserve Carrier or Reserve Carriage |
 | Reserve | Holding area for unplaced Carriers/Carriages granted by Milestone Events until assigned |
 | Overflow Risk | The state a Node enters at/over capacity, during which a Grace Timer counts down before the game ends |
 | Transfer Node | A Node that belongs to two or more Routes |

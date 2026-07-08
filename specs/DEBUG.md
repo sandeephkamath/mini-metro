@@ -1,6 +1,6 @@
 # Debug Mode Specification
 
-**Version**: 1.3
+**Version**: 1.4
 **Last updated**: 2026-07-08
 
 Debug mode is a developer tool layered on top of the running game. It does not alter game rules — it only provides visibility and controlled injection of state for testing.
@@ -99,6 +99,16 @@ Development/testing only — never reachable by a real player, and entirely sepa
 **Result**: Triggers Firebase's own "Sign in with Google" popup (a browser-compatible flow, distinct from Play Games' native Games Sign-In). On success, the Leaderboard's availability condition is forced true for the rest of this session — the "View Leaderboard" control, score submission, and the game-over rank line all behave as if running on the Android build with Play Games already signed in, so the Firebase integration (Firestore schema, security rules, submission, rank queries, UI) can be exercised end-to-end from a plain web browser. Declining or closing the popup leaves the Leaderboard hidden, same as normal.
 
 This exists purely to let the Leaderboard be built and tested well before Android packaging happens (see `memo.md` § Leaderboard) — the shipped identity source remains exclusively Play Games Sign-In, only inside the Android build.
+
+---
+
+## Debug Ad Availability
+
+Development/testing only. Lets a tester exercise the "no ads available" fail-gracefully path (`core/monetization.md` §6) without needing a real ad SDK integration to ever actually be unavailable.
+
+**How**: Press **`V`** while in debug mode, on the `playing` phase. Toggles a forced-unavailable flag for the rest of this session.
+
+**Result**: While forced unavailable, the On-Demand Bonus button and any pending Game-Over Continue offer (`themes/metro.md` §4.2) are hidden/skipped exactly as `core/monetization.md` §6 describes for a platform with no Ad Provider at all — Node Overflow ends the game unconditionally, same as before monetization existed. Pressing `V` again (or toggling debug mode off) restores the normal Simulated Ad stand-in.
 
 ---
 

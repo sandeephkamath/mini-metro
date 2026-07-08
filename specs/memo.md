@@ -46,6 +46,12 @@ Now specified — not yet implemented in code:
 
 Current code still has the old behavior (Delivery Events auto-adding a Carrier to the least-served Line, Lines unlocking on the Weekly Delivery timer, and instant overflow on capacity exceeded) — this whole cluster needs implementing together since the mechanics are now interdependent (e.g. the Grace Timer redesign changes what "Node Overflow" even checks).
 
+## Monetization
+
+- Now spec'd end-to-end (`core/monetization.md`, `themes/metro.md` §4.2, `DEBUG.md` § Debug Ad Availability), decided 2026-07-08: an on-demand, uncapped Rewarded-Ad bonus request, and a Game-Over Continue (ad-gated true continue that rescues a Node Overflow in place, limited to a configurable Continue Limit per session — metro starts at 1). The old "More Time" Milestone bonus kind (Grace Duration increase) is removed entirely as part of this — Risk Timer duration is now fixed for the whole session. Not yet implemented in code.
+- **Real dependency**: no ad SDK is integrated (web or Android). Until one is, the spec'd Ad Provider is a **Simulated Ad** stand-in (a fixed-duration placeholder that always succeeds) so the feature can be built and tested before any real ad integration — same "build against a stand-in first" approach as the Leaderboard's debug sign-in. Swapping in a real ad SDK (e.g. AdMob) is a later, isolated change; likely gated on the same Android-packaging decision as the Leaderboard for the Android side, though a web ad SDK could in principle land independently.
+- **Not yet decided**: which real ad SDK/network to integrate, how continue/bonus economics should be tuned once real usage data exists, and whether the On-Demand Bonus Request needs any soft rate-limit (e.g. a short cooldown) once real ads are in play — deliberately left uncapped for now per the spec.
+
 ## Analytics
 
 - No analytics or telemetry at all currently. Open questions before adding any:

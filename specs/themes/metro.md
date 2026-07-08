@@ -1,8 +1,8 @@
 # Metro Theme Specification
 
-**Version**: 3.6
+**Version**: 3.7
 **Last updated**: 2026-07-08
-**Extends**: `../core/logic.md`, `../core/meta_progression.md`
+**Extends**: `../core/logic.md`, `../core/meta_progression.md`, `../core/monetization.md`
 
 This document defines the Metro theme. It maps core abstract concepts to metro terminology, specifies metro-specific entities and visual rules, and provides all configuration values. Game mechanics not mentioned here follow core/logic.md exactly.
 
@@ -67,19 +67,30 @@ Each Line has a distinct color drawn as a thick stroke on the canvas. Lines are 
 
 ## 4. Weekly Upgrade
 
-Every 5 Weeks (300 seconds of game time) a Weekly Upgrade fires, granting exactly one of three bonus kinds (`core/logic.md` §3 Milestone Events, `core/progression.md` §6). The Week counter itself still advances every 60 seconds — it drives Passenger spawn decay and the HUD's day/clock indicator independently of the Weekly Upgrade.
+Every 5 Weeks (300 seconds of game time) a Weekly Upgrade fires, granting exactly one of two bonus kinds (`core/logic.md` §3 Milestone Events, `core/progression.md` §6), always free. The Week counter itself still advances every 60 seconds — it drives Passenger spawn decay and the HUD's day/clock indicator independently of the Weekly Upgrade.
 
 - **New Train** — adds a Depot Train.
 - **New Carriage** — adds a Depot Carriage.
-- **More Time** — extends the Risk Timer (§5 Configuration Values) by a fixed amount, immediately, for every Station.
 
-Metro's Milestone bonus mode is **Choice mode**: the HUD pauses and presents all three as options; the player clicks one to resolve it, and the game unpauses immediately after. A brief toast notification then appears in the HUD announcing what was picked, e.g. "Weekly Upgrade: New Train added to the Depot" — no numbered level-up framing; the HUD's Week counter and day-of-week clock badge (§8) already show ongoing survival progress continuously, so the toast doesn't need to repeat it.
+Metro's Milestone bonus mode is **Choice mode**: the HUD pauses and presents both as options; the player clicks one to resolve it, and the game unpauses immediately after. A brief toast notification then appears in the HUD announcing what was picked, e.g. "Weekly Upgrade: New Train added to the Depot" — no numbered level-up framing; the HUD's Week counter and day-of-week clock badge (§8) already show ongoing survival progress continuously, so the toast doesn't need to repeat it.
+
+Metro no longer has a "More Time" bonus kind — Risk Timer duration is fixed for the whole session (§5 Configuration Values); see §4.2 below for the ad-gated ways to get an extra New Train/New Carriage instead.
 
 ### 4.1 Assigning Depot Items
 
 - **Depot Train**: shown as an icon in a Depot tray in the HUD. The player drags it onto any unlocked Line that already has at least one Train to add it there; Trains on that Line re-space evenly per the existing multi-Train rule (`core/logic.md` §2 Carrier).
 - **Depot Carriage**: shown alongside Depot Trains in the same tray. The player drags it onto any Train currently in service on any Line to attach it, immediately adding the Depot Carriage capacity bonus (§5 Configuration Values) to that Train's capacity.
 - Both kinds of Depot item can be assigned at any time, not only right after being granted — they wait in the Depot tray indefinitely until placed.
+
+### 4.2 Monetization
+
+Metro's concrete instantiation of `../core/monetization.md`. Both paths below grant the same two Depot bonus kinds as the Weekly Upgrade (§4), assigned the same way (§4.1) once granted.
+
+**On-Demand Bonus Request** (`core/monetization.md` §2): a "Get a free Train or Carriage" button sits in the HUD, always available during play whenever the Ad Provider (below) is available. Clicking it presents a confirm prompt ("Watch an ad to get a free Train or Carriage?"); accepting plays the ad, then the player picks New Train or New Carriage exactly as in a Weekly Upgrade (§4), and it's added to the Depot. Declining or closing the prompt leaves everything unchanged. No cap — usable as many times as the player wants, each time gated behind a fresh ad.
+
+**Game-Over Continue** (`core/monetization.md` §3): when a Station's Risk Timer would otherwise expire and end the run, and this session still has a Continue available (§5 Configuration Values), the game instead shows "Station Overflow! Watch an ad to continue?" in place of the game-over screen. Accepting and completing the ad lets the player pick New Train or New Carriage (added to the Depot), then every Station currently at risk has its queue trimmed back under capacity (excess Passengers discarded) and its Risk Timer cleared — play resumes immediately with the score, map, and Week progress untouched. Declining, closing the prompt, or having no Continue left instead shows the normal game-over screen (§8, §9).
+
+**Ad Provider (development stand-in)**: no real ad SDK is integrated yet. Until one is, "watching an ad" is a **Simulated Ad** — a short placeholder screen ("Ad playing…" with a progress bar) that always completes successfully after a fixed duration (§5 Configuration Values). This lets both paths above be built and exercised end-to-end before a real ad SDK is integrated, the same "build against a stand-in first" approach already used for the Leaderboard's debug sign-in (§9.6, `DEBUG.md`). A debug-only toggle (`DEBUG.md` § Debug Ad Availability) can force the Ad Provider unavailable, to test the "no ads available" fail-gracefully path (`core/monetization.md` §6) without a real integration.
 
 ---
 
@@ -121,10 +132,11 @@ These are the concrete values for the tunable parameters defined abstractly in `
 | Weekly Upgrade (Milestone Event) interval | 5 weeks (300 000 ms) | |
 | Initial lines unlocked | 3 of 7 | |
 | Line unlock step | 3 stations | Additional Stations required to unlock each subsequent Line |
-| Risk Timer base duration | 8 000 ms | How long a Station stays "at risk" before overflow ends the game |
-| Risk Timer increment ("More Time" bonus) | 4 000 ms | Added to the Risk Timer, immediately, for every Station, per bonus |
+| Risk Timer base duration | 8 000 ms | How long a Station stays "at risk" before overflow ends the game — fixed for the whole session, no bonus increases it |
 | Depot Carriage capacity bonus | +2 passengers | Added to a Train's capacity once attached |
 | Milestone bonus mode | Choice | See `core/progression.md` §6.1 |
+| Continue Limit (per session) | 1 | Game-Over Continues (`core/monetization.md` §3, §5) available per session, resets every session |
+| Simulated Ad duration | 3 000 ms | Development stand-in Ad Provider (§4.2) — fixed playback length before the ad always completes successfully |
 | Station spawn animation | 600 ms | Fade/scale-in of a newly-created Station (shrinking gray halo) — §7. Game-time driven, like all animation durations below |
 | Train spawn animation | 400 ms | Fade/scale-in of a newly-created Train (initial Line creation or Depot Train placement) — §7 |
 | Passenger queue-in animation | 300 ms | Fade/scale-in of a Passenger icon newly added to a Station queue (fresh spawn, transfer alighting from a Train, or debug injection) — §7 |
@@ -219,8 +231,8 @@ Rules:
 |-------|---------------------|
 | home | Top-level landing phase shown before a run begins — see `home_screen.md` |
 | start | Welcome/instructions overlay with a Start button, shown over the fixed starting stations |
-| playing | Full canvas + HUD bar (score, Week number, day-of-week/clock indicator showing progress through the current week, Pause/Play/Fast-Forward controls, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) |
-| gameover | Canvas dimmed, game over overlay with final score, Weeks Survived, and restart button, plus Best Weeks Survived / Picture progress — see §9 |
+| playing | Full canvas + HUD bar (score, Week number, day-of-week/clock indicator showing progress through the current week, Pause/Play/Fast-Forward controls, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked, On-Demand Bonus button §4.2) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) + ad-offer/simulated-ad/bonus-choice popups when the On-Demand Bonus Request is used (§4.2) |
+| gameover | Reached only once no Game-Over Continue was available or one was declined/failed (§4.2) — canvas dimmed, game over overlay with final score, Weeks Survived, and restart button, plus Best Weeks Survived / Picture progress — see §9 |
 
 Best Weeks Survived, the current Picture, and the Collection gallery entry point (§9) live on the `home` phase, not the `start` overlay — see `home_screen.md`.
 
