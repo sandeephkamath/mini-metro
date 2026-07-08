@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { CONFIG } from '../config/gameConfig';
-import { getPictureCanvas, buildPictureTrains, drawAnimatedPictureFrame } from '../render/renderPicture';
+import { getPictureCanvas, buildPictureTrains, buildPictureStations, drawAnimatedPictureFrame } from '../render/renderPicture';
 import { getPictureForIndex } from '../logic/pictureContent';
 
 interface AnimatedPictureThumbnailProps {
@@ -28,8 +28,10 @@ export function AnimatedPictureThumbnail({ index, revealedTileCount, width, heig
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
+    const city = getPictureForIndex(index);
     const fullCanvas = getPictureCanvas(index);
-    const trains = buildPictureTrains(getPictureForIndex(index));
+    const trains = buildPictureTrains(city);
+    const stations = buildPictureStations(city, performance.now());
     let raf = 0;
     let last = performance.now();
 
@@ -37,7 +39,7 @@ export function AnimatedPictureThumbnail({ index, revealedTileCount, width, heig
       const dt = Math.min(50, now - last);
       last = now;
       ctx.clearRect(0, 0, canvas!.width, canvas!.height);
-      drawAnimatedPictureFrame(ctx, 0, 0, width, height, fullCanvas, trains, now, dt, revealedRef.current);
+      drawAnimatedPictureFrame(ctx, 0, 0, width, height, fullCanvas, trains, stations, now, dt, revealedRef.current);
       raf = requestAnimationFrame(loop);
     }
     raf = requestAnimationFrame(loop);

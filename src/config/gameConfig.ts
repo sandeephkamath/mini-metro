@@ -163,6 +163,10 @@ export const CONFIG = {
   PICTURE_REVEAL_ANIM_MS: 1200, // metro.md §9.4 — count-up/tile-pop-in duration per Picture segment
   PICTURE_TRAIN_SPEED: 40, // metro.md §9.3.2 — px/s at Picture render resolution
   PICTURE_TRAIN_DWELL_MS: 700, // metro.md §9.3.2 — matches the home screen ambient scene's dwell time
+  PICTURE_MAX_WAITING: 3, // metro.md §9.3.2 — max waiting-passenger dots per station
+  PICTURE_PASSENGER_SPAWN_MIN_MS: 2500,
+  PICTURE_PASSENGER_SPAWN_JITTER_MS: 2500,
+  PICTURE_TRAIN_SEATS: 4, // metro.md §9.3.2 — rider dots shown per train (cosmetic only)
 
   // Scripted tutorial (specs/TUTORIAL.md §7)
   TUTORIAL_RESCUE_WINDOW_MS: 30000, // Risk Timer granted at rescue commit / on skip-safety exit

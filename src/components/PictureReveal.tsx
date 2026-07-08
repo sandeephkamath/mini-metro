@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CONFIG } from '../config/gameConfig';
 import type { RevealSegment } from '../logic/collectibles';
 import { getRevealedTileCount } from '../logic/collectibles';
-import { getPictureCanvas, buildPictureTrains, drawAnimatedPictureFrame } from '../render/renderPicture';
+import { getPictureCanvas, buildPictureTrains, buildPictureStations, drawAnimatedPictureFrame } from '../render/renderPicture';
 import { getPictureForIndex } from '../logic/pictureContent';
 
 interface PictureRevealProps {
@@ -74,8 +74,10 @@ export function PictureReveal({ segments }: PictureRevealProps) {
     const canvas = canvasRef.current;
     if (!canvas || !segment) return;
     const index = segment.index;
+    const city = getPictureForIndex(index);
     const fullCanvas = getPictureCanvas(index);
-    const trains = buildPictureTrains(getPictureForIndex(index));
+    const trains = buildPictureTrains(city);
+    const stations = buildPictureStations(city, performance.now());
     const ctx = canvas.getContext('2d')!;
     let raf = 0;
     let last = performance.now();
@@ -85,7 +87,7 @@ export function PictureReveal({ segments }: PictureRevealProps) {
       last = now;
       ctx.clearRect(0, 0, canvas!.width, canvas!.height);
       const tiles = getRevealedTileCount(index, displayProgressRef.current);
-      drawAnimatedPictureFrame(ctx, 0, 0, canvas!.width, canvas!.height, fullCanvas, trains, now, dt, tiles);
+      drawAnimatedPictureFrame(ctx, 0, 0, canvas!.width, canvas!.height, fullCanvas, trains, stations, now, dt, tiles);
       raf = requestAnimationFrame(loop);
     }
     raf = requestAnimationFrame(loop);

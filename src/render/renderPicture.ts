@@ -4,6 +4,12 @@ import { traceShapePath } from './shapePaths';
 import type { PictureCityData } from '../data/pictureCities';
 import { getPictureForIndex } from '../logic/pictureContent';
 import { buildWalkablePath, pointAt, stepWalker, type Walker, type WalkablePath } from '../logic/lineWalker';
+import type { StationShape } from '../types/game';
+
+// Purely cosmetic shape cycle for Picture waiting-passenger/rider dots (metro.md
+// §9.3.2) — Pictures have no real destination-shape concept, so this is just
+// visual variety, the same treatment the home screen ambient scene uses.
+const SHAPE_CYCLE: StationShape[] = ['circle', 'triangle', 'square', 'star', 'hexagon', 'plus'];
 
 // A pale water band behind a Picture's lines/stations (metro.md §9.3) — the
 // same decorative device as the home screen ambient scene's own water band,
@@ -139,13 +145,16 @@ export function drawRevealedPicture(
 }
 
 // Animated Presentation (themes/metro.md §9.3.2) — a simulated train per
-// PictureLineData, walking that line's real station order. Trains are
-// decorative only (no passengers/capacity); built once per Picture and then
-// stepped every frame by the caller's animation loop.
+// PictureLineData, walking that line's real station order and picking up/
+// dropping off decorative waiting-passenger dots exactly like the home screen
+// ambient scene. Built once per Picture and then stepped every frame by the
+// caller's animation loop.
 export interface PictureTrain {
   path: WalkablePath;
   color: string;
   walker: Walker;
+  stationIndices: number[]; // city.stations index at each of path's stops, parallel to path.stopDists
+  riders: StationShape[];
 }
 
 export function buildPictureTrains(city: PictureCityData): PictureTrain[] {
@@ -166,10 +175,33 @@ export function buildPictureTrains(city: PictureCityData): PictureTrain[] {
           dir: i % 2 === 0 ? 1 : -1,
           dwellUntil: 0,
         },
+        stationIndices: line.stationIndices,
+        riders: [],
       });
     }
   });
   return trains;
+}
+
+// Runtime waiting-passenger state for one real station, shared across every
+// line/train that touches it (an interchange has one physical queue, not one
+// per line). Built once per Picture alongside its trains.
+export interface PictureStation {
+  index: number; // city.stations index
+  pos: { x: number; y: number };
+  shape: StationShape; // cosmetic only, cycles for visual variety
+  waiting: StationShape[];
+  nextSpawnAt: number;
+}
+
+export function buildPictureStations(city: PictureCityData, now: number): PictureStation[] {
+  return city.stations.map((s, i) => ({
+    index: i,
+    pos: s.pos,
+    shape: SHAPE_CYCLE[i % SHAPE_CYCLE.length],
+    waiting: [],
+    nextSpawnAt: now + CONFIG.PICTURE_PASSENGER_SPAWN_MIN_MS + Math.random() * CONFIG.PICTURE_PASSENGER_SPAWN_JITTER_MS,
+  }));
 }
 
 // Reused scratch canvas for compositing a frame's live scene before it's
@@ -183,9 +215,10 @@ function getLiveScratchCanvas(width: number, height: number): HTMLCanvasElement 
   return liveScratchCanvas;
 }
 
-// Steps each train and composites the animated Picture into destCtx's rect,
-// masked by revealedTileCount exactly like drawRevealedPicture — trains are
-// only visible within tiles that have already been revealed (metro.md §9.3.2).
+// Steps each train and station and composites the animated Picture into
+// destCtx's rect, masked by revealedTileCount exactly like drawRevealedPicture
+// — the whole live scene is only visible within tiles already revealed
+// (metro.md §9.3.2).
 export function drawAnimatedPictureFrame(
   destCtx: CanvasRenderingContext2D,
   destX: number,
@@ -194,18 +227,43 @@ export function drawAnimatedPictureFrame(
   destH: number,
   fullCanvas: HTMLCanvasElement,
   trains: PictureTrain[],
+  stations: PictureStation[],
   now: number,
   dt: number,
   revealedTileCount: number,
 ): void {
+  for (const s of stations) {
+    if (s.waiting.length < CONFIG.PICTURE_MAX_WAITING && now >= s.nextSpawnAt) {
+      s.waiting.push(SHAPE_CYCLE[Math.floor(Math.random() * SHAPE_CYCLE.length)]);
+      s.nextSpawnAt = now + CONFIG.PICTURE_PASSENGER_SPAWN_MIN_MS + Math.random() * CONFIG.PICTURE_PASSENGER_SPAWN_JITTER_MS;
+    }
+  }
+
   for (const train of trains) {
-    stepWalker(train.path, train.walker, now, dt, CONFIG.PICTURE_TRAIN_SPEED, CONFIG.PICTURE_TRAIN_DWELL_MS);
+    const stopDist = stepWalker(train.path, train.walker, now, dt, CONFIG.PICTURE_TRAIN_SPEED, CONFIG.PICTURE_TRAIN_DWELL_MS);
+    if (stopDist === null) continue;
+    const stopIndex = train.path.stopDists.indexOf(stopDist);
+    const station = stations.find(s => s.index === train.stationIndices[stopIndex]);
+    if (!station) continue;
+    train.riders = train.riders.filter(() => Math.random() > 0.5);
+    while (station.waiting.length > 0 && train.riders.length < CONFIG.PICTURE_TRAIN_SEATS) {
+      train.riders.push(station.waiting.shift()!);
+    }
+    station.waiting = [];
   }
 
   const live = getLiveScratchCanvas(fullCanvas.width, fullCanvas.height);
   const liveCtx = live.getContext('2d')!;
   liveCtx.clearRect(0, 0, live.width, live.height);
   liveCtx.drawImage(fullCanvas, 0, 0);
+
+  liveCtx.fillStyle = '#3a3a3a';
+  for (const s of stations) {
+    s.waiting.forEach((shape, wi) => {
+      traceShapePath(liveCtx, s.pos.x + 10 + wi * 7, s.pos.y - 9, shape, 2.6);
+      liveCtx.fill();
+    });
+  }
 
   for (const train of trains) {
     const p = pointAt(train.path, train.walker.dist);
@@ -216,6 +274,11 @@ export function drawAnimatedPictureFrame(
     liveCtx.beginPath();
     liveCtx.roundRect(-7, -3.5, 14, 7, 2);
     liveCtx.fill();
+    liveCtx.fillStyle = '#fff';
+    train.riders.forEach((shape, ri) => {
+      traceShapePath(liveCtx, -5 + ri * 3.2, 0, shape, 1.4);
+      liveCtx.fill();
+    });
     liveCtx.restore();
   }
 
