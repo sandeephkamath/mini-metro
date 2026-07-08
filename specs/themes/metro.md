@@ -1,7 +1,7 @@
 # Metro Theme Specification
 
-**Version**: 3.11
-**Last updated**: 2026-07-08
+**Version**: 3.12
+**Last updated**: 2026-07-09
 **Extends**: `../core/logic.md`, `../core/meta_progression.md`, `../core/monetization.md`
 
 This document defines the Metro theme. It maps core abstract concepts to metro terminology, specifies metro-specific entities and visual rules, and provides all configuration values. Game mechanics not mentioned here follow core/logic.md exactly.
@@ -260,9 +260,11 @@ Metro's Collectible Reward (core/meta_progression.md §3) is a **Picture**: a re
 
 - **Content & production**: each Picture depicts a real-world metro/transit system (e.g. London Underground, Tokyo Metro, New York City Subway, Paris Métro...). Nothing is a static image file or commissioned artwork — each Picture is **procedurally rendered from a curated per-city dataset** (station positions and line topology, hand-authored once per city — data entry, not art production) using the exact same line/station-shape drawing code the game already uses for live gameplay (octilinear lines, rounded joins, the theme's station shape set), rendered once at a fixed frame to produce the "full" image that tiles then reveal over. Not a licensed reproduction of the real system's actual signage — an original rendering, in the game's own visual language, of that system's real layout.
 - Each line in a Picture uses that real system's own real-world line color where iconic/well-known (e.g. the Central line's red), rather than the game's own gameplay Line palette — this is what makes each Picture read as *that specific city* rather than a generic octilinear diagram. Stations render as a single consistent shape (not the gameplay shape set, which encodes destination types that don't apply here), with interchange stations distinguished the way real transit maps conventionally do (e.g. a larger or double-ring circle).
+- A pale water band crosses behind a Picture's lines and stations, echoing the rivers of the original's city maps — the same visual device as the home screen ambient scene's own water band (`home_screen.md` § Ambient metro scene). Purely decorative background, lower contrast than the Picture's own lines/stations, never obscuring them (they draw on top and fully cover it where they cross).
+- A Picture's real-world name (e.g. "London Underground") is shown as a label wherever the Picture is displayed large enough to read — the Collectibles Screen's gallery entries and its detail view — but never for a locked "up next" placeholder, which stays a nameless "???" (`home_screen.md` § Collectibles Screen).
 - Tiles reveal in a fixed order (left-to-right, top-to-bottom) as Accumulated Progress crosses each tile's share of the Required Progress: tile K of T total tiles reveals once Accumulated Progress ≥ Required Progress × (K / T).
 - The Picture tile grid (T = 20) *is* the Collectible Reward reveal granularity from core/meta_progression.md §3 — one tile equals one Reveal Step. Because of that spec's Minimum Session Contribution guarantee, every completed session reveals at least one new tile of the current Picture, even a session that ends at 0 Weeks Survived. A strong session can reveal several tiles at once (or even complete the Picture and spill into the next one) if its Final Weeks Survived spans more than one tile's worth of progress.
-- A completed Picture moves into the permanent Collection, viewable from the home screen (`home_screen.md` § Collectibles Screen); the next Picture begins accumulating immediately, starting from any surplus per core/meta_progression.md §3.
+- A completed Picture moves into the permanent Collection, viewable via the home screen's View Collectibles icon (`home_screen.md` § Content); the next Picture begins accumulating immediately, starting from any surplus per core/meta_progression.md §3.
 
 #### 9.3.1 Content Source
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CONFIG } from '../config/gameConfig';
 import { getRevealedTileCount } from '../logic/collectibles';
+import { getPictureForIndex } from '../logic/pictureContent';
 import { PictureThumbnail } from './PictureThumbnail';
 import { AnimatedPictureThumbnail } from './AnimatedPictureThumbnail';
 
@@ -34,6 +35,17 @@ function LockedThumbnail() {
       letterSpacing: '0.1em',
     }}>
       ???
+    </div>
+  );
+}
+
+// The Picture's real-world name (metro.md §9.3) — shown for Complete/Current
+// entries only; locked placeholders use LockedThumbnail above instead, which
+// deliberately reveals nothing about what's next.
+function PictureName({ index }: { index: number }) {
+  return (
+    <div style={{ marginTop: 4, fontSize: 12, fontFamily: 'monospace', color: '#666' }}>
+      {getPictureForIndex(index).name}
     </div>
   );
 }
@@ -80,12 +92,14 @@ export function CollectiblesScreen({ collectionSize, currentPictureProgress, onC
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
           {completeIndices.map(index => (
-            <div key={index} onClick={() => setDetailIndex(index)} style={{ cursor: 'pointer' }}>
+            <div key={index} onClick={() => setDetailIndex(index)} style={{ cursor: 'pointer', textAlign: 'center' }}>
               <PictureThumbnail index={index} revealedTileCount={CONFIG.PICTURE_TILE_COUNT} width={TILE_W} height={TILE_H} />
+              <PictureName index={index} />
             </div>
           ))}
-          <div onClick={() => setDetailIndex(currentIndex)} style={{ cursor: 'pointer' }}>
+          <div onClick={() => setDetailIndex(currentIndex)} style={{ cursor: 'pointer', textAlign: 'center' }}>
             <PictureThumbnail index={currentIndex} revealedTileCount={currentTiles} width={TILE_W} height={TILE_H} />
+            <PictureName index={currentIndex} />
           </div>
           {upcomingIndices.map(index => <LockedThumbnail key={index} />)}
         </div>
@@ -127,7 +141,19 @@ export function CollectiblesScreen({ collectionSize, currentPictureProgress, onC
             cursor: 'pointer',
           }}
         >
-          <div onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              textAlign: 'center',
+              background: '#fff',
+              borderRadius: 12,
+              padding: '20px 24px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            }}
+          >
+            <div style={{ marginBottom: 10, fontSize: 18, fontFamily: 'monospace', color: '#333' }}>
+              {getPictureForIndex(detailIndex).name}
+            </div>
             <AnimatedPictureThumbnail index={detailIndex} revealedTileCount={detailTiles} width={DETAIL_W} height={DETAIL_H} />
             <button
               onClick={() => setDetailIndex(null)}

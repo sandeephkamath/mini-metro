@@ -5,6 +5,26 @@ import type { PictureCityData } from '../data/pictureCities';
 import { getPictureForIndex } from '../logic/pictureContent';
 import { buildWalkablePath, pointAt, stepWalker, type Walker, type WalkablePath } from '../logic/lineWalker';
 
+// A pale water band behind a Picture's lines/stations (metro.md §9.3) — the
+// same decorative device as the home screen ambient scene's own water band,
+// carried over so a Picture reads with the same "living city" richness rather
+// than a flat single-color background. Generic (not per-city geography):
+// drawn first, low-contrast, always fully covered by whatever draws on top.
+function drawWaterBand(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+  const m = Math.min(width, height);
+  ctx.save();
+  ctx.strokeStyle = CONFIG.PICTURE_WATER_COLOR;
+  ctx.lineWidth = m * 0.16;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(width * 0.88, -m * 0.1);
+  ctx.lineTo(width * 0.62, height * 0.4);
+  ctx.lineTo(width * 0.78, height * 1.1);
+  ctx.stroke();
+  ctx.restore();
+}
+
 // Renders a Picture's "full" (fully-revealed) image once, using the same
 // bend-geometry and station-shape drawing primitives as live gameplay
 // (themes/metro.md §9.3). Returns an offscreen canvas — cache the result per
@@ -17,6 +37,8 @@ export function renderPictureFull(city: PictureCityData): HTMLCanvasElement {
 
   ctx.fillStyle = CONFIG.PICTURE_BG_COLOR;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  drawWaterBand(ctx, canvas.width, canvas.height);
 
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
@@ -131,7 +153,9 @@ export function buildPictureTrains(city: PictureCityData): PictureTrain[] {
   city.lines.forEach((line, lineIndex) => {
     const positions = line.stationIndices.map(i => city.stations[i].pos);
     if (positions.length < 2) return;
-    const path = buildWalkablePath(positions);
+    // Same bend radius renderPictureFull uses to draw this line's elbows, so a
+    // walking train stays exactly on the visible track through every bend.
+    const path = buildWalkablePath(positions, undefined, CONFIG.LINE_BEND_RADIUS);
     const count = lineIndex % 2 === 0 ? 2 : 1; // alternates, matching the home screen ambient scene
     for (let i = 0; i < count; i++) {
       trains.push({

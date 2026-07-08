@@ -1,7 +1,7 @@
 # Home Screen Specification
 
-**Version**: 2.1
-**Last updated**: 2026-07-08
+**Version**: 2.2
+**Last updated**: 2026-07-09
 **Extends**: `metro.md` §8 Screen States
 
 This document defines the **home screen**: a top-level phase (`home`) the player lands on before a run begins, and returns to after a run ends. Clicking Play goes directly into a run — there is no intermediate instructions overlay between `home` and `playing`.
@@ -63,13 +63,13 @@ Styled after the original Mini Metro title screen: a full-bleed map-colored back
 
 Reached from the home screen's "View Collectibles" control. Not a new top-level phase — it is a modal overlay on top of `home` (same relationship the Weekly Upgrade popup has to `playing`), dismissible without affecting the `home`/`playing`/`gameover` flow above. Shows Pictures across three states, in a single sequence ordered by Collectible Reward index:
 
-1. **Complete** — every Complete Picture (core/meta_progression.md §3, `metro.md` §9.3), shown as its full (fully-revealed) thumbnail, oldest first.
-2. **Current** — the one in-progress Picture, shown exactly as it appears on the home screen (partially revealed per its tile grid) — the same tile state, not a duplicate separate view.
-3. **Up next** — the following 2–3 Pictures in the sequence (not yet current, nothing accumulated toward them yet), shown as locked placeholders: a blurred/silhouetted version of the rendered Picture or a plain "???" tile grid, with no percentage or other detail. Nothing beyond this short lookahead is shown — the sequence is unbounded, so the screen doesn't try to enumerate it; a "...and more" indicator after the last locked entry makes clear the sequence continues.
+1. **Complete** — every Complete Picture (core/meta_progression.md §3, `metro.md` §9.3), shown as its full (fully-revealed) thumbnail, oldest first, labeled with its real-world name (e.g. "London Underground").
+2. **Current** — the one in-progress Picture, shown at its live partially-revealed tile state, also labeled with its name.
+3. **Up next** — the following 2–3 Pictures in the sequence (not yet current, nothing accumulated toward them yet), shown as locked placeholders: a blurred/silhouetted version of the rendered Picture or a plain "???" tile grid, with no name, percentage, or other detail — revealing which city comes next would spoil it. Nothing beyond this short lookahead is shown — the sequence is unbounded, so the screen doesn't try to enumerate it; a "...and more" indicator after the last locked entry makes clear the sequence continues.
 
-Every thumbnail in this grid (Complete or Current — not the locked placeholders, which have nothing to show) is static, matching its home-screen appearance rather than the animated presentation (`metro.md` §9.3.2) — with potentially many Complete Pictures on screen at once, animating the whole grid isn't worth the cost.
+Every thumbnail in this grid (Complete or Current — not the locked placeholders, which have nothing to show) is static rather than using the animated presentation (`metro.md` §9.3.2) — with potentially many Complete Pictures on screen at once, animating the whole grid isn't worth the cost.
 
-Tapping any Complete or Current thumbnail opens a **Picture Detail View**: a single-Picture overlay on top of the Collectibles Screen, shown large and using the animated presentation (`metro.md` §9.3.2) — this is where the "living map" pays off, one Picture at a time. Locked placeholders aren't tappable. A close control on the detail view returns to the Collectibles Screen grid, not all the way back to `home`.
+Tapping any Complete or Current thumbnail opens a **Picture Detail View**: a single-Picture overlay on top of the Collectibles Screen, shown large with its name and using the animated presentation (`metro.md` §9.3.2) — this is where the "living map" pays off, one Picture at a time. Locked placeholders aren't tappable. A close control on the detail view returns to the Collectibles Screen grid, not all the way back to `home`.
 
 A close control returns to the home screen with no other side effect.
 

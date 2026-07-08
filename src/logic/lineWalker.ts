@@ -3,41 +3,47 @@
 // presentation (themes/metro.md §9.3.2) — the same physics, driven by
 // different line data.
 
+import { buildSegmentShape, type SegmentShape } from './geometry';
+
 export interface WalkablePath {
-  pts: { x: number; y: number }[];
-  cum: number[]; // cumulative distance at each point
+  pts: { x: number; y: number }[]; // raw station points, for callers that draw the line themselves
+  segments: SegmentShape[]; // per-station-pair shape (straight or bent, matching what's drawn)
+  cum: number[]; // cumulative length at the start of each segment; cum[segments.length] = total
   total: number;
   stopDists: number[]; // distances along the path where a walker should dwell
 }
 
-export interface Walker {
-  dist: number;
-  dir: 1 | -1;
-  dwellUntil: number;
-}
-
-export function buildWalkablePath(pts: { x: number; y: number }[], stopIndices?: number[]): WalkablePath {
+// bendRadius matches the corner rounding of whatever draws the line (0 = plain
+// straight segments, e.g. the ambient scene's own synthetic routes). Passing
+// the same radius a renderer used for its elbows (e.g. CONFIG.LINE_BEND_RADIUS
+// for Pictures, metro.md §9.3.2) keeps a walking train exactly on the drawn
+// track instead of cutting the corner a bent segment actually takes.
+export function buildWalkablePath(
+  pts: { x: number; y: number }[],
+  stopIndices?: number[],
+  bendRadius = 0,
+): WalkablePath {
+  const segments: SegmentShape[] = [];
   const cum = [0];
   for (let i = 1; i < pts.length; i++) {
-    cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+    const shape = buildSegmentShape(pts[i - 1], pts[i], bendRadius);
+    segments.push(shape);
+    cum.push(cum[i - 1] + shape.length);
   }
   const indices = stopIndices ?? pts.map((_, i) => i);
-  return { pts, cum, total: cum[cum.length - 1], stopDists: indices.map(i => cum[i]) };
+  return { pts, segments, cum, total: cum[cum.length - 1], stopDists: indices.map(i => cum[i]) };
 }
 
 export function pointAt(path: WalkablePath, dist: number): { x: number; y: number; angle: number } {
+  if (path.segments.length === 0) return { x: path.pts[0].x, y: path.pts[0].y, angle: 0 };
   const d = Math.max(0, Math.min(path.total, dist));
-  let i = 1;
-  while (i < path.cum.length - 1 && path.cum[i] < d) i++;
-  const a = path.pts[i - 1];
-  const b = path.pts[i];
-  const segLen = path.cum[i] - path.cum[i - 1] || 1;
-  const t = (d - path.cum[i - 1]) / segLen;
-  return {
-    x: a.x + (b.x - a.x) * t,
-    y: a.y + (b.y - a.y) * t,
-    angle: Math.atan2(b.y - a.y, b.x - a.x),
-  };
+  let i = 0;
+  while (i < path.segments.length - 1 && path.cum[i + 1] < d) i++;
+  const segLen = path.segments[i].length || 1;
+  const t = (d - path.cum[i]) / segLen;
+  const p = path.segments[i].pointAt(t);
+  const tangent = path.segments[i].tangentAt(t);
+  return { x: p.x, y: p.y, angle: Math.atan2(tangent.y, tangent.x) };
 }
 
 // Advances a walker by dt at speed, dwelling at any stop crossed and

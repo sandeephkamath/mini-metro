@@ -156,6 +156,7 @@ export const CONFIG = {
   PICTURE_RENDER_WIDTH: 400, // internal resolution the "full" Picture is rendered at once
   PICTURE_RENDER_HEIGHT: 320,
   PICTURE_BG_COLOR: '#f5f0e8',
+  PICTURE_WATER_COLOR: '#d9e8f0', // same water tone as the home screen ambient scene (metro.md §9.3)
   PICTURE_LINE_WIDTH: 5,
   PICTURE_STATION_RADIUS: 6,
   PICTURE_INTERCHANGE_RADIUS: 9, // outer ring radius for an interchange station's double-ring
