@@ -159,8 +159,21 @@ These are the concrete values for the tunable parameters defined abstractly in `
 | Station drop radius | 40 px | For completing a drag (more forgiving than starting one — core §4); the nearest in-range Station wins if several are in range |
 | Line segment hit radius | 10 px | For grabbing a mid-Line segment (insertion drag) |
 | Player Speed Controls enabled | `false` | Whether the HUD's Pause/Play/Fast-Forward control (core §6) is shown at all — a build-time flag, not a player-facing setting. When `false`, the HUD omits the control entirely and the clock always runs at normal speed outside of a Milestone Event Choice. |
+| Remote config fetch timeout | 3 000 ms | How long app startup waits for the Remote Config Override document (§5.1) before proceeding with pure code defaults |
 
 All drawing hit radii above (end marker, station hit/drop, line segment) are **screen-space** values per core §4: below 1× camera zoom, the world-space radius grows by 1/zoom so targets keep their intended on-screen size; at or above 1× the base value is used as-is.
+
+### 5.1 Remote Config Overrides
+
+Every value in the table above — plus this theme's other config maps referenced elsewhere in this document (Shape Colors §7, Line Colors §3, the Star/Hexagon/Plus unlock weeks in the table above) — is a **code default**, not a hardcoded ceiling. All of them can be overridden from a single Firestore document, fetched once per app load, in the background, without blocking the home screen.
+
+- **Location**: Firestore collection `config`, document `gameConfig` — one document, a flat map from config key name to override value, using this codebase's own `CONFIG` key names (e.g. `TRAIN_SPEED_PX_PER_SEC`, `SHAPE_COLORS`) as the field names.
+- **Partial override**: an absent key, an absent document, or a fetch that fails or doesn't resolve within the timeout all fall back to that key's code default individually — this is a per-key partial-override scheme, not all-or-nothing. A document containing only `{ "TRAIN_SPEED_PX_PER_SEC": 120 }` overrides just that one value; everything else stays at its code default.
+- **Fetch timing**: starts the moment the app loads, in the background — the `home` phase (§8) renders immediately and is fully interactive without waiting on it. Not re-fetched mid-session, and not re-checked again within that same session. A session's effective config is fixed for its entire lifetime once resolved, so a value can never change out from under a run already in progress.
+- **Fetch timeout**: bounded by the Remote config fetch timeout value above. A slow or unreachable Firestore project must never block the game from starting — once the timeout elapses, the pending fetch resolves to pure code defaults exactly as if the document didn't exist, same as a genuinely absent document.
+- **Play before the fetch resolves**: since Play is available immediately, a player can click it before the background fetch finishes. When that happens, Play is replaced in place by a themed loading indicator (not a separate screen) until the fetch resolves (or times out), at which point the game starts normally, using whatever config that resolution produced. In the common case — the fetch resolves during the player's first few seconds looking at the home screen — Play behaves exactly as if there were no fetch at all.
+- **Public read, no write**: this is public game-balance data, not player data — no sign-in is required to read it (unlike the Leaderboard), and only server-side/console edits are allowed, never a client write (`firestore.rules`) — the same "no admin tool built, edit directly via console" posture as the Picture Collection dataset (§9.3.1).
+- **Real dependency**: like the Leaderboard and Picture Collection, this requires a real Firebase project (`src/firebase/config.ts`'s placeholder credentials replaced) before it can actually override anything — until then, every fetch fails immediately and the game runs on pure code defaults, identical to before this feature existed.
 
 ---
 
@@ -237,6 +250,8 @@ Rules:
 | gameover | Reached only once no Game-Over Continue was available or one was declined/failed (§4.2) — canvas dimmed, game over overlay with final score and Weeks Survived (no Level shown — Level is not a meta-progression metric, per `core/meta_progression.md`), plus Best Weeks Survived / Picture progress (§9) and an icon-only corner close control (same pattern as the Collectibles Screen/Detail View, §9.3.2) that returns to `home` |
 
 Clicking Play on the `home` phase goes directly to `playing` — there is no intermediate instructions overlay. Best Weeks Survived, the current Picture, and the Collection gallery entry point (§9) live on the `home` phase — see `home_screen.md`.
+
+The app starts the one-time Remote Config Override fetch (§5.1) in the background the moment it loads — `home` still renders immediately and is fully usable while it's in flight. The fetch only becomes visible to the player if they click Play before it resolves, at which point §5.1's themed loading indicator appears in place of the Play control until the game actually starts — so a player never sees a game that starts with one config and silently reconfigures itself underneath them, without needing a separate pre-`home` loading screen.
 
 ---
 

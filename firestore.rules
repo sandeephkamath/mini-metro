@@ -7,6 +7,14 @@ rules_version = '2';
 //   firebase deploy --only firestore:rules
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Remote Config Overrides (themes/metro.md §5.1) — public game-balance data,
+    // not player data. Readable by anyone (no sign-in gate, unlike the Leaderboard),
+    // writable only via the Firebase console/admin SDK, never a client.
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // One document per player, keyed by their Firebase Auth uid.
     match /leaderboard/{uid} {
       // Reads require identity, matching the Leaderboard's own availability rule

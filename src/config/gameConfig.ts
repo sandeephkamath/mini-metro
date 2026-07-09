@@ -1,3 +1,9 @@
+import type { MilestoneBonusMode } from '../types/game';
+
+// Mutated in place (not reassigned) by applyRemoteConfigOverrides at startup — see
+// src/firebase/remoteConfig.ts and themes/metro.md §5.1. Every consumer imports this
+// same object reference, so overrides land before any of them read a value, without
+// needing to touch 29+ call sites.
 export const CONFIG = {
   // Native/default design size. Used unscaled whenever the real (rotation-aligned)
   // device viewport is at least this big in both dimensions; also the threshold below
@@ -106,7 +112,7 @@ export const CONFIG = {
   PASSENGER_PATIENCE_LIMIT_MS: 30000, // Patience Duration — a single Passenger waiting this long alone triggers Station at Risk (core/logic.md §3 Node Overflow)
   CARRIAGE_CAPACITY_BONUS: 2, // passenger capacity added by attaching a Depot Carriage
   CARRIAGE_GAP: 2, // px gap between a Train's linked carriage boxes
-  MILESTONE_BONUS_MODE: 'choice' as const, // 'auto' | 'choice' — see core/progression.md §6.1
+  MILESTONE_BONUS_MODE: 'choice' as MilestoneBonusMode, // see core/progression.md §6.1
 
   // Ad-gated monetization (core/monetization.md, metro.md §4.2)
   CONTINUE_LIMIT: 1, // Game-Over Continues available per session
@@ -187,4 +193,8 @@ export const CONFIG = {
     hexagon:  '#9b59b6',
     plus:     '#e67e22',
   } as Record<string, string>,
-} as const;
+
+  // How long app startup waits for the Remote Config Override fetch (below) before
+  // proceeding with pure code defaults — see themes/metro.md §5.1.
+  REMOTE_CONFIG_FETCH_TIMEOUT_MS: 3000,
+};

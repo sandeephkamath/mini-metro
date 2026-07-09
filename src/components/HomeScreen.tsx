@@ -5,6 +5,7 @@ import { buildWalkablePath, pointAt, stepWalker, type WalkablePath } from '../lo
 import { CollectiblesScreen } from './CollectiblesScreen';
 import { LeaderboardScreen } from './LeaderboardScreen';
 import type { LeaderboardIdentity } from '../firebase/leaderboard';
+import { remoteConfigReady } from '../firebase/remoteConfig';
 import type { StationShape } from '../types/game';
 
 interface HomeScreenProps {
@@ -260,6 +261,34 @@ export function HomeScreen({
   const [showCollectibles, setShowCollectibles] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
+  // Remote Config Overrides (themes/metro.md §5.1): the fetch itself started in the
+  // background as soon as remoteConfig.ts was first imported — nothing here blocks on
+  // it unless the player clicks Play before it resolves (handlePlay below).
+  const [configReady, setConfigReady] = useState(false);
+  const [awaitingPlay, setAwaitingPlay] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    remoteConfigReady.then(() => {
+      if (!cancelled) setConfigReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (awaitingPlay && configReady) onPlay();
+  }, [awaitingPlay, configReady, onPlay]);
+
+  function handlePlay() {
+    if (configReady) {
+      onPlay();
+    } else {
+      setAwaitingPlay(true);
+    }
+  }
+
   useEffect(() => {
     const wrapper = wrapperRef.current;
     const canvas = canvasRef.current;
@@ -322,6 +351,9 @@ export function HomeScreen({
         @keyframes mmPulseRing {
           0% { transform: scale(1); opacity: 0.5; }
           100% { transform: scale(1.9); opacity: 0; }
+        }
+        @keyframes mmSpin {
+          to { transform: rotate(360deg); }
         }
         .mm-play {
           transition: transform 0.15s ease;
@@ -392,7 +424,7 @@ export function HomeScreen({
           }} />
           <button
             className="mm-play"
-            onClick={onPlay}
+            onClick={handlePlay}
             aria-label="Play"
             style={{
               width: 84,
@@ -407,14 +439,25 @@ export function HomeScreen({
               boxShadow: '0 6px 20px rgba(231, 76, 60, 0.4)',
             }}
           >
-            <div style={{
-              width: 0,
-              height: 0,
-              marginLeft: 6,
-              borderTop: '15px solid transparent',
-              borderBottom: '15px solid transparent',
-              borderLeft: '24px solid #fff',
-            }} />
+            {awaitingPlay && !configReady ? (
+              <div style={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                border: '3px solid rgba(255,255,255,0.35)',
+                borderTopColor: '#fff',
+                animation: 'mmSpin 0.8s linear infinite',
+              }} />
+            ) : (
+              <div style={{
+                width: 0,
+                height: 0,
+                marginLeft: 6,
+                borderTop: '15px solid transparent',
+                borderBottom: '15px solid transparent',
+                borderLeft: '24px solid #fff',
+              }} />
+            )}
           </button>
         </div>
 
@@ -427,7 +470,7 @@ export function HomeScreen({
           color: INK,
           animation: 'mmFadeUp 0.7s ease-out 0.7s both',
         }}>
-          PLAY
+          {awaitingPlay && !configReady ? 'STARTING…' : 'PLAY'}
         </div>
 
         {leaderboardIdentity && (

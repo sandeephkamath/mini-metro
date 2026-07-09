@@ -90,6 +90,12 @@ Real dependency: an Android Studio / Android SDK install is required to actually
 - **No server-side score validation beyond Firestore Security Rules.** Accepted deliberately for now (move-fast philosophy) — revisit only if leaderboard abuse actually shows up after launch, not preemptively.
 - Web sessions never see a Leaderboard at all (by design, per the spec) — this is not a gap to fill, just a permanent asymmetry between the web and Android builds.
 
+## Remote Config
+
+- Implemented in code (`themes/metro.md` §5.1): every `CONFIG` key (`src/config/gameConfig.ts`) is overridable from a single public Firestore document (`config/gameConfig`). The fetch (`src/firebase/remoteConfig.ts`) starts in the background the moment the module first loads — the home screen (`HomeScreen.tsx`) renders immediately and doesn't wait on it. If the player clicks Play before it resolves, the Play control is replaced in place by a themed spinner ("STARTING…") until the fetch resolves or its timeout (`CONFIG.REMOTE_CONFIG_FETCH_TIMEOUT_MS`, 3000ms default) elapses, then the game starts on whatever config that produced. `firestore.rules` has a public-read/no-write rule for the `config` collection, ready to deploy once a project exists.
+- **Real dependency, not yet satisfied**: same placeholder `src/firebase/config.ts` as the Leaderboard — until a real project exists, every fetch simply never resolves in time (confirmed via the run-driver: unlike Auth's debug sign-in, which fails fast on a 400, the placeholder Firestore `getDoc` call hangs until the fetch timeout elapses). This no longer costs a forced delay on every session, though — it's only visible at all if the player clicks Play within the first ~3s of looking at the home screen, and even then it's a themed in-place spinner, not a blank screen. Worth revisiting once a real project exists (a real, reachable Firestore call should resolve in well under 3s, so this becomes a non-issue in practice).
+- **Not yet decided**: no admin UI for editing the override document — same "edit directly via Firebase console" posture as the Picture Collection dataset.
+
 ## Onboarding / UX
 
 - No pause functionality outside of debug mode's speed controls. The original treats pause/normal/fast-forward as three always-visible, player-facing buttons, not debug-only tooling — confirmed directly (not inferred) via `research/mini_metro_original_analysis_2_ui_timing.md` §3, including a skilled player routinely using fast-forward through quiet stretches.

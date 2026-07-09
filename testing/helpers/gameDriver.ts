@@ -141,9 +141,16 @@ export function isBackdropPixel([r, g, b]: [number, number, number] | [number, n
 }
 
 export async function startGame(page: Page) {
-  if (await page.getByRole('button', { name: 'Play' }).isVisible().catch(() => false)) {
-    await page.getByRole('button', { name: 'Play' }).click();
-  }
+  const playButton = page.getByRole('button', { name: 'Play' });
+  const appeared = await playButton.waitFor({ state: 'visible', timeout: 6000 }).then(() => true).catch(() => false);
+  if (!appeared) return;
+  await playButton.click();
+  // Clicking Play before the background Remote Config fetch resolves (themes/metro.md
+  // §5.1) shows a themed loading spinner in place of the Play control rather than
+  // transitioning immediately — wait for that control to leave the DOM (the home
+  // screen unmounts once the transition to 'playing' actually completes) instead of
+  // assuming the click was synchronous.
+  await playButton.waitFor({ state: 'hidden', timeout: 6000 }).catch(() => {});
 }
 
 export async function restartGame(page: Page) {
