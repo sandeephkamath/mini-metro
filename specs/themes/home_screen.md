@@ -14,7 +14,7 @@ This document defines the **home screen**: a top-level phase (`home`) the player
 |---|---|
 | `home` → `playing` | Player clicks "Play" — goes straight into a fresh run, no intermediate screen |
 | `playing` → `gameover` | Station overflow (core/logic.md §3), unchanged |
-| `gameover` → `home` | Player clicks "Back to Home" |
+| `gameover` → `home` | Player clicks the game over card's corner close icon (`metro.md` §8) |
 
 ## Content (current scope)
 

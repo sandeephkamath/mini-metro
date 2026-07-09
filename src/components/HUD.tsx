@@ -235,13 +235,15 @@ export function HUD({
       }}>
         <span data-testid="hud-week">Week {weekNumber}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <SpeedControls
-            playerPaused={playerPaused}
-            playerSpeedMultiplier={playerSpeedMultiplier}
-            onPause={onPause}
-            onPlayNormal={onPlayNormal}
-            onFastForward={onFastForward}
-          />
+          {CONFIG.PLAYER_SPEED_CONTROLS_ENABLED && (
+            <SpeedControls
+              playerPaused={playerPaused}
+              playerSpeedMultiplier={playerSpeedMultiplier}
+              onPause={onPause}
+              onPlayNormal={onPlayNormal}
+              onFastForward={onFastForward}
+            />
+          )}
           <ClockBadge weekProgress={weekProgress} overflowRiskActive={overflowRiskActive} />
           <span data-testid="hud-score" style={{ fontSize: '22px', fontWeight: 'bold' }}>{score}</span>
         </div>

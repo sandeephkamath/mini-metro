@@ -4,7 +4,6 @@ import { PictureReveal } from './PictureReveal';
 
 interface GameOverScreenProps {
   score: number;
-  level: number;
   weekNumber: number;
   bestWeeksSurvived: number;
   isNewBest: boolean;
@@ -14,7 +13,7 @@ interface GameOverScreenProps {
 }
 
 export function GameOverScreen({
-  score, level, weekNumber, bestWeeksSurvived, isNewBest, leaderboardResult, pictureRevealSegments, onRestart,
+  score, weekNumber, bestWeeksSurvived, isNewBest, leaderboardResult, pictureRevealSegments, onRestart,
 }: GameOverScreenProps) {
   return (
     <div style={{
@@ -27,6 +26,7 @@ export function GameOverScreen({
       zIndex: 20,
     }}>
       <div style={{
+        position: 'relative',
         background: '#fff',
         borderRadius: '12px',
         padding: '40px 48px',
@@ -34,17 +34,43 @@ export function GameOverScreen({
         textAlign: 'center',
         minWidth: 280,
       }}>
-        <h2 style={{ margin: '0 0 4px', color: '#e74c3c', fontFamily: 'monospace', fontSize: '1.8rem' }}>Game Over</h2>
-        <p style={{ color: '#666', margin: '0 0 16px' }}>A station overflowed</p>
-        <div style={{ fontSize: '3rem', fontWeight: 'bold', fontFamily: 'monospace', marginBottom: 8 }}>{score}</div>
-        <div style={{ color: '#888', marginBottom: 8 }}>passengers delivered · Level {level}</div>
+        <button
+          onClick={onRestart}
+          aria-label="Close"
+          title="Close"
+          style={{
+            position: 'absolute',
+            top: -14,
+            right: -14,
+            width: 30,
+            height: 30,
+            borderRadius: '50%',
+            background: '#fff',
+            border: '1px solid #333',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0,
+            cursor: 'pointer',
+            fontSize: 16,
+            lineHeight: 1,
+            color: '#333',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+          }}
+        >
+          ×
+        </button>
+        <h2 style={{ margin: '0 0 4px', color: '#e74c3c', fontFamily: 'monospace', fontSize: '1.8rem' }}>Game over</h2>
+        <p style={{ color: '#666', margin: '0 0 16px' }}>A station overflowed.</p>
+        <div style={{ fontSize: '3rem', fontWeight: 'bold', fontFamily: 'monospace', marginBottom: 4 }}>{score}</div>
+        <div style={{ color: '#888', marginBottom: 12 }}>passengers delivered</div>
         {isNewBest ? (
           <div style={{ color: '#e67e22', fontWeight: 'bold', fontFamily: 'monospace', marginBottom: 8 }}>
-            New Best! Week {weekNumber}
+            New best — Week {weekNumber}
           </div>
         ) : (
           <div style={{ color: '#aaa', fontSize: '0.85rem', marginBottom: 8 }}>
-            You survived to Week {weekNumber} — Personal Best is Week {Math.floor(bestWeeksSurvived)}
+            Reached Week {weekNumber} · Best: Week {Math.floor(bestWeeksSurvived)}
           </div>
         )}
         {leaderboardResult && (
@@ -54,21 +80,6 @@ export function GameOverScreen({
           </div>
         )}
         {pictureRevealSegments && <PictureReveal segments={pictureRevealSegments} />}
-        <button
-          onClick={onRestart}
-          style={{
-            background: '#3498db',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '12px 32px',
-            fontSize: '16px',
-            cursor: 'pointer',
-            fontFamily: 'monospace',
-          }}
-        >
-          Back to Home
-        </button>
       </div>
     </div>
   );

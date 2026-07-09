@@ -246,6 +246,7 @@ export function GameCanvas() {
           }
           onAccept={acceptAdOffer}
           onDecline={declineAdOffer}
+          closeIconOnly={adFlow.kind === 'continue'}
         />
       )}
 
@@ -272,7 +273,6 @@ export function GameCanvas() {
       {phase === 'gameover' && (
         <GameOverScreen
           score={score}
-          level={level}
           weekNumber={weekNumber}
           bestWeeksSurvived={metaProgression.bestWeeksSurvived}
           isNewBest={isNewBest}

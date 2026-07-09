@@ -147,13 +147,13 @@ export async function startGame(page: Page) {
 }
 
 export async function restartGame(page: Page) {
-  await page.getByText('Back to Home').click();
+  await page.getByRole('button', { name: 'Close' }).click();
   await startGame(page);
 }
 
 export async function getPhase(page: Page): Promise<'home' | 'playing' | 'gameover'> {
   if (await page.getByRole('button', { name: 'Play' }).isVisible().catch(() => false)) return 'home';
-  if (await page.getByText('Back to Home').isVisible().catch(() => false)) return 'gameover';
+  if (await page.getByText('Game over').isVisible().catch(() => false)) return 'gameover';
   return 'playing';
 }
 

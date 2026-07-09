@@ -158,6 +158,7 @@ These are the concrete values for the tunable parameters defined abstractly in `
 | Station hit radius | 20 px | For starting a drag, and for capturing Stations into the provisional chain mid-drag (precise — core §4) |
 | Station drop radius | 40 px | For completing a drag (more forgiving than starting one — core §4); the nearest in-range Station wins if several are in range |
 | Line segment hit radius | 10 px | For grabbing a mid-Line segment (insertion drag) |
+| Player Speed Controls enabled | `false` | Whether the HUD's Pause/Play/Fast-Forward control (core §6) is shown at all — a build-time flag, not a player-facing setting. When `false`, the HUD omits the control entirely and the clock always runs at normal speed outside of a Milestone Event Choice. |
 
 All drawing hit radii above (end marker, station hit/drop, line segment) are **screen-space** values per core §4: below 1× camera zoom, the world-space radius grows by 1/zoom so targets keep their intended on-screen size; at or above 1× the base value is used as-is.
 
@@ -232,8 +233,8 @@ Rules:
 | Phase | What the player sees |
 |-------|---------------------|
 | home | Top-level landing phase shown before a run begins — see `home_screen.md` |
-| playing | Full canvas + HUD (score, Week number, day-of-week/clock indicator showing progress through the current week, Pause/Play/Fast-Forward controls, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) + ad-offer/simulated-ad/bonus-choice popups when the On-Demand Bonus Request is used (§4.2). The HUD has no background band of its own — its elements sit directly over the canvas, each self-contained (its own colored badge/button/icon) or dark-on-cream text, rather than the top/bottom strips resting on a shared translucent bar. |
-| gameover | Reached only once no Game-Over Continue was available or one was declined/failed (§4.2) — canvas dimmed, game over overlay with final score, Weeks Survived, and restart button, plus Best Weeks Survived / Picture progress — see §9 |
+| playing | Full canvas + HUD (score, Week number, day-of-week/clock indicator showing progress through the current week, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked, and the Pause/Play/Fast-Forward control when the build-time flag for it is enabled — §5, off by default) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) + ad-offer/simulated-ad/bonus-choice popups when the On-Demand Bonus Request is used (§4.2). The HUD has no background band of its own — its elements sit directly over the canvas, each self-contained (its own colored badge/button/icon) or dark-on-cream text, rather than the top/bottom strips resting on a shared translucent bar. |
+| gameover | Reached only once no Game-Over Continue was available or one was declined/failed (§4.2) — canvas dimmed, game over overlay with final score and Weeks Survived (no Level shown — Level is not a meta-progression metric, per `core/meta_progression.md`), plus Best Weeks Survived / Picture progress (§9) and an icon-only corner close control (same pattern as the Collectibles Screen/Detail View, §9.3.2) that returns to `home` |
 
 Clicking Play on the `home` phase goes directly to `playing` — there is no intermediate instructions overlay. Best Weeks Survived, the current Picture, and the Collection gallery entry point (§9) live on the `home` phase — see `home_screen.md`.
 
@@ -252,8 +253,8 @@ Metro's concrete instantiation of `../core/meta_progression.md`.
 ### 9.2 Best Weeks Survived
 
 - Shown on the home screen: "Best: Week 12".
-- Shown on the game-over screen: "You survived to Week 8 — Personal Best is Week 12".
-- If the just-finished session's Final Weeks Survived exceeds the previous Best Weeks Survived, the game-over screen instead shows a distinct "New Best!" callout.
+- Shown on the game-over screen: "Reached Week 8 · Best: Week 12".
+- If the just-finished session's Final Weeks Survived exceeds the previous Best Weeks Survived, the game-over screen instead shows a distinct "New best — Week 12" callout.
 - These summary lines round down to the whole week reached, matching the HUD's own Week display — the day-of-week fraction isn't shown here, only used internally for Accumulated Progress precision (§9.3).
 
 ### 9.3 Picture Collection
@@ -337,7 +338,7 @@ Metro's concrete instantiation of `../core/meta_progression.md` §7–§8.
 - **Sign-in**: attempted silently, once, on app launch — Play Games sign-in first, using the device's existing Google account, then that identity is used to authorize the Firebase connection. No sign-in prompt or button is ever shown at any point. If either step doesn't succeed (no Google account, Play Games unavailable, player has never used Play Games), the game proceeds normally for that session with the Leaderboard hidden; the next attempt is on the next app launch, not retried mid-session.
 - **Development/testing identity**: what the Leaderboard's Firebase backend actually requires is a Firebase-authenticated user — Play Games Sign-In is the *production* way to obtain one, but Firebase's own "Sign in with Google" provider (a browser-compatible popup flow, distinct from Play Games' native Games Sign-In) produces the same kind of Firebase user and works in a plain web browser. This lets the entire Leaderboard — Firestore schema, security rules, submission, rank queries, UI — be built and tested on web well before Android packaging happens. This path is debug-only (`DEBUG.md` § Debug Leaderboard Sign-In) and never reachable by a real player; the availability condition above (Android build + Play Games sign-in) is what every non-debug session follows.
 - **Submission**: at the end of every session (the same moment local Best Weeks Survived and Picture progress, §9.2–§9.4, are updated), that session's Final Weeks Survived is written directly to Firebase from the client. Because there's no dedicated server, nothing beyond Firebase's security rules verifies a submission is legitimate — see `memo.md` § Leaderboard for the accepted score-integrity risk this implies.
-- **Game-over display**: when available, the game-over screen additionally shows the player's current rank beneath the Best Weeks Survived line, e.g. "#4,382 of 61,203 players". If this session's submission improved the player's rank, this appears alongside the existing "New Best!" callout (§9.2) rather than as a separate celebration.
+- **Game-over display**: when available, the game-over screen additionally shows the player's current rank beneath the Best Weeks Survived line, e.g. "#4,382 of 61,203 players". If this session's submission improved the player's rank, this appears alongside the existing "New best" callout (§9.2) rather than as a separate celebration.
 - **Home screen display**: see `home_screen.md` § Leaderboard.
 
 Configuration values:

@@ -175,6 +175,10 @@ export const CONFIG = {
   TUTORIAL_PULSE_MS: 1000, // highlight halo pulse period (wall-time driven)
   TUTORIAL_HINT_LOOP_MS: 1500, // gesture-hint dot traversal time (wall-time driven)
 
+  // Player-facing Pause/Play/Fast-Forward HUD control (core/logic.md §6, themes/metro.md §5) —
+  // build-time flag, not a player setting. Off by default; flip to true to ship the control.
+  PLAYER_SPEED_CONTROLS_ENABLED: false,
+
   SHAPE_COLORS: {
     circle:   '#e74c3c',
     triangle: '#3498db',

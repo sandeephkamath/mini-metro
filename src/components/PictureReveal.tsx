@@ -97,8 +97,6 @@ export function PictureReveal({ segments }: PictureRevealProps) {
   if (!segment) return null;
 
   const percent = Math.round((displayProgress / segment.required) * 100);
-  const totalContribution = segments.reduce((sum, s) => sum + (s.endProgress - s.startProgress), 0);
-  const contributionLabel = Math.round(totalContribution * 10) / 10;
 
   return (
     <div style={{ marginTop: 20, marginBottom: 8 }}>
@@ -109,9 +107,8 @@ export function PictureReveal({ segments }: PictureRevealProps) {
         style={{ borderRadius: 8, display: 'block', margin: '0 auto 8px', background: CONFIG.PICTURE_BG_COLOR }}
       />
       <div style={{ fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'monospace' }}>{percent}% revealed</div>
-      <div style={{ color: '#999', fontSize: '0.85rem' }}>+{contributionLabel} weeks</div>
       {justCompleted && (
-        <div style={{ color: '#2ecc71', fontWeight: 'bold', marginTop: 4 }}>Picture Complete!</div>
+        <div style={{ color: '#2ecc71', fontWeight: 'bold', marginTop: 4 }}>Picture complete!</div>
       )}
     </div>
   );

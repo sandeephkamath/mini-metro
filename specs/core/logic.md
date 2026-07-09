@@ -189,7 +189,7 @@ All timers use game time, not wall time. Game time advances only while the game 
 
 Two independent things can pause the clock — a Milestone Event Choice being presented (§3) and the player's own Pause control — either one freezes every timer via the same mechanism; nothing else about the game (drawing/editing Routes, panning/zooming the camera) is blocked while paused.
 
-The player may also run the clock at a faster rate than normal (Fast-Forward) rather than only pausing it. Pause, normal speed, and Fast-Forward are three mutually exclusive states the player can select at any time during play — selecting a speed while paused resumes the clock at that speed. This is a normal, always-available player control, not a debug/QA-only feature.
+The player may also run the clock at a faster rate than normal (Fast-Forward) rather than only pausing it. Pause, normal speed, and Fast-Forward are three mutually exclusive states the player can select at any time during play — selecting a speed while paused resumes the clock at that speed. This is a normal player control, not a debug/QA-only feature — but whether it is actually shown in the HUD is gated by a build-time configuration flag (theme config; defaults to disabled). While disabled, the clock simply always runs at normal speed and only the Milestone-Event-Choice pause applies; enabling the flag does not change the mechanism described above.
 
 ---
 
