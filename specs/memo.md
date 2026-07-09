@@ -58,18 +58,15 @@ Touch input and responsive sizing are now implemented (`useMouseInput.ts`, `Game
 
 Still a real gap, not addressed: the internal canvas resolution stays fixed at 800×600 regardless of `devicePixelRatio` — on a high-DPI phone the game renders correctly-scaled but not at native sharpness (no supersampling). There's also no portrait-specific HUD layout — the rotate-to-fill above means the existing HUD just rotates along with everything else rather than being redesigned for a tall narrow screen.
 
-### Android Packaging (decision pending)
+### Android Packaging (decided 2026-07-09: Capacitor)
 
-Game is planned to ship as an Android app eventually. Packaging mechanism not yet decided — do not start packaging work until this is resolved. Web app must remain a fully supported, undiverged target regardless of which option is picked.
+Game ships as an Android app via **Capacitor** — wraps the existing Vite build in a native WebView shell, reuses `src/render/` and all game logic untouched, produces a real Play Store APK/AAB. Web app remains the fully supported, undiverged primary target; the `android/` native project is a packaging layer on top, not a fork.
 
-Ruled out: full native Android (Kotlin/Java) rewrite, Trusted Web Activity, and PWA-only install — not feasible/not being considered.
+App ID: `com.lovoctech.trainpuzzle`. Display name: "Train Puzzle".
 
-Remaining options:
-- **Capacitor** — wraps the existing Vite build in a native WebView shell; reuses `src/render/` and all game logic untouched; produces a real Play Store APK/AAB. Lowest effort, no renderer fork.
-- **React Native + `react-native-webview`** — embeds the same web build inside an RN shell. Functionally equivalent to Capacitor with extra RN ecosystem overhead for no clear gain; not a distinct option so much as a strictly heavier version of Capacitor.
-- **React Native + native rendering** (e.g. `react-native-skia`) — true native rendering/feel, but requires rewriting `src/render/` entirely (RN has no HTML canvas) and maintaining two divergent renderers (canvas for web, Skia for Android) going forward.
+Ruled out: full native Android (Kotlin/Java) rewrite, Trusted Web Activity, and PWA-only install — not feasible/not being considered. Also ruled out over Capacitor: React Native + `react-native-webview` (functionally equivalent, extra RN overhead for no gain) and React Native + native rendering e.g. `react-native-skia` (requires rewriting `src/render/` entirely and maintaining two divergent renderers going forward). Revisit only if a concrete reason to prefer React Native shows up later (native perf requirement, RN plugin ecosystem need, business reason to standardize on RN) — not preemptively.
 
-Working lean: Capacitor, since it's the only remaining option that doesn't fork the render layer — but no commitment yet. Revisit once there's a concrete reason to prefer React Native (native perf requirement, RN plugin ecosystem need, or a business reason to standardize on RN).
+Real dependency: an Android Studio / Android SDK install is required to actually build or run the `.apk` locally (Capacitor's Gradle wrapper needs it); scaffolding the `android/` project itself does not.
 
 ## Camera / Zoom
 
@@ -89,7 +86,7 @@ Working lean: Capacitor, since it's the only remaining option that doesn't fork 
 - Rank query is decided: `getCountFromServer` (Firestore's aggregation-query API) counting players with a strictly higher score, no dedicated server — resolves the "not yet decided" note this bullet used to carry.
 - Score-integrity check lives entirely in `firestore.rules`: rejects a submission that regresses the stored value or falls outside `[0, 100000)` — the client (`src/firebase/leaderboard.ts`) never compares against the previous value itself, per spec.
 - **Follow-up, not urgent**: adding the `firebase` package pushed the production JS bundle from ~277KB to ~847KB (gzip ~85KB → ~254KB), past Vite's 500KB chunk-size warning. Worth revisiting with a dynamic `import()` of the Firebase modules (only loaded on first debug sign-in / Leaderboard use) if bundle size ever becomes a real concern — not done now since nothing about this stage requires it.
-- **Remaining packaging dependency**: only the *production identity* swap (Play Games Services) is gated by the still-undecided Android packaging approach (React Native vs. Capacitor/WebView wrapper vs. Trusted Web Activity). A plain Trusted Web Activity/PWA wrapper has no straightforward path to the native Play Games Services SDK, which pushes the packaging decision toward something with native plugin access (e.g. Capacitor with a Play Games plugin, or React Native) if the Leaderboard is a hard requirement — worth weighing explicitly whenever that decision is made, not before. Firebase itself places no such requirement — its JS SDK works from any web context, including inside a WebView.
+- **Remaining packaging dependency**: only the *production identity* swap (Play Games Services) still needs work now that packaging is decided (Capacitor, see Android Packaging section above) — Capacitor has native plugin access, so a Play Games Services Capacitor plugin is the path; not yet integrated. Firebase itself places no such requirement — its JS SDK works from any web context, including inside a WebView.
 - **No server-side score validation beyond Firestore Security Rules.** Accepted deliberately for now (move-fast philosophy) — revisit only if leaderboard abuse actually shows up after launch, not preemptively.
 - Web sessions never see a Leaderboard at all (by design, per the spec) — this is not a gap to fill, just a permanent asymmetry between the web and Android builds.
 
