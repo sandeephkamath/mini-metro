@@ -1,7 +1,7 @@
 # Progression & Difficulty Specification
 
-**Version**: 2.2
-**Last updated**: 2026-07-08
+**Version**: 2.3
+**Last updated**: 2026-07-09
 **Extends**: `./logic.md`
 
 This document defines the theme-neutral rules that govern pacing and difficulty: how often Nodes and Resources spawn, how that rate changes over time, and how Route/Carrier unlocks progress. It is the tuning layer that sits between the fixed mechanics in `logic.md` and each theme's concrete numbers (e.g. `themes/metro.md` §5 Configuration Values). It contains no concrete numbers of its own and no rendering/UI references — only the shape of each rule and the parameters a theme must supply.
@@ -73,17 +73,18 @@ If a Node has no valid destination type anywhere on the map, its spawn attempt i
 
 ## 3. Effective Waiting Budget (derived, not a separate mechanic)
 
-There is no explicit "max wait timer" on a Resource or a Node — Node Overflow (core §3) already ends the game once a Node's queue exceeds its capacity. The amount of time a Resource can realistically wait before its Node risks overflow is a *derived* quantity, not a rule of its own:
+Node Overflow (core §3) has two independent triggers into Overflow Risk: a Node's queue reaching capacity, and any single Resource waiting past the Patience Duration (§5) regardless of queue length. The capacity-driven trigger has no "max wait timer" of its own — the amount of time a Resource can realistically wait before its Node *reaches* capacity in the first place is a *derived* quantity, not a rule of its own:
 
 ```
 effective wait budget ≈ Node capacity ÷ (Resource arrival rate at that Node − relief rate from Carriers serving it)
 ```
 
-This section exists so difficulty can be reasoned about in terms of "how long can a Resource wait before things get dangerous," by adjusting the upstream parameters below rather than adding a new failure condition:
+This section exists so difficulty can be reasoned about in terms of "how long can a Resource wait before things get dangerous on a busy Node," by adjusting the upstream parameters below rather than adding a new failure condition:
 
 - Raising Node capacity, slowing Resource spawn rate, or unlocking Routes/Carriers sooner all increase tolerable wait.
 - Lowering Node capacity, speeding up Resource spawn decay, or leaving a Node poorly served all decrease it.
 - This derived budget describes the time before a Node *reaches* capacity in the first place. Once it does, the explicit Grace Timer (§5) takes over and governs how much longer the Node can stay over capacity before the game ends — the two are sequential, not overlapping: the wait budget above ends exactly where the Grace Timer begins.
+- The Patience Duration trigger (§5) is unrelated to this derived budget — it is a flat, explicit ceiling that applies even to a Node whose queue never comes close to capacity (e.g. a Node connected by a Route so indirect or infrequent that one Resource sits unboarded far longer than any of its neighbors, without ever being joined by enough others to trip the capacity trigger).
 
 ---
 
@@ -103,15 +104,16 @@ A fixed number of Routes are unlocked at game start (core §2 Route). Additional
 
 ---
 
-## 5. Overflow Grace Period
+## 5. Overflow Risk Triggers & Grace Period
 
-Node Overflow (core §3) does not end the game the instant a Node reaches capacity — a Grace Timer (core §3 Node Overflow) gives the player a window to relieve it first.
+Node Overflow (core §3) does not end the game the instant a Node enters Overflow Risk — a Grace Timer (core §3 Node Overflow) gives the player a window to relieve it first, regardless of which of the two triggers below started it.
 
 | Parameter | Meaning |
 |-----------|---------|
 | Grace Duration (base) | How long a Node's Grace Timer runs, before the game ends |
+| Patience Duration | How long any single Resource may sit in a Node's queue before that alone puts the Node into Overflow Risk, independent of queue length |
 
-Grace Duration is fixed for the entire session — nothing in core increases or decreases it once the session starts.
+Grace Duration and Patience Duration are each fixed for the entire session — nothing in core increases or decreases either once the session starts.
 
 ---
 
@@ -160,6 +162,7 @@ All parameters named above, in one place. A theme fills these in as concrete val
 | Total Route count | Ceiling on player capability |
 | Route unlock step | How quickly Route access scales with map growth |
 | Node capacity | Queue size before a Node enters Overflow Risk |
+| Patience Duration | How long a single Resource can wait before it alone triggers Overflow Risk |
 | Grace Duration (base) | How long a Node can stay over capacity before the game ends |
 | Milestone Event interval | How often the player gets a free Reserve item |
 | Milestone bonus mode | Whether relief is auto-granted or player-chosen |
@@ -169,7 +172,7 @@ All parameters named above, in one place. A theme fills these in as concrete val
 
 ## 8. Tuning Guidance
 
-- **Easier**: increase Node capacity, increase Grace Duration (base), increase Resource spawn base interval/floor or slow the decay rate, lower the batch base/max fraction or slow the batch growth rate, push Node type unlock weeks later (or raise the initial unlocked count so there's less to learn later), increase initial unlocked Routes or lower the Route unlock step, shorten the Milestone Event interval, raise the Reserve Carriage capacity bonus.
-- **Harder**: the inverse of the above — lower Node capacity, shorter Grace Duration, faster Resource spawn decay, higher batch base/max fraction or faster batch growth rate, pull Node type unlock weeks earlier, fewer starting Routes or a higher Route unlock step, longer Milestone Event interval.
+- **Easier**: increase Node capacity, increase Patience Duration, increase Grace Duration (base), increase Resource spawn base interval/floor or slow the decay rate, lower the batch base/max fraction or slow the batch growth rate, push Node type unlock weeks later (or raise the initial unlocked count so there's less to learn later), increase initial unlocked Routes or lower the Route unlock step, shorten the Milestone Event interval, raise the Reserve Carriage capacity bonus.
+- **Harder**: the inverse of the above — lower Node capacity, shorter Patience Duration, shorter Grace Duration, faster Resource spawn decay, higher batch base/max fraction or faster batch growth rate, pull Node type unlock weeks earlier, fewer starting Routes or a higher Route unlock step, longer Milestone Event interval.
 - Auto mode is generally the gentler, more predictable pacing choice; Choice mode adds strategic depth (and a pause point) but puts bonus-allocation judgment on the player, which can be harder for a first-time player under time pressure.
-- Changing any single lever shifts the effective waiting budget (§3) or the Grace Period (§5) rather than the game's win/loss rules — the mechanics in `logic.md` stay fixed regardless of how these values are tuned.
+- Changing any single lever shifts the effective waiting budget (§3) or the Grace Period (§5) rather than the game's win/loss rules — the mechanics in `logic.md` stay fixed regardless of how these values are tuned. Patience Duration is the one lever that bypasses the derived waiting-budget math entirely (§3) — it caps a single Resource's wait directly.

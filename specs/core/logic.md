@@ -1,7 +1,7 @@
 # Core Logic Specification
 
-**Version**: 1.6
-**Last updated**: 2026-07-08
+**Version**: 1.7
+**Last updated**: 2026-07-09
 
 This document defines the game's mechanics in theme-neutral terms. Themes extend this document by mapping these abstract concepts to named entities and providing configuration values.
 
@@ -33,6 +33,7 @@ A unit waiting at a Node with a desired destination type different from the Node
 - The destination type must be a type that exists on the map; otherwise the spawn is skipped.
 - Resources wait in a FIFO queue at their Node.
 - A Resource is delivered when it arrives at a Node whose type matches its destination type. Delivery scores one point.
+- A Resource's wait clock starts the instant it is added to a Node's queue — whether by spawning there or by transferring off a Carrier — and resets whenever it is added to a different Node's queue. It does not advance while the Resource is aboard a Carrier.
 
 ### Route
 
@@ -99,13 +100,13 @@ Boarding happens just before the Carrier departs, not on arrival. This separatio
 
 ### Node Overflow
 
-After every game tick, each Node is checked against its maximum capacity. Reaching capacity is not immediately fatal — it starts a grace window:
+After every game tick, each Node is checked against two independent conditions: its maximum capacity, and how long the Resources currently in its queue have been waiting there. Either one is enough to put the Node at risk, and neither is immediately fatal — either starts the same grace window:
 
-- **Entering risk**: the instant a Node's queue length reaches or exceeds its maximum capacity, the Node enters **Overflow Risk** and a Grace Timer starts counting down from the Grace Duration (`progression.md` §5).
-- **Recovery**: if the queue length drops back below capacity while the Grace Timer is still running, Overflow Risk ends immediately and the Grace Timer is discarded — a later crossing back over capacity starts a brand-new Grace Timer at full duration, never resuming a discarded one.
-- **Expiry**: if the Grace Timer reaches zero while the Node is still at or over capacity, the game ends — unless a Game-Over Continue offer is available and used (`monetization.md` § Game-Over Continue), in which case the session resumes instead: every Node currently in Overflow Risk is relieved (queue trimmed back under capacity, excess Resources discarded, Grace Timer discarded) as part of accepting that offer.
+- **Entering risk**: the instant a Node's queue length reaches or exceeds its maximum capacity, *or* any Resource in its queue has been waiting (§2 Resource) at least the Patience Duration (`progression.md` §5), the Node enters **Overflow Risk** and a Grace Timer starts counting down from the Grace Duration (`progression.md` §5). If the Node was already in Overflow Risk when the other condition also becomes true, the existing Grace Timer keeps counting down unaffected — it does not reset or extend.
+- **Recovery**: Overflow Risk ends immediately, discarding the Grace Timer, the instant *neither* condition holds any longer — the queue length has dropped back below capacity *and* no Resource remaining in the queue has waited past the Patience Duration. A later crossing of either condition starts a brand-new Grace Timer at full duration, never resuming a discarded one.
+- **Expiry**: if the Grace Timer reaches zero while at least one of the two conditions still holds, the game ends — unless a Game-Over Continue offer is available and used (`monetization.md` § Game-Over Continue), in which case the session resumes instead: every Node currently in Overflow Risk is relieved (queue trimmed back under capacity, excess Resources discarded, Grace Timer discarded) as part of accepting that offer.
 - Each Node's Grace Timer is independent — multiple Nodes can be in Overflow Risk at once, each on its own countdown.
-- Grace Duration is fixed for the whole session (`progression.md` §5) — nothing increases or decreases it once a session starts.
+- Grace Duration and Patience Duration are each fixed for the whole session (`progression.md` §5) — nothing increases or decreases either once a session starts.
 
 ### Milestone Events
 

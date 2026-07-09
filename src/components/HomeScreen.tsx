@@ -348,8 +348,8 @@ export function HomeScreen({
           whiteSpace: 'nowrap',
           animation: 'mmFadeUp 0.7s ease-out both',
         }}>
-          <span style={{ fontWeight: 400 }}>MINI</span>
-          <span style={{ fontWeight: 800, marginLeft: '0.35em' }}>METRO</span>
+          <span style={{ fontWeight: 400 }}>TRAIN</span>
+          <span style={{ fontWeight: 800, marginLeft: '0.35em' }}>PUZZLE</span>
         </h1>
 
         <div style={{ display: 'flex', gap: 14, alignItems: 'center', margin: '18px 0 14px' }}>
@@ -430,60 +430,67 @@ export function HomeScreen({
           PLAY
         </div>
 
-        <div style={{
-          marginTop: 30,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 10,
-          pointerEvents: 'auto',
-          animation: 'mmFadeUp 0.7s ease-out 0.85s both',
-        }}>
-          {bestWeeksSurvived > 0 && (
-            <div style={{ fontFamily: fontStack, fontSize: 13, color: '#6b6459' }}>
-              Best: Week {Math.floor(bestWeeksSurvived)}
-            </div>
-          )}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+        {leaderboardIdentity && (
+          <div style={{
+            marginTop: 30,
+            pointerEvents: 'auto',
+            animation: 'mmFadeUp 0.7s ease-out 0.85s both',
+          }}>
             <button
-              onClick={() => setShowCollectibles(true)}
-              aria-label="View Collectibles"
-              title="View Collectibles"
+              onClick={() => setShowLeaderboard(true)}
               style={{
-                width: 34,
-                height: 34,
-                borderRadius: '50%',
-                background: '#fff',
+                background: 'none',
                 border: `1px solid ${INK}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 0,
+                borderRadius: 6,
+                padding: '5px 14px',
+                fontSize: 12,
+                fontFamily: fontStack,
+                color: INK,
                 cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
               }}
             >
-              <CollectiblesIcon color={INK} />
+              View Leaderboard
             </button>
-            {leaderboardIdentity && (
-              <button
-                onClick={() => setShowLeaderboard(true)}
-                style={{
-                  background: 'none',
-                  border: `1px solid ${INK}`,
-                  borderRadius: 6,
-                  padding: '5px 14px',
-                  fontSize: 12,
-                  fontFamily: fontStack,
-                  color: INK,
-                  cursor: 'pointer',
-                }}
-              >
-                View Leaderboard
-              </button>
-            )}
           </div>
-        </div>
+        )}
+      </div>
+
+      <div style={{
+        position: 'absolute',
+        top: 18,
+        right: 18,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        gap: 8,
+        pointerEvents: 'auto',
+        animation: 'mmFadeUp 0.7s ease-out 0.85s both',
+      }}>
+        {bestWeeksSurvived > 0 && (
+          <div style={{ fontFamily: fontStack, fontSize: 13, color: '#6b6459' }}>
+            Best: Week {Math.floor(bestWeeksSurvived)}
+          </div>
+        )}
+        <button
+          onClick={() => setShowCollectibles(true)}
+          aria-label="View Collectibles"
+          title="View Collectibles"
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: '50%',
+            background: '#fff',
+            border: `1px solid ${INK}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0,
+            cursor: 'pointer',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+          }}
+        >
+          <CollectiblesIcon color={INK} />
+        </button>
       </div>
 
       {showCollectibles && (

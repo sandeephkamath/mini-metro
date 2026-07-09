@@ -1,16 +1,23 @@
 import type { GameState } from '../types/game';
+import { CONFIG } from '../config/gameConfig';
 import { canOfferContinue, offerGameOverContinue } from './monetization';
 
-// A station at or over capacity enters Overflow Risk and starts a Grace Timer
-// instead of ending the game immediately. Dropping back under capacity discards
-// the timer; letting it reach zero while still over capacity ends the game —
-// unless a Game-Over Continue is available, in which case an ad offer is
-// presented instead (core/monetization.md §3) and the game doesn't end yet.
+// A station at or over capacity, OR with any single passenger waiting past the
+// Passenger Patience Limit, enters Overflow Risk and starts a Grace Timer instead
+// of ending the game immediately (core/logic.md §3 Node Overflow — two independent
+// triggers, one shared Grace Timer). Dropping under capacity AND below the patience
+// limit discards the timer; letting it reach zero while either condition still
+// holds ends the game — unless a Game-Over Continue is available, in which case an
+// ad offer is presented instead (core/monetization.md §3) and the game doesn't end yet.
 export function updateOverflowRisk(state: GameState, dt: number): void {
   for (const station of Object.values(state.stations)) {
     const overCapacity = station.passengerQueue.length >= station.maxCapacity;
+    const passengerOverstaying = station.passengerQueue.some(
+      p => state.gameTimeMs - p.queuedAtMs >= CONFIG.PASSENGER_PATIENCE_LIMIT_MS,
+    );
+    const atRisk = overCapacity || passengerOverstaying;
 
-    if (!overCapacity) {
+    if (!atRisk) {
       station.riskTimer = null;
       continue;
     }

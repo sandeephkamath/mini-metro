@@ -254,7 +254,11 @@ export function GameCanvas() {
       {adFlow?.stage === 'choice' && (
         <BonusChoiceModal title="Choose your reward" subtitle="Pick one" onChoose={resolveAdBonusChoice} />
       )}
+    </div>
 
+      {/* Rendered upright as a sibling of the rotated inner div, not inside it —
+          unlike the canvas/HUD, these overlays are never meant to rotate with
+          the device (themes/metro.md §6.1 scopes rotation to canvas+HUD only). */}
       {phase === 'home' && (
         <HomeScreen
           onPlay={handleStartGame}
@@ -277,7 +281,6 @@ export function GameCanvas() {
           onRestart={handleGoHome}
         />
       )}
-    </div>
     </div>
   );
 }

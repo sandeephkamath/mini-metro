@@ -103,6 +103,7 @@ export const CONFIG = {
   MILESTONE_EVENT_WEEKS: 5, // Milestone Event (Weekly Upgrade) fires every this-many weeks, not every week
 
   RISK_TIMER_BASE_MS: 8000, // Grace Duration for the whole session — fixed, no bonus increases it (core/monetization.md)
+  PASSENGER_PATIENCE_LIMIT_MS: 30000, // Patience Duration — a single Passenger waiting this long alone triggers Station at Risk (core/logic.md §3 Node Overflow)
   CARRIAGE_CAPACITY_BONUS: 2, // passenger capacity added by attaching a Depot Carriage
   CARRIAGE_GAP: 2, // px gap between a Train's linked carriage boxes
   MILESTONE_BONUS_MODE: 'choice' as const, // 'auto' | 'choice' — see core/progression.md §6.1

@@ -1,6 +1,6 @@
 # Metro Theme Specification
 
-**Version**: 3.16
+**Version**: 3.17
 **Last updated**: 2026-07-09
 **Extends**: `../core/logic.md`, `../core/meta_progression.md`, `../core/monetization.md`
 
@@ -25,6 +25,7 @@ This document defines the Metro theme. It maps core abstract concepts to metro t
 | Reserve Carriage | Depot Carriage |
 | Overflow Risk | Station at Risk |
 | Grace Timer | Risk Timer |
+| Patience Duration | Passenger Patience Limit |
 
 ---
 
@@ -107,6 +108,7 @@ These are the concrete values for the tunable parameters defined abstractly in `
 | Camera max zoom | 2.5× | Manual zoom-in ceiling |
 | Camera auto-fit padding | 120 px | Margin kept around all Stations when auto-fitting |
 | Station capacity | 6 passengers | Per station; queue length that triggers Station at Risk |
+| Passenger Patience Limit | 30 000 ms | How long a single Passenger may wait at a Station before that alone triggers Station at Risk, regardless of queue length |
 | Train capacity | 6 passengers | Base; upgradeable via Depot Carriage |
 | Train speed | 90 px/s | |
 | Station stop duration | 1 200 ms | |
