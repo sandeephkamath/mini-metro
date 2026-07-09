@@ -14,6 +14,7 @@ interface HomeScreenProps {
   collectionSize: number;
   currentPictureProgress: number;
   leaderboardIdentity: LeaderboardIdentity | null; // metro.md §9.6 — only non-null once available
+  onSignIn: () => void; // interim Google Sign-In (metro.md §9.6) — real, player-facing for now
 }
 
 const BG = '#f5f0e8';
@@ -253,8 +254,20 @@ function CollectiblesIcon({ color }: { color: string }) {
   );
 }
 
+// A plain person-in-circle glyph for the interim "Sign In" control (home_screen.md
+// § Content, metro.md §9.6) — generic account iconography, not a Google brand mark.
+function SignInIcon({ color }: { color: string }) {
+  return (
+    <svg width="13" height="13" viewBox="0 0 13 13">
+      <circle cx="6.5" cy="6.5" r="5.8" fill="none" stroke={color} strokeWidth="1.3" />
+      <circle cx="6.5" cy="5" r="1.9" fill="none" stroke={color} strokeWidth="1.3" />
+      <path d="M2.2 10.6C2.9 8.7 4.5 7.7 6.5 7.7s3.6 1 4.3 2.9" fill="none" stroke={color} strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function HomeScreen({
-  onPlay, bestWeeksSurvived, collectionSize, currentPictureProgress, leaderboardIdentity,
+  onPlay, bestWeeksSurvived, collectionSize, currentPictureProgress, leaderboardIdentity, onSignIn,
 }: HomeScreenProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -514,26 +527,50 @@ export function HomeScreen({
             Best: Week {Math.floor(bestWeeksSurvived)}
           </div>
         )}
-        <button
-          onClick={() => setShowCollectibles(true)}
-          aria-label="View Collectibles"
-          title="View Collectibles"
-          style={{
-            width: 34,
-            height: 34,
-            borderRadius: '50%',
-            background: '#fff',
-            border: `1px solid ${INK}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 0,
-            cursor: 'pointer',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-          }}
-        >
-          <CollectiblesIcon color={INK} />
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {!leaderboardIdentity && (
+            <button
+              onClick={onSignIn}
+              aria-label="Sign In"
+              title="Sign In"
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: '50%',
+                background: '#fff',
+                border: `1px solid ${INK}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+              }}
+            >
+              <SignInIcon color={INK} />
+            </button>
+          )}
+          <button
+            onClick={() => setShowCollectibles(true)}
+            aria-label="View Collectibles"
+            title="View Collectibles"
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: '50%',
+              background: '#fff',
+              border: `1px solid ${INK}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+            }}
+          >
+            <CollectiblesIcon color={INK} />
+          </button>
+        </div>
       </div>
 
       {showCollectibles && (

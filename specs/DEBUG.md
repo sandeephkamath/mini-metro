@@ -92,13 +92,13 @@ Press **`T`** to start the scripted tutorial — see `TUTORIAL.md` for the full 
 
 ## Debug Leaderboard Sign-In
 
-Development/testing only — never reachable by a real player, and entirely separate from the player-facing Leaderboard availability rule in `themes/metro.md` §9.6 (Android build + Play Games sign-in required).
+Development/testing shortcut for the same sign-in flow the home screen's real, player-facing "Sign In" icon now also triggers (`themes/metro.md` §9.6, `home_screen.md` § Leaderboard) — this key just reaches it without needing debug mode off and a click. Entirely separate from the eventual production identity rule (Android build + Play Games sign-in, still not implemented).
 
 **How**: Press **`L`** while in debug mode, on the `home` or `gameover` phase.
 
-**Result**: Triggers Firebase's own "Sign in with Google" popup (a browser-compatible flow, distinct from Play Games' native Games Sign-In). On success, the Leaderboard's availability condition is forced true for the rest of this session — the "View Leaderboard" control, score submission, and the game-over rank line all behave as if running on the Android build with Play Games already signed in, so the Firebase integration (Firestore schema, security rules, submission, rank queries, UI) can be exercised end-to-end from a plain web browser. Declining or closing the popup leaves the Leaderboard hidden, same as normal.
+**Result**: Triggers Firebase's own "Sign in with Google" popup (a browser-compatible flow, distinct from Play Games' native Games Sign-In) — the same popup the home screen's Sign In icon opens. On success, the Leaderboard's availability condition is forced true for the rest of this session — the "View Leaderboard" control, score submission, and the game-over rank line all behave as if running on the Android build with Play Games already signed in, so the Firebase integration (Firestore schema, security rules, submission, rank queries, UI) can be exercised end-to-end from a plain web browser. Declining or closing the popup leaves the Leaderboard hidden, same as normal.
 
-This exists purely to let the Leaderboard be built and tested well before Android packaging happens (see `memo.md` § Leaderboard) — the shipped identity source remains exclusively Play Games Sign-In, only inside the Android build.
+This exists purely as a faster path to the same flow while testing (see `memo.md` § Leaderboard) — the eventual production identity source is Play Games Sign-In inside the Android build, which will replace this interim web sign-in once it ships.
 
 ---
 

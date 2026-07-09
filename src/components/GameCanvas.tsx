@@ -267,6 +267,7 @@ export function GameCanvas() {
           collectionSize={metaProgression.collectionSize}
           currentPictureProgress={metaProgression.currentPictureProgress}
           leaderboardIdentity={leaderboard.available ? leaderboard.identity : null}
+          onSignIn={leaderboard.signIn}
         />
       )}
 

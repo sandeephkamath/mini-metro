@@ -30,11 +30,12 @@ export interface LeaderboardEntry {
 
 const LEADERBOARD_COLLECTION = 'leaderboard';
 
-// Development/testing identity (DEBUG.md § Debug Leaderboard Sign-In): Firebase's
-// own "Sign in with Google" popup, distinct from the production Play Games path
-// (Android-only, not yet implemented — that swap happens once Android packaging
-// exists). Never reachable by a real player.
-export async function signInDebug(): Promise<LeaderboardIdentity | null> {
+// Interim identity (themes/metro.md §9.6): Firebase's own "Sign in with Google"
+// popup, distinct from the eventual production Play Games path (Android-only, not
+// yet implemented). Triggered by the home screen's real "Sign In" icon, and by the
+// `L` debug shortcut (DEBUG.md § Debug Leaderboard Sign-In) as a faster path to the
+// same flow while testing.
+export async function signInWithGoogle(): Promise<LeaderboardIdentity | null> {
   try {
     const result = await signInWithPopup(auth, new GoogleAuthProvider());
     return {

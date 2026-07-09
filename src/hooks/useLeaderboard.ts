@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import type { LeaderboardIdentity } from '../firebase/leaderboard';
-import { signInDebug, submitScore, fetchOwnRank, fetchTotalPlayers } from '../firebase/leaderboard';
+import { signInWithGoogle, submitScore, fetchOwnRank, fetchTotalPlayers } from '../firebase/leaderboard';
 
 export interface LeaderboardResult {
   rank: number;
@@ -8,15 +8,15 @@ export interface LeaderboardResult {
 }
 
 // The Leaderboard's availability + identity (core/meta_progression.md §7-8,
-// metro.md §9.6). Production availability is Android + Play Games sign-in
-// (not yet implemented — gated on Android packaging, per memo.md § Leaderboard);
-// for now the only way to become available at all is the debug web sign-in
-// stand-in (DEBUG.md § Debug Leaderboard Sign-In, key L).
+// metro.md §9.6). Production identity is Android + Play Games sign-in (not yet
+// implemented — gated on Android packaging, per memo.md § Leaderboard); until then,
+// the interim Google Sign-In popup (home screen's "Sign In" icon, or the `L` debug
+// shortcut per DEBUG.md § Debug Leaderboard Sign-In) is what makes this available.
 export function useLeaderboard() {
   const [identity, setIdentity] = useState<LeaderboardIdentity | null>(null);
 
   const signIn = useCallback(async () => {
-    const result = await signInDebug();
+    const result = await signInWithGoogle();
     if (result) setIdentity(result);
   }, []);
 
