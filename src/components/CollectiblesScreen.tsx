@@ -79,15 +79,42 @@ export function CollectiblesScreen({ collectionSize, currentPictureProgress, onC
       background: 'rgba(0,0,0,0.55)',
       zIndex: 25,
     }}>
-      <div style={{
-        background: '#fff',
-        borderRadius: 12,
-        padding: '28px 32px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-        maxWidth: 620,
-        maxHeight: '80vh',
-        overflowY: 'auto',
-      }}>
+      <div style={{ position: 'relative', maxWidth: 620 }}>
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          title="Close"
+          style={{
+            position: 'absolute',
+            top: -14,
+            right: -14,
+            width: 30,
+            height: 30,
+            borderRadius: '50%',
+            background: '#fff',
+            border: '1px solid #333',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0,
+            cursor: 'pointer',
+            fontSize: 16,
+            lineHeight: 1,
+            color: '#333',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+            zIndex: 1,
+          }}
+        >
+          ×
+        </button>
+        <div style={{
+          background: '#fff',
+          borderRadius: 12,
+          padding: '28px 32px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          maxHeight: '80vh',
+          overflowY: 'auto',
+        }}>
         <h2 style={{ margin: '0 0 16px', fontFamily: 'monospace', textAlign: 'center' }}>Collectibles</h2>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
@@ -104,26 +131,9 @@ export function CollectiblesScreen({ collectionSize, currentPictureProgress, onC
           {upcomingIndices.map(index => <LockedThumbnail key={index} />)}
         </div>
 
-        <div style={{ textAlign: 'center', color: '#999', fontSize: 13, margin: '10px 0 20px', fontFamily: 'monospace' }}>
+        <div style={{ textAlign: 'center', color: '#999', fontSize: 13, margin: '10px 0 4px', fontFamily: 'monospace' }}>
           ...and more
         </div>
-
-        <div style={{ textAlign: 'center' }}>
-          <button
-            onClick={onClose}
-            style={{
-              background: '#3498db',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 8,
-              padding: '10px 28px',
-              fontSize: 15,
-              cursor: 'pointer',
-              fontFamily: 'monospace',
-            }}
-          >
-            Close
-          </button>
         </div>
       </div>
 
