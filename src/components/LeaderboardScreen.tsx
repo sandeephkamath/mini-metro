@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CONFIG } from '../config/gameConfig';
-import type { LeaderboardEntry, LeaderboardIdentity } from '../firebase/leaderboard';
-import { fetchLeaderboardTopN, fetchOwnEntry, fetchOwnRank } from '../firebase/leaderboard';
+import type { LeaderboardEntry, LeaderboardIdentity } from '../leaderboard/client';
+import { fetchLeaderboardTopN, fetchOwnEntry, fetchOwnRank } from '../leaderboard/client';
 
 interface LeaderboardScreenProps {
   identity: LeaderboardIdentity;

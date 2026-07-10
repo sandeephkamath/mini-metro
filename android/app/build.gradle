@@ -12,6 +12,14 @@ if (localPropsFile.exists()) {
 }
 def admobAppIdRelease = localProps.getProperty('ADMOB_APP_ID', 'ca-app-pub-3940256099942544~3347511713')
 
+// Play Games Services App ID + the Web OAuth client ID it's linked to in Firebase
+// (themes/metro.md §9.6) — same "kept out of the repo" treatment as the AdMob App ID
+// above. No test/fallback value exists for either (unlike AdMob's public test App ID)
+// since Play Games Sign-In is meaningless without a real Play Console project; left
+// blank, the plugin's signIn() just resolves signedIn:false (PlayGamesLeaderboardPlugin.java).
+def playGamesAppId = localProps.getProperty('PLAY_GAMES_APP_ID', '')
+def playGamesWebClientId = localProps.getProperty('PLAY_GAMES_WEB_CLIENT_ID', '')
+
 android {
     namespace = "com.lovoctech.trainpuzzle"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -22,23 +30,28 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders = [admobAppId: "", playGamesAppId: playGamesAppId]
+        buildConfigField "String", "PLAY_GAMES_WEB_CLIENT_ID", "\"${playGamesWebClientId}\""
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    buildFeatures {
+        buildConfig = true
+    }
     buildTypes {
         // AdMob App ID (themes/metro.md §4.2) — declared natively via a manifest
         // placeholder per build type, since it can't be a Vite env var. Debug always
         // uses Google's public test App ID (always valid, no AdMob account needed).
         debug {
-            manifestPlaceholders = [admobAppId: "ca-app-pub-3940256099942544~3347511713"]
+            manifestPlaceholders += [admobAppId: "ca-app-pub-3940256099942544~3347511713"]
         }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            manifestPlaceholders = [admobAppId: admobAppIdRelease]
+            manifestPlaceholders += [admobAppId: admobAppIdRelease]
         }
     }
 }
@@ -59,6 +72,15 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+
+    // Play Games Sign-In bridged into a native Firebase Auth session (themes/metro.md
+    // §9.6) — PlayGamesLeaderboardPlugin.java. Native Firebase Auth/Firestore, not the
+    // JS SDK already used on web, since the WebView's JS runtime has no visibility into
+    // this native-only sign-in session (see that spec section's Backend bullet).
+    implementation platform('com.google.firebase:firebase-bom:34.16.0')
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-firestore'
+    implementation 'com.google.android.gms:play-services-games-v2:21.0.0'
 }
 
 apply from: 'capacitor.build.gradle'

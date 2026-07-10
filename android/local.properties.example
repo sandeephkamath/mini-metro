@@ -5,3 +5,11 @@
 # Real AdMob App ID (themes/metro.md §4.2), used by the release build type. Leave
 # unset to build against Google's public test App ID instead.
 ADMOB_APP_ID=
+
+# Play Games Services App ID and the Web OAuth client ID it's linked to in Firebase
+# (themes/metro.md §9.6) — from Play Console's Play Games Services > Configuration
+# page, and Google Cloud Console's "Web client (auto created by Google Service)"
+# OAuth client respectively. Leave unset to build with Play Games Sign-In disabled
+# (signIn() just resolves signedIn:false, same fail-gracefully path as a real failure).
+PLAY_GAMES_APP_ID=
+PLAY_GAMES_WEB_CLIENT_ID=

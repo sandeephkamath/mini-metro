@@ -1,6 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import type { LeaderboardIdentity } from '../firebase/leaderboard';
-import { signInWithGoogle, submitScore, fetchOwnRank, fetchTotalPlayers } from '../firebase/leaderboard';
+import { signInWithGoogle } from '../firebase/leaderboard';
+import { submitScore, fetchOwnRank, fetchTotalPlayers } from '../leaderboard/client';
+import { PlayGamesLeaderboard } from '../native/playGamesLeaderboard';
 
 export interface LeaderboardResult {
   rank: number;
@@ -8,17 +11,31 @@ export interface LeaderboardResult {
 }
 
 // The Leaderboard's availability + identity (core/meta_progression.md §7-8,
-// metro.md §9.6). Production identity is Android + Play Games sign-in (not yet
-// implemented — gated on Android packaging, per memo.md § Leaderboard); until then,
-// the interim Google Sign-In popup (home screen's "Sign In" icon, or the `L` debug
-// shortcut per DEBUG.md § Debug Leaderboard Sign-In) is what makes this available.
+// metro.md §9.6). Two identity sources: Play Games Sign-In on Android (silent, once
+// on launch, no button — see the effect below), or the interim Google Sign-In popup
+// on web (home screen's "Sign In" icon, or the `L` debug shortcut per DEBUG.md §
+// Debug Leaderboard Sign-In). Submission/rank reads go through leaderboard/client.ts,
+// which picks the right SDK for whichever identity source is actually active.
 export function useLeaderboard() {
+  const isNative = Capacitor.isNativePlatform();
   const [identity, setIdentity] = useState<LeaderboardIdentity | null>(null);
 
+  useEffect(() => {
+    if (!isNative) return;
+    let cancelled = false;
+    PlayGamesLeaderboard.signIn()
+      .then(result => {
+        if (!cancelled && result.signedIn) setIdentity({ uid: result.uid!, displayName: result.displayName! });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isNative]);
+
   const signIn = useCallback(async () => {
+    if (isNative) return; // production identity above is automatic — no button on Android (home_screen.md)
     const result = await signInWithGoogle();
     if (result) setIdentity(result);
-  }, []);
+  }, [isNative]);
 
   // Submits this session's Final Weeks Survived, then resolves this player's own
   // rank (and the total player count, for "#4,382 of 61,203 players") against it —

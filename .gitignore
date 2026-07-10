@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Real Firebase/Google OAuth credentials (Play Games Sign-In, metro.md §9.6) — never
+# committed, same treatment as the AdMob credentials in android/local.properties.
+google-services.json
+client_secret_*.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

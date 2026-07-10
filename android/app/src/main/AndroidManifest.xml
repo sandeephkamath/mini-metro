@@ -15,6 +15,13 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}" />
 
+        <!-- Play Games Services (themes/metro.md §9.6) — required by PlayGamesSdk.initialize()
+             in PlayGamesLeaderboardPlugin.java. ${playGamesAppId} comes from
+             android/local.properties (android/app/build.gradle), blank on a fresh clone. -->
+        <meta-data
+            android:name="com.google.android.gms.games.APP_ID"
+            android:value="${playGamesAppId}" />
+
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"

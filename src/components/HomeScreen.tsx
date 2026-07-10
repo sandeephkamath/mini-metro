@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { CONFIG } from '../config/gameConfig';
 import { traceShapePath } from '../render/shapePaths';
 import { buildWalkablePath, pointAt, stepWalker, type WalkablePath } from '../logic/lineWalker';
@@ -528,7 +529,7 @@ export function HomeScreen({
           </div>
         )}
         <div style={{ display: 'flex', gap: 8 }}>
-          {!leaderboardIdentity && (
+          {!leaderboardIdentity && !Capacitor.isNativePlatform() && (
             <button
               onClick={onSignIn}
               aria-label="Sign In"
