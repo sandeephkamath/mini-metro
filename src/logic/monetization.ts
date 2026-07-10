@@ -6,11 +6,12 @@ import { grantReserveBonus } from './milestone';
 // (state.adFlow); only what happens once the bonus is picked differs (§3's
 // station-rescue step, continue-only).
 
-// The Ad Provider is a Simulated Ad stand-in until a real SDK is integrated
-// (§4) — always available except when the debug toggle forces it off (DEBUG.md
-// § Debug Ad Availability).
+// The Ad Provider is platform-specific (§4.2): the Simulated Ad on web (always
+// available), or a real AdMob rewarded ad on Android (available only once one is
+// actually preloaded — state.adReady, kept current by useAdProvider.ts). Either way,
+// the debug toggle (DEBUG.md § Debug Ad Availability) can force it off.
 export function isAdAvailable(state: GameState): boolean {
-  return !state.debugAdForcedUnavailable;
+  return !state.debugAdForcedUnavailable && state.adReady;
 }
 
 export function canOfferContinue(state: GameState): boolean {

@@ -1,0 +1,7 @@
+# Copy to android/local.properties (gitignored, never committed) and fill in real
+# values. Android Studio will also add its own sdk.dir line to that file — both keys
+# coexist fine.
+
+# Real AdMob App ID (themes/metro.md §4.2), used by the release build type. Leave
+# unset to build against Google's public test App ID instead.
+ADMOB_APP_ID=

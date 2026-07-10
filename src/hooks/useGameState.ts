@@ -69,6 +69,7 @@ function createInitialState(): GameState {
     continuesRemaining: CONFIG.CONTINUE_LIMIT,
     adFlow: null,
     debugAdForcedUnavailable: false,
+    adReady: true, // GameCanvas.tsx re-syncs this from useAdProvider() immediately after create (native only)
   };
 
   createInitialLines(state);

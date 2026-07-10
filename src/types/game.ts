@@ -165,6 +165,7 @@ export interface GameState {
   continuesRemaining: number; // Game-Over Continues left this session (core/monetization.md §5) — resets every session
   adFlow: AdFlowState | null; // On-Demand Bonus Request / Game-Over Continue flow (core/monetization.md §1-3)
   debugAdForcedUnavailable: boolean; // DEBUG.md § Debug Ad Availability
+  adReady: boolean; // Android: a real AdMob rewarded ad is currently preloaded (themes/metro.md §4.2); always true on web (Simulated Ad)
   // ID counters live in state — never in module scope, to avoid re-render side-effects
   nextIds: { station: number; passenger: number; train: number };
   playerPaused: boolean; // player-facing pause (Pause button) — independent of Milestone-choice pausing

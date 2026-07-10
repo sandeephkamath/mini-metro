@@ -5,6 +5,7 @@ import { useGameState } from '../hooks/useGameState';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useMouseInput } from '../hooks/useMouseInput';
 import { useLeaderboard, type LeaderboardResult } from '../hooks/useLeaderboard';
+import { useAdProvider } from '../hooks/useAdProvider';
 import { resolveMilestoneChoice } from '../logic/milestone';
 import { removeLine } from '../logic/lines';
 import { advanceTutorial, exitTutorial } from '../logic/tutorial';
@@ -15,6 +16,7 @@ import { GameOverScreen } from './GameOverScreen';
 import { BonusChoiceModal } from './BonusChoiceModal';
 import { AdConfirmModal } from './AdConfirmModal';
 import { SimulatedAdModal } from './SimulatedAdModal';
+import { NativeAdLoadingModal } from './NativeAdLoadingModal';
 
 export function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -29,6 +31,28 @@ export function GameCanvas() {
   useGameLoop({ stateRef, canvasRef, syncReactState });
 
   const leaderboard = useLeaderboard();
+  const adProvider = useAdProvider();
+
+  // Threads useAdProvider's `ready` into the mutable GameState (same pattern as
+  // viewport below) so src/logic/monetization.ts's isAdAvailable stays pure — see
+  // themes/metro.md §4.2.
+  useEffect(() => {
+    stateRef.current.adReady = adProvider.ready;
+  }, [adProvider.ready, stateRef]);
+
+  // Drives the real Android ad flow: once the confirm prompt is accepted
+  // (adFlow.stage === 'playing'), show the preloaded rewarded ad and resolve the
+  // flow based on whether it was actually rewarded. Web keeps rendering
+  // SimulatedAdModal instead (below), which drives itself via onComplete.
+  const nativeAdInFlightRef = useRef(false);
+  useEffect(() => {
+    if (!adProvider.isNative || adFlow?.stage !== 'playing' || nativeAdInFlightRef.current) return;
+    nativeAdInFlightRef.current = true;
+    adProvider.show().then(({ rewarded }) => {
+      nativeAdInFlightRef.current = false;
+      if (rewarded) completeAdPlayback(); else declineAdOffer();
+    });
+  }, [adProvider, adFlow, completeAdPlayback, declineAdOffer]);
 
   // Rotation state is read by useMouseInput.ts's coordinate math (a ref, not just
   // React state — the native touch/mouse listeners need the current value
@@ -115,6 +139,7 @@ export function GameCanvas() {
     startGame();
     stateRef.current.viewport.width = viewportRef.current.width;
     stateRef.current.viewport.height = viewportRef.current.height;
+    stateRef.current.adReady = adProvider.ready;
     leaderboardSubmittedRef.current = false;
     setLeaderboardResult(null);
   }
@@ -122,6 +147,7 @@ export function GameCanvas() {
     goHome();
     stateRef.current.viewport.width = viewportRef.current.width;
     stateRef.current.viewport.height = viewportRef.current.height;
+    stateRef.current.adReady = adProvider.ready;
     leaderboardSubmittedRef.current = false;
     setLeaderboardResult(null);
   }
@@ -250,7 +276,11 @@ export function GameCanvas() {
         />
       )}
 
-      {adFlow?.stage === 'playing' && <SimulatedAdModal onComplete={completeAdPlayback} />}
+      {adFlow?.stage === 'playing' && (
+        adProvider.isNative
+          ? <NativeAdLoadingModal />
+          : <SimulatedAdModal onComplete={completeAdPlayback} />
+      )}
 
       {adFlow?.stage === 'choice' && (
         <BonusChoiceModal title="Choose your reward" subtitle="Pick one" onChoose={resolveAdBonusChoice} />

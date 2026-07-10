@@ -1,5 +1,17 @@
 apply plugin: 'com.android.application'
 
+// Real AdMob App ID (themes/metro.md §4.2) — kept out of the repo, same as the
+// Firebase credentials in .env.local. Loaded from android/local.properties (already
+// gitignored — see android/.gitignore's "Local configuration file" entry, the same
+// file Android Studio uses for sdk.dir), which is never committed. Falls back to
+// Google's public test App ID when that key is absent, e.g. on a fresh clone.
+def localProps = new Properties()
+def localPropsFile = rootProject.file('local.properties')
+if (localPropsFile.exists()) {
+    localPropsFile.withReader('UTF-8') { reader -> localProps.load(reader) }
+}
+def admobAppIdRelease = localProps.getProperty('ADMOB_APP_ID', 'ca-app-pub-3940256099942544~3347511713')
+
 android {
     namespace = "com.lovoctech.trainpuzzle"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -17,9 +29,16 @@ android {
         }
     }
     buildTypes {
+        // AdMob App ID (themes/metro.md §4.2) — declared natively via a manifest
+        // placeholder per build type, since it can't be a Vite env var. Debug always
+        // uses Google's public test App ID (always valid, no AdMob account needed).
+        debug {
+            manifestPlaceholders = [admobAppId: "ca-app-pub-3940256099942544~3347511713"]
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            manifestPlaceholders = [admobAppId: admobAppIdRelease]
         }
     }
 }

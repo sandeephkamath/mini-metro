@@ -91,7 +91,12 @@ Metro's concrete instantiation of `../core/monetization.md`. Both paths below gr
 
 **Game-Over Continue** (`core/monetization.md` §3): when a Station's Risk Timer would otherwise expire and end the run, and this session still has a Continue available (§5 Configuration Values), the game instead shows "Station Overflow! Watch an ad to continue?" in place of the game-over screen. Accepting and completing the ad lets the player pick New Train or New Carriage (added to the Depot), then every Station currently at risk has its queue trimmed back under capacity (excess Passengers discarded) and its Risk Timer cleared — play resumes immediately with the score, map, and Week progress untouched. Declining, closing the prompt, or having no Continue left instead shows the normal game-over screen (§8, §9).
 
-**Ad Provider (development stand-in)**: no real ad SDK is integrated yet. Until one is, "watching an ad" is a **Simulated Ad** — a short placeholder screen ("Ad playing…" with a progress bar) that always completes successfully after a fixed duration (§5 Configuration Values). This lets both paths above be built and exercised end-to-end before a real ad SDK is integrated, the same "build against a stand-in first" approach already used for the Leaderboard's debug sign-in (§9.6, `DEBUG.md`). A debug-only toggle (`DEBUG.md` § Debug Ad Availability) can force the Ad Provider unavailable, to test the "no ads available" fail-gracefully path (`core/monetization.md` §6) without a real integration.
+**Ad Provider**: which one "watching an ad" actually means is permanently platform-specific, not a temporary stand-in awaiting replacement — AdMob has no web/browser SDK, so there is no single cross-platform provider to converge on.
+
+- **Android**: a real **AdMob** rewarded video ad, served via the native SDK (Google Mobile Ads). The Ad Provider's App ID is declared natively (Android build config, not a web config value); the rewarded ad unit ID is supplied via build-time configuration. Availability (`core/monetization.md` §1 "Failed/unavailable") now concretely means *a rewarded ad is currently pre-loaded and ready to show* — the offer is only ever presented once one is, per the existing fail-gracefully rule. Until real, publisher-specific IDs are configured, Google's own public test App ID and test rewarded ad unit ID are used, which always serve a real (non-monetized) test ad — this is Google's standard mechanism for developing/testing against AdMob without risking policy violations from real ad unit IDs in a dev build, not a Mini-Metro-specific stand-in.
+- **Web**: the **Simulated Ad** — a short placeholder screen ("Ad playing…" with a progress bar) that always completes successfully after a fixed duration (§5 Configuration Values). This is web's permanent Ad Provider, not a placeholder for a future web ad SDK integration.
+
+A debug-only toggle (`DEBUG.md` § Debug Ad Availability) can force the Ad Provider unavailable on either platform, to test the "no ads available" fail-gracefully path (`core/monetization.md` §6) without depending on a real ad actually failing to load.
 
 ---
 
@@ -138,7 +143,7 @@ These are the concrete values for the tunable parameters defined abstractly in `
 | Depot Carriage capacity bonus | +2 passengers | Added to a Train's capacity once attached |
 | Milestone bonus mode | Choice | See `core/progression.md` §6.1 |
 | Continue Limit (per session) | 1 | Game-Over Continues (`core/monetization.md` §3, §5) available per session, resets every session |
-| Simulated Ad duration | 3 000 ms | Development stand-in Ad Provider (§4.2) — fixed playback length before the ad always completes successfully |
+| Simulated Ad duration | 3 000 ms | Web's Ad Provider (§4.2) — fixed playback length before the ad always completes successfully |
 | Station spawn animation | 600 ms | Fade/scale-in of a newly-created Station (shrinking gray halo) — §7. Game-time driven, like all animation durations below |
 | Train spawn animation | 400 ms | Fade/scale-in of a newly-created Train (initial Line creation or Depot Train placement) — §7 |
 | Passenger queue-in animation | 300 ms | Fade/scale-in of a Passenger icon newly added to a Station queue (fresh spawn, transfer alighting from a Train, or debug injection) — §7 |

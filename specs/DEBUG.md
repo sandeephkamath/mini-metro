@@ -108,7 +108,7 @@ Development/testing only. Lets a tester exercise the "no ads available" fail-gra
 
 **How**: Press **`V`** while in debug mode, on the `playing` phase. Toggles a forced-unavailable flag for the rest of this session.
 
-**Result**: While forced unavailable, the On-Demand Bonus button and any pending Game-Over Continue offer (`themes/metro.md` §4.2) are hidden/skipped exactly as `core/monetization.md` §6 describes for a platform with no Ad Provider at all — Node Overflow ends the game unconditionally, same as before monetization existed. Pressing `V` again (or toggling debug mode off) restores the normal Simulated Ad stand-in.
+**Result**: While forced unavailable, the On-Demand Bonus button and any pending Game-Over Continue offer (`themes/metro.md` §4.2) are hidden/skipped exactly as `core/monetization.md` §6 describes for a platform with no Ad Provider at all — Node Overflow ends the game unconditionally, same as before monetization existed. Pressing `V` again (or toggling debug mode off) restores the normal Ad Provider. On Android this flag is ANDed with whether a real rewarded ad is currently pre-loaded (`themes/metro.md` §4.2) — forcing it on always hides the offer regardless of real ad-load state, same player-visible result as on web.
 
 ---
 
