@@ -8,6 +8,8 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    env:
+      HAS_GOOGLE_SERVICES_JSON: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -40,16 +42,16 @@ jobs:
       # Play Games config when these are unset, so the build still succeeds without secrets.
       - name: Write android/local.properties
         run: |
-          cat > android/local.properties <<EOF
-          ADMOB_APP_ID=${{ secrets.ADMOB_APP_ID }}
-          PLAY_GAMES_APP_ID=${{ secrets.PLAY_GAMES_APP_ID }}
-          PLAY_GAMES_WEB_CLIENT_ID=${{ secrets.PLAY_GAMES_WEB_CLIENT_ID }}
-          EOF
+          {
+            echo "ADMOB_APP_ID=${{ secrets.ADMOB_APP_ID }}"
+            echo "PLAY_GAMES_APP_ID=${{ secrets.PLAY_GAMES_APP_ID }}"
+            echo "PLAY_GAMES_WEB_CLIENT_ID=${{ secrets.PLAY_GAMES_WEB_CLIENT_ID }}"
+          } > android/local.properties
 
       # android/app/google-services.json is gitignored too — build.gradle only applies
       # the google-services plugin if the file exists, so this is optional as well.
       - name: Write android/app/google-services.json
-        if: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON != '' }}
+        if: ${{ env.HAS_GOOGLE_SERVICES_JSON == 'true' }}
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON }}
         run: echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
