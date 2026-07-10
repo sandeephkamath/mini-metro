@@ -3,7 +3,6 @@ import { Capacitor } from '@capacitor/core';
 import { CONFIG } from '../config/gameConfig';
 import { traceShapePath } from '../render/shapePaths';
 import { buildWalkablePath, pointAt, stepWalker, type WalkablePath } from '../logic/lineWalker';
-import { CollectiblesScreen } from './CollectiblesScreen';
 import { LeaderboardScreen } from './LeaderboardScreen';
 import type { LeaderboardIdentity } from '../firebase/leaderboard';
 import { remoteConfigReady } from '../firebase/remoteConfig';
@@ -12,10 +11,11 @@ import type { StationShape } from '../types/game';
 interface HomeScreenProps {
   onPlay: () => void;
   bestWeeksSurvived: number;
-  collectionSize: number;
-  currentPictureProgress: number;
   leaderboardIdentity: LeaderboardIdentity | null; // metro.md §9.6 — only non-null once available
   onSignIn: () => void; // interim Google Sign-In (metro.md §9.6) — real, player-facing for now
+  // Rendered upright as a sibling outside the rotated stage (metro.md §6.1, §11 B19),
+  // not owned locally — GameCanvas.tsx holds the open/closed state.
+  onOpenCollectibles: () => void;
 }
 
 const BG = '#f5f0e8';
@@ -268,11 +268,10 @@ function SignInIcon({ color }: { color: string }) {
 }
 
 export function HomeScreen({
-  onPlay, bestWeeksSurvived, collectionSize, currentPictureProgress, leaderboardIdentity, onSignIn,
+  onPlay, bestWeeksSurvived, leaderboardIdentity, onSignIn, onOpenCollectibles,
 }: HomeScreenProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [showCollectibles, setShowCollectibles] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // Remote Config Overrides (themes/metro.md §5.1): the fetch itself started in the
@@ -552,7 +551,7 @@ export function HomeScreen({
             </button>
           )}
           <button
-            onClick={() => setShowCollectibles(true)}
+            onClick={onOpenCollectibles}
             aria-label="View Collectibles"
             title="View Collectibles"
             style={{
@@ -573,14 +572,6 @@ export function HomeScreen({
           </button>
         </div>
       </div>
-
-      {showCollectibles && (
-        <CollectiblesScreen
-          collectionSize={collectionSize}
-          currentPictureProgress={currentPictureProgress}
-          onClose={() => setShowCollectibles(false)}
-        />
-      )}
 
       {showLeaderboard && leaderboardIdentity && (
         <LeaderboardScreen identity={leaderboardIdentity} onClose={() => setShowLeaderboard(false)} />

@@ -224,7 +224,7 @@ export function HUD({
         left: 0,
         right: 0,
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         alignItems: 'center',
         padding: '8px 16px',
         color: INK,
@@ -233,7 +233,9 @@ export function HUD({
         pointerEvents: 'none',
         zIndex: 10,
       }}>
-        <span data-testid="hud-week">Week {weekNumber}</span>
+        <span data-testid="hud-week" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+          Week {weekNumber}
+        </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           {CONFIG.PLAYER_SPEED_CONTROLS_ENABLED && (
             <SpeedControls

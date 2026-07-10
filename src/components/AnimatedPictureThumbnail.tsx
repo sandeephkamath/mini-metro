@@ -53,7 +53,7 @@ export function AnimatedPictureThumbnail({ index, revealedTileCount, width, heig
       ref={canvasRef}
       width={width}
       height={height}
-      style={{ borderRadius: 6, display: 'block', background: CONFIG.PICTURE_BG_COLOR }}
+      style={{ borderRadius: 6, display: 'block', background: CONFIG.PICTURE_BG_COLOR, maxWidth: '100%', height: 'auto' }}
     />
   );
 }

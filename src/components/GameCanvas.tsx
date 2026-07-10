@@ -16,6 +16,7 @@ import { HUD } from './HUD';
 import { TutorialCard } from './TutorialCard';
 import { HomeScreen } from './HomeScreen';
 import { GameOverScreen } from './GameOverScreen';
+import { CollectiblesScreen } from './CollectiblesScreen';
 import { BonusChoiceModal } from './BonusChoiceModal';
 import { AdConfirmModal } from './AdConfirmModal';
 import { SimulatedAdModal } from './SimulatedAdModal';
@@ -38,6 +39,11 @@ export function GameCanvas() {
   const adProvider = useAdProvider();
   usePushNotifications();
   const { exitConfirmOpen, confirmExit, cancelExit } = useAndroidBackButton();
+
+  // Rendered upright as a sibling of the rotated stage, not nested inside HomeScreen
+  // (metro.md §6.1, §11 B19) — rotated text was hard to read and its cards clipped
+  // against the rotated design space's short axis on a real phone.
+  const [showCollectibles, setShowCollectibles] = useState(false);
 
   // Threads useAdProvider's `ready` into the mutable GameState (same pattern as
   // viewport below) so src/logic/monetization.ts's isAdAvailable stays pure — see
@@ -314,8 +320,8 @@ export function GameCanvas() {
       {/* The Home Screen shares the canvas/HUD's rotated presentation (themes/metro.md
           §6.1) — it's landscape-shaped like the rest of the game, so it gets the same
           viewport-sized, optionally-rotated wrapper rather than rendering upright. Its
-          own modal overlays (Collectibles Screen, Leaderboard) nest inside it and so
-          inherit the rotation for free. */}
+          Leaderboard overlay nests inside it and so inherits the rotation for free —
+          the Collectibles Screen doesn't (see below, §11 B19). */}
       {phase === 'home' && (
         <div style={{
           position: 'absolute',
@@ -328,12 +334,22 @@ export function GameCanvas() {
           <HomeScreen
             onPlay={handleStartGame}
             bestWeeksSurvived={metaProgression.bestWeeksSurvived}
-            collectionSize={metaProgression.collectionSize}
-            currentPictureProgress={metaProgression.currentPictureProgress}
             leaderboardIdentity={leaderboard.available ? leaderboard.identity : null}
             onSignIn={leaderboard.signIn}
+            onOpenCollectibles={() => setShowCollectibles(true)}
           />
         </div>
+      )}
+
+      {/* Rendered upright as a sibling of the rotated inner div, not inside it —
+          rotated text was hard to read and the cards clipped against the rotated
+          design space's short axis on a real phone (themes/metro.md §11 B19). */}
+      {phase === 'home' && showCollectibles && (
+        <CollectiblesScreen
+          collectionSize={metaProgression.collectionSize}
+          currentPictureProgress={metaProgression.currentPictureProgress}
+          onClose={() => setShowCollectibles(false)}
+        />
       )}
 
       {/* Rendered upright as a sibling of the rotated inner div, not inside it — the

@@ -79,7 +79,7 @@ export function CollectiblesScreen({ collectionSize, currentPictureProgress, onC
       background: 'rgba(0,0,0,0.55)',
       zIndex: 25,
     }}>
-      <div style={{ position: 'relative', maxWidth: 620 }}>
+      <div style={{ position: 'relative', maxWidth: 'min(620px, 92vw)' }}>
         <button
           onClick={onClose}
           aria-label="Close"
@@ -130,10 +130,6 @@ export function CollectiblesScreen({ collectionSize, currentPictureProgress, onC
           </div>
           {upcomingIndices.map(index => <LockedThumbnail key={index} />)}
         </div>
-
-        <div style={{ textAlign: 'center', color: '#999', fontSize: 13, margin: '10px 0 4px', fontFamily: 'monospace' }}>
-          ...and more
-        </div>
         </div>
       </div>
 
@@ -153,14 +149,7 @@ export function CollectiblesScreen({ collectionSize, currentPictureProgress, onC
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{
-              position: 'relative',
-              textAlign: 'center',
-              background: '#fff',
-              borderRadius: 12,
-              padding: '20px 24px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-            }}
+            style={{ position: 'relative', maxWidth: 'min(460px, 92vw)' }}
           >
             <button
               onClick={() => setDetailIndex(null)}
@@ -184,14 +173,25 @@ export function CollectiblesScreen({ collectionSize, currentPictureProgress, onC
                 lineHeight: 1,
                 color: '#333',
                 boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                zIndex: 1,
               }}
             >
               ×
             </button>
-            <div style={{ marginBottom: 10, fontSize: 18, fontFamily: 'monospace', color: '#333' }}>
-              {getPictureForIndex(detailIndex).name}
+            <div style={{
+              textAlign: 'center',
+              background: '#fff',
+              borderRadius: 12,
+              padding: '20px 24px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+              maxHeight: '88vh',
+              overflowY: 'auto',
+            }}>
+              <div style={{ marginBottom: 10, fontSize: 18, fontFamily: 'monospace', color: '#333' }}>
+                {getPictureForIndex(detailIndex).name}
+              </div>
+              <AnimatedPictureThumbnail index={detailIndex} revealedTileCount={detailTiles} width={DETAIL_W} height={DETAIL_H} />
             </div>
-            <AnimatedPictureThumbnail index={detailIndex} revealedTileCount={detailTiles} width={DETAIL_W} height={DETAIL_H} />
           </div>
         </div>
       )}
