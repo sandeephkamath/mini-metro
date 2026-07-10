@@ -100,14 +100,25 @@ export function GameCanvas() {
 
   useEffect(() => {
     function recompute() {
+      // window.visualViewport tracks the actual visible area (it shrinks/grows
+      // live as Android Chrome's URL bar collapses/expands after page load or
+      // scroll), whereas window.innerWidth/innerHeight can lag behind during
+      // that transition without firing a 'resize' event to correct it —
+      // leaving a stale, undersized viewport that mismatches the real screen
+      // (see themes/metro.md §10 B18). Fall back to innerWidth/innerHeight on
+      // browsers without the API.
+      const vv = window.visualViewport;
+      const rawW = vv ? vv.width : window.innerWidth;
+      const rawH = vv ? vv.height : window.innerHeight;
+
       // Some mobile browsers (e.g. Chrome's "Desktop site" mode, which some
       // large-screen Android phones enable automatically) report an inflated
       // layout viewport and zoom the whole page out to fit the real screen —
-      // innerWidth/innerHeight can then claim desktop-sized dimensions on a
+      // that inflated size can then claim desktop-sized dimensions on a
       // screen that's still phone-sized. window.screen tracks the physical
       // display and isn't affected by that zoom, so it's used as a ceiling.
-      const winW = Math.min(window.innerWidth, window.screen.width);
-      const winH = Math.min(window.innerHeight, window.screen.height);
+      const winW = Math.min(rawW, window.screen.width);
+      const winH = Math.min(rawH, window.screen.height);
       const portrait = winH > winW;
 
       // Realign the real viewport onto the design's own axes: presentedW pairs with
@@ -129,9 +140,11 @@ export function GameCanvas() {
     recompute();
     window.addEventListener('resize', recompute);
     window.addEventListener('orientationchange', recompute);
+    window.visualViewport?.addEventListener('resize', recompute);
     return () => {
       window.removeEventListener('resize', recompute);
       window.removeEventListener('orientationchange', recompute);
+      window.visualViewport?.removeEventListener('resize', recompute);
     };
   }, [stateRef]);
 
