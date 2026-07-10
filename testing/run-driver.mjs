@@ -121,6 +121,12 @@ async function main() {
     if (!cmd) return;
     try {
       switch (cmd) {
+        case 'viewport': {
+          const [w, h] = args;
+          await page.setViewportSize({ width: Number(w), height: Number(h) });
+          log('ok viewport');
+          break;
+        }
         case 'nav': {
           await page.goto(baseURL + (args[0] || '/'));
           log('ok nav');

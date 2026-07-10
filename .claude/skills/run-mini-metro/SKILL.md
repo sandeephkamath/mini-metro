@@ -76,6 +76,7 @@ you. The three starting stations are fixed at circle `(180,280)`, triangle
 
 | command | what it does |
 |---|---|
+| `viewport <w> <h>` | Resize the browser viewport (e.g. to a phone size) to test responsive/rotated presentation |
 | `nav [path]` | Navigate to `path` (default `/`) on the dev server |
 | `start-game` | Click the home screen's Play button (if present), landing directly in `playing` — there is no intermediate start screen |
 | `screenshot [name]` | Save a PNG to `testing/run-screenshots/` |

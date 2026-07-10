@@ -287,20 +287,34 @@ export function GameCanvas() {
       )}
     </div>
 
-      {/* Rendered upright as a sibling of the rotated inner div, not inside it —
-          unlike the canvas/HUD, these overlays are never meant to rotate with
-          the device (themes/metro.md §6.1 scopes rotation to canvas+HUD only). */}
+      {/* The Home Screen shares the canvas/HUD's rotated presentation (themes/metro.md
+          §6.1) — it's landscape-shaped like the rest of the game, so it gets the same
+          viewport-sized, optionally-rotated wrapper rather than rendering upright. Its
+          own modal overlays (Collectibles Screen, Leaderboard) nest inside it and so
+          inherit the rotation for free. */}
       {phase === 'home' && (
-        <HomeScreen
-          onPlay={handleStartGame}
-          bestWeeksSurvived={metaProgression.bestWeeksSurvived}
-          collectionSize={metaProgression.collectionSize}
-          currentPictureProgress={metaProgression.currentPictureProgress}
-          leaderboardIdentity={leaderboard.available ? leaderboard.identity : null}
-          onSignIn={leaderboard.signIn}
-        />
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          width: viewport.width,
+          height: viewport.height,
+          transform: `translate(-50%, -50%)${rotated ? ' rotate(90deg)' : ''}`,
+        }}>
+          <HomeScreen
+            onPlay={handleStartGame}
+            bestWeeksSurvived={metaProgression.bestWeeksSurvived}
+            collectionSize={metaProgression.collectionSize}
+            currentPictureProgress={metaProgression.currentPictureProgress}
+            leaderboardIdentity={leaderboard.available ? leaderboard.identity : null}
+            onSignIn={leaderboard.signIn}
+          />
+        </div>
       )}
 
+      {/* Rendered upright as a sibling of the rotated inner div, not inside it — the
+          Game Over card is a small centered modal, not full-bleed, so it stays upright
+          regardless of device orientation (themes/metro.md §6.1). */}
       {phase === 'gameover' && (
         <GameOverScreen
           score={score}
