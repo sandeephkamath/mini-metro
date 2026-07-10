@@ -259,6 +259,10 @@ Clicking Play on the `home` phase goes directly to `playing` — there is no int
 
 The app starts the one-time Remote Config Override fetch (§5.1) in the background the moment it loads — `home` still renders immediately and is fully usable while it's in flight. The fetch only becomes visible to the player if they click Play before it resolves, at which point §5.1's themed loading indicator appears in place of the Play control until the game actually starts — so a player never sees a game that starts with one config and silently reconfigures itself underneath them, without needing a separate pre-`home` loading screen.
 
+### 8.1 Android Back Button
+
+Android only (the hardware/gesture back action; there is no equivalent to intercept on web, where back navigates browser history as normal). Pressing back never exits immediately — it always opens an "Exit game?" confirmation dialog with Exit / Cancel options first. Exit closes the app; Cancel dismisses the dialog with no other effect. This is a single global behavior, the same regardless of the current Phase (§8) or whether some other overlay (a Weekly Upgrade choice, an ad prompt, the Collectibles Screen, etc.) is open — it does not attempt to close overlays one at a time first. The dialog itself always renders upright, unaffected by the rotated presentation (§6.1), matching the Game Over card (§8).
+
 ---
 
 ## 9. Survival & Collection

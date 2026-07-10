@@ -7,6 +7,7 @@ import { useMouseInput } from '../hooks/useMouseInput';
 import { useLeaderboard, type LeaderboardResult } from '../hooks/useLeaderboard';
 import { useAdProvider } from '../hooks/useAdProvider';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import { useAndroidBackButton } from '../hooks/useAndroidBackButton';
 import { resolveMilestoneChoice } from '../logic/milestone';
 import { removeLine } from '../logic/lines';
 import { advanceTutorial, exitTutorial } from '../logic/tutorial';
@@ -19,6 +20,7 @@ import { BonusChoiceModal } from './BonusChoiceModal';
 import { AdConfirmModal } from './AdConfirmModal';
 import { SimulatedAdModal } from './SimulatedAdModal';
 import { NativeAdLoadingModal } from './NativeAdLoadingModal';
+import { ExitConfirmModal } from './ExitConfirmModal';
 
 export function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -35,6 +37,7 @@ export function GameCanvas() {
   const leaderboard = useLeaderboard();
   const adProvider = useAdProvider();
   usePushNotifications();
+  const { exitConfirmOpen, confirmExit, cancelExit } = useAndroidBackButton();
 
   // Threads useAdProvider's `ready` into the mutable GameState (same pattern as
   // viewport below) so src/logic/monetization.ts's isAdAvailable stays pure — see
@@ -346,6 +349,10 @@ export function GameCanvas() {
           pictureRevealSegments={pictureRevealSegments}
           onRestart={handleGoHome}
         />
+      )}
+
+      {exitConfirmOpen && (
+        <ExitConfirmModal onExit={confirmExit} onCancel={cancelExit} />
       )}
     </div>
   );
