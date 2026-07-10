@@ -17,6 +17,7 @@ import {
   completeAdPlayback as completeAdPlaybackAction,
   resolveAdBonusChoice as resolveAdBonusChoiceAction,
 } from '../logic/monetization';
+import { logGameEvent } from '../firebase/analytics';
 
 function createInitialState(): GameState {
   const state: GameState = {
@@ -138,6 +139,17 @@ export function useGameState() {
       setPictureRevealSegments(segments);
       setIsNewBest(newBest);
       setFinalWeeksSurvived(finalWeeks);
+
+      logGameEvent('game_over', {
+        week_reached: s.weekNumber,
+        score: s.score,
+        weeks_survived: Math.round(finalWeeks * 100) / 100,
+        is_new_best: newBest,
+        game_time_ms: s.gameTimeMs,
+      });
+      for (const segment of segments) {
+        if (segment.completed) logGameEvent('picture_completed', { picture_index: segment.index });
+      }
     }
   }, []);
 
@@ -165,29 +177,41 @@ export function useGameState() {
   const requestOnDemandBonus = useCallback(() => {
     requestOnDemandBonusAction(stateRef.current!);
     setAdFlowState(stateRef.current!.adFlow);
+    logGameEvent('ad_requested', { ad_kind: 'on_demand' });
   }, []);
 
   const acceptAdOffer = useCallback(() => {
     acceptAdOfferAction(stateRef.current!);
     setAdFlowState(stateRef.current!.adFlow);
+    const kind = stateRef.current!.adFlow?.kind;
+    if (kind) logGameEvent('ad_accepted', { ad_kind: kind });
   }, []);
 
   const declineAdOffer = useCallback(() => {
+    const kind = stateRef.current!.adFlow?.kind;
     declineAdOfferAction(stateRef.current!);
     setAdFlowState(stateRef.current!.adFlow);
     setPhase(stateRef.current!.phase); // a declined Continue flips phase to 'gameover'
+    if (kind) logGameEvent('ad_declined', { ad_kind: kind });
   }, []);
 
   const completeAdPlayback = useCallback(() => {
+    const kind = stateRef.current!.adFlow?.kind;
     completeAdPlaybackAction(stateRef.current!);
     setAdFlowState(stateRef.current!.adFlow);
+    if (kind) logGameEvent('ad_completed', { ad_kind: kind });
   }, []);
 
   const resolveAdBonusChoice = useCallback((kind: MilestoneBonusKind) => {
+    const flowKind = stateRef.current!.adFlow?.kind;
     resolveAdBonusChoiceAction(stateRef.current!, kind);
     setAdFlowState(stateRef.current!.adFlow);
     setReserveCarriers(stateRef.current!.reserveCarriers);
     setReserveCarriages(stateRef.current!.reserveCarriages);
+    logGameEvent('milestone_bonus_chosen', { bonus_kind: kind, source: 'ad_bonus' });
+    if (flowKind === 'continue') {
+      logGameEvent('continue_used', { continues_remaining: stateRef.current!.continuesRemaining });
+    }
   }, []);
 
   function resetReactState() {
@@ -215,6 +239,7 @@ export function useGameState() {
     setPictureRevealSegments(null);
     setIsNewBest(false);
     setFinalWeeksSurvived(0);
+    logGameEvent('game_start');
   }
 
   function goHome() {

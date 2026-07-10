@@ -16,9 +16,13 @@ const FIREBASE_CONFIG = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? 'REPLACE_ME.firebasestorage.app',
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? 'REPLACE_ME',
   appId: import.meta.env.VITE_FIREBASE_APP_ID ?? 'REPLACE_ME',
+  // Requires Google Analytics linked to the Firebase project (themes/metro.md §12.1) —
+  // absent that, stays REPLACE_ME and firebase/analytics.ts's isSupported()/init just
+  // never resolves an analytics instance, so logGameEvent silently no-ops.
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID ?? 'REPLACE_ME',
 };
 
-const app = initializeApp(FIREBASE_CONFIG);
+export const app = initializeApp(FIREBASE_CONFIG);
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);

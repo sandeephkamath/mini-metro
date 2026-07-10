@@ -4,6 +4,7 @@ import type { GameState, Vec2 } from '../types/game';
 import { onMouseDown, onMouseMove, onMouseUp, onWheel } from '../input/mouseHandler';
 import { zoomAtScreenPoint, panCameraByScreenDelta } from '../logic/camera';
 import { startTutorial, exitTutorial } from '../logic/tutorial';
+import { logGameEvent } from '../firebase/analytics';
 
 interface UseMouseInputOptions {
   canvasRef: MutableRefObject<HTMLCanvasElement | null>;
@@ -106,6 +107,7 @@ export function useMouseInput({ canvasRef, stateRef, rotatedRef, onDebugLeaderbo
         s.debugPlacingStation = !s.debugPlacingStation;
       } else if (e.key === 't' || e.key === 'T') {
         startTutorial(s); // no-op unless the board is startable (specs/TUTORIAL.md §1)
+        if (s.tutorial !== null) logGameEvent('tutorial_started');
       } else if (e.key === 'v' || e.key === 'V') {
         // DEBUG.md § Debug Ad Availability — 'playing' phase only.
         if (s.phase === 'playing') s.debugAdForcedUnavailable = !s.debugAdForcedUnavailable;

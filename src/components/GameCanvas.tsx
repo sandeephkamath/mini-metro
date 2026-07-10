@@ -6,9 +6,11 @@ import { useGameLoop } from '../hooks/useGameLoop';
 import { useMouseInput } from '../hooks/useMouseInput';
 import { useLeaderboard, type LeaderboardResult } from '../hooks/useLeaderboard';
 import { useAdProvider } from '../hooks/useAdProvider';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import { resolveMilestoneChoice } from '../logic/milestone';
 import { removeLine } from '../logic/lines';
 import { advanceTutorial, exitTutorial } from '../logic/tutorial';
+import { logGameEvent } from '../firebase/analytics';
 import { HUD } from './HUD';
 import { TutorialCard } from './TutorialCard';
 import { HomeScreen } from './HomeScreen';
@@ -32,6 +34,7 @@ export function GameCanvas() {
 
   const leaderboard = useLeaderboard();
   const adProvider = useAdProvider();
+  usePushNotifications();
 
   // Threads useAdProvider's `ready` into the mutable GameState (same pattern as
   // viewport below) so src/logic/monetization.ts's isAdAvailable stays pure — see
@@ -183,6 +186,7 @@ export function GameCanvas() {
   }
   function chooseMilestoneBonus(kind: MilestoneBonusKind) {
     resolveMilestoneChoice(state, kind);
+    logGameEvent('milestone_bonus_chosen', { bonus_kind: kind, source: 'milestone' });
   }
   function deleteLine(lineId: string) {
     if (tutorialActive) return;
@@ -191,12 +195,16 @@ export function GameCanvas() {
   // syncReactState right after mutating so the card swaps instantly instead of
   // waiting out the ~10Hz sync tick.
   function tutorialNext() {
+    const wasWrapup = state.tutorial?.step === 'wrapup';
     advanceTutorial(state);
     syncReactState();
+    if (wasWrapup) logGameEvent('tutorial_exited', { outcome: 'completed' });
   }
   function tutorialSkip() {
+    const wasActive = state.tutorial !== null;
     exitTutorial(state);
     syncReactState();
+    if (wasActive) logGameEvent('tutorial_exited', { outcome: 'skipped' });
   }
 
   // Outer box is sized to the actual on-screen footprint (rotated: width/height

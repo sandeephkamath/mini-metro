@@ -15,6 +15,15 @@ See also `specs/research/mini_metro_original_analysis.md` — gameplay analysis 
 - Overflow warning is a pulsing red ring — consider whether near-capacity states need earlier/gentler visual cues. The original's global cue (a HUD-corner element turning solid red while *any* station is in overflow risk, `research/mini_metro_original_analysis_2_ui_timing.md` §1) is implemented: the HUD's day-of-week clock badge recolors solid red while any Station is at risk and reverts once none are (`themes/metro.md` §7 item 7, `HUD.tsx` ClockBadge) — placed on the clock badge rather than the pause button, but the same mechanic. Considered and resolved; nothing further planned here unless the per-station visual itself changes.
 - No dark mode.
 
+## Audio
+
+- No sound effects or music at all currently (also noted in the Styling section above and in `metro.md` §10 divergences). Nothing decided yet:
+  - Background music — ambient loop during gameplay, distinct (if any) home-screen track, whether it pauses/ducks during Milestone Events or Game Over.
+  - Sound effects — candidates: Line drawn/deleted, Train departs/arrives, Passenger boards/alights, Station overflow warning, Node Overflow/Game Over, Weekly Upgrade choice, delivery/score tick.
+  - Mute/volume control — player-facing toggle needed (HUD or home screen), plus whether the setting persists (ties into the broader Persistence gap above).
+  - Asset sourcing — licensed/stock audio vs. procedurally generated (e.g. Web Audio API synthesized tones) vs. commissioned; no direction chosen yet, unlike Collectibles' art-asset decision.
+  - Mobile/Android considerations — Capacitor WebView audio playback, autoplay restrictions on first user interaction (browsers require a user gesture before audio can play).
+
 ## Scoring
 
 - Current scoring is flat: +1 per delivered passenger, no multipliers or bonus scoring.
@@ -43,10 +52,10 @@ See also `specs/research/mini_metro_original_analysis.md` — gameplay analysis 
 
 ## Analytics
 
-- No analytics or telemetry at all currently. Open questions before adding any:
-  - What events matter — session start/end, game over cause, score, session length, delivery events reached?
-  - Where would events go (local only vs. a backend)?
-  - Does this need to respect any privacy/consent requirement given no accounts exist today?
+- **Implemented** (`core/analytics.md`, `themes/metro.md` §12, decided 2026-07-11): Firebase Analytics event logging for session start/end, milestone/ad/continue/tutorial/leaderboard moments (full taxonomy in `themes/metro.md` §12.1), plus Android-only FCM device token registration (`themes/metro.md` §12.2, `@capacitor/push-notifications` + a `pushTokens` Firestore collection). No consent prompt — tracks by default, matching the Leaderboard/Remote Config trust-client posture.
+- **Deliberately out of scope**: no send-trigger logic exists yet for the registered push tokens — no Cloud Function, no re-engagement notification content/timing/copy. Registration only makes a device reachable; revisit once there's a concrete notification use case worth building (core/analytics.md §3 explicitly excludes this).
+- **Real dependency, satisfied 2026-07-11**: Google Analytics was already linked to the `trainpuzzle-lovoctech-5a750` Firebase project (confirmed via a real `measurementId`, `G-6P94S5E2RR`, now in `.env.local`) — events are live, not waiting on setup. A fresh clone without `.env.local` still falls back to `REPLACE_ME` and every event call silently no-ops, same fail-gracefully posture as everything else Firebase-backed here.
+- **Not yet decided**: whether events should ever feed a dashboard/backend beyond Firebase's own console, and whether the taxonomy needs per-station or per-line granularity (e.g. distinguishing which Station caused a game over) — deferred until real usage data exists to justify it.
 
 ## Mobile / Responsive
 

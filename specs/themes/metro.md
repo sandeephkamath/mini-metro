@@ -1,8 +1,8 @@
 # Metro Theme Specification
 
-**Version**: 3.17
-**Last updated**: 2026-07-09
-**Extends**: `../core/logic.md`, `../core/meta_progression.md`, `../core/monetization.md`
+**Version**: 3.18
+**Last updated**: 2026-07-11
+**Extends**: `../core/logic.md`, `../core/meta_progression.md`, `../core/monetization.md`, `../core/analytics.md`
 
 This document defines the Metro theme. It maps core abstract concepts to metro terminology, specifies metro-specific entities and visual rules, and provides all configuration values. Game mechanics not mentioned here follow core/logic.md exactly.
 
@@ -407,3 +407,37 @@ Configuration values:
 | B15 | With the game paused via the HUD Pause button, entering debug mode and pressing a speed key (`1`/`2`/`3`) did not resume the clock — contradicting `DEBUG.md` Speed Control ("keyed speeds take precedence over the player's HUD speed selection" while debug mode is on) | `tick()` returned early on `playerPaused` unconditionally, before the debug speed multiplier (applied in `useGameLoop.ts`) could ever matter | The `playerPaused` early-return now only applies while debug mode is off (`src/logic/gameLoop.ts`); debug speed 0 still pauses via its zero dt multiplier, and turning debug mode off hands control back to the player's paused state, exactly as `DEBUG.md` already specified |
 | B16 | Drawing or extending a Line visibly re-bent segments of *other*, already-drawn Lines; and two Lines connecting the same pair of Stations rendered pixel-identical paths, so the lower one was invisible and its Train appeared to ride the other Line's track | Bend orientation was recomputed live every frame from current board state (`getSegmentElbow`), so any change to an earlier-drawn Line rippled into later Lines' geometry; and overlap clearance was measured against the straight station→neighbor direction (a proxy), not the other Line's actual drawn legs — for a shared station pair the default-vs-mirrored comparison is exactly symmetric, and the `>` tie-break always kept the default elbow, i.e. the identical path | Each segment's elbow is now chosen once at segment creation and stored on the Line (`MetroLine.elbows`, parallel to segments), frozen thereafter; the creation-time choice compares against other Lines' *stored* legs (elbow-accurate), which makes the same-pair case a decisive 0°-clearance conflict that the mirror wins — see §7 item 3 |
 | B17 | `testing/flows/overflow-gameover.spec.ts` and `restart.spec.ts` both silently started failing (Station overflow never reached `gameover`; phase stayed `playing`) | Not a gameplay regression — both tests predate the ad-gated Game-Over Continue (`core/monetization.md` §3), which now intercepts every overflow with a "Watch an ad to continue?" prompt instead of transitioning straight to `gameover`. Neither test answered that prompt, so they just timed out waiting for a phase change that wasn't coming | Both tests now call a new `forceAdUnavailable()` helper (`testing/helpers/gameDriver.ts`, presses `V` per `DEBUG.md` § Debug Ad Availability) right after entering debug mode, so overflow ends the game unconditionally exactly as it did before monetization existed — keeps these tests focused on core overflow behavior rather than the Continue flow. Any new flow that triggers overflow and expects `gameover` needs the same call |
+
+---
+
+## 12. Analytics & Messaging
+
+Concrete provider choices and event names for `../core/analytics.md`. Both are Android-and-web (Analytics) or Android-only (Messaging) exactly as noted per row — matching the existing pattern of using the Firebase web SDK uniformly across web and the Android WebView (Firestore, Remote Config) versus reaching for a native-only Capacitor plugin only where no web SDK exists at all (AdMob, Play Games).
+
+### 12.1 Analytics Provider
+
+**Firebase Analytics** (`firebase/analytics`, the same Firebase project as Leaderboard/Remote Config), used identically on web and inside the Android WebView — no platform branching. Requires Google Analytics to be linked to the Firebase project for a real `measurementId`; absent that, it falls back to the same `REPLACE_ME` posture as every other Firebase config value (`.env.example`) and every `logGameEvent` call silently no-ops (core §5 Fail Gracefully).
+
+Event names and parameters (core §2 taxonomy, concrete):
+
+| Event | Params |
+|---|---|
+| `game_start` | — |
+| `game_over` | `week_reached`, `score`, `weeks_survived`, `is_new_best`, `game_time_ms` |
+| `picture_completed` | `picture_index` |
+| `milestone_bonus_chosen` | `bonus_kind` (`carrier`\|`carriage`), `source` (`milestone`\|`ad_bonus`) |
+| `ad_requested` | `ad_kind` (`on_demand`) |
+| `ad_accepted` | `ad_kind` (`on_demand`\|`continue`) |
+| `ad_declined` | `ad_kind` |
+| `ad_completed` | `ad_kind` |
+| `continue_used` | `continues_remaining` |
+| `tutorial_started` | — |
+| `tutorial_exited` | `outcome` (`completed`\|`skipped`) |
+| `leaderboard_sign_in` | `platform` (`android`\|`web`) |
+| `leaderboard_score_submitted` | `weeks_survived` |
+
+### 12.2 Messaging Provider
+
+**Android only**: `@capacitor/push-notifications` (official Capacitor plugin, wraps the native Firebase Cloud Messaging SDK — already available via the `google-services.json` + `google-services` Gradle plugin already in place for the Leaderboard, see §9.6). Registration happens once per session on launch, requests the OS notification permission if not already granted/denied, and on success writes the device token to a public-write, no-read Firestore collection (`pushTokens/{token}`, `firestore.rules`) — mirroring the trust-client posture the Leaderboard and Remote Config already use, since there's no player identity requirement for this step (core §3).
+
+No web equivalent exists yet (would require a service worker + VAPID key, not built). No send-trigger exists anywhere yet either — registration only makes a device reachable for a future notification; nothing currently sends one (core §3, explicitly out of scope).

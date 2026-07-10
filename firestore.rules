@@ -43,5 +43,19 @@ service cloud.firestore {
 
       allow delete: if false;
     }
+
+    // FCM device token registration (core/analytics.md §3, themes/metro.md §12.2).
+    // No player identity requirement — same trust-client posture as Remote Config.
+    // Doc ID is the token itself, so re-registering the same device just overwrites
+    // its own doc. No read: nothing client-side ever needs to list registered
+    // tokens, and allowing it would let anyone harvest them.
+    match /pushTokens/{token} {
+      allow read: if false;
+
+      allow create, update: if request.resource.data.platform == 'android'
+                            && request.resource.data.registeredAt == request.time;
+
+      allow delete: if false;
+    }
   }
 }
