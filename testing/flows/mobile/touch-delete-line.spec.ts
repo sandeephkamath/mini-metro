@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { FIXED_STATIONS, canvasPoint, getCanvasPixel, isBackdropPixel, startGame } from '../../helpers/gameDriver';
+import { FIXED_STATIONS, canvasPoint, forceAutoTutorialOff, getCanvasPixel, isBackdropPixel, startGame } from '../../helpers/gameDriver';
 import { touchDrag, touchHold, touchStart, touchEndKeeping } from '../../helpers/touchDriver';
 
 // Confirms the HUD legend swatch's hold-to-delete gesture (HUD.tsx onTouchStart/onTouchEnd)
@@ -8,6 +8,7 @@ import { touchDrag, touchHold, touchStart, touchEndKeeping } from '../../helpers
 
 test('holding the line legend swatch via touch deletes that line', async ({ page }) => {
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
 
   const from = await canvasPoint(page, FIXED_STATIONS.circle.x, FIXED_STATIONS.circle.y);
@@ -33,6 +34,7 @@ test('holding the line legend swatch via touch deletes that line', async ({ page
 
 test('a short touch (below the hold threshold) cancels and does not delete the line', async ({ page }) => {
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
 
   const from = await canvasPoint(page, FIXED_STATIONS.circle.x, FIXED_STATIONS.circle.y);
@@ -65,6 +67,7 @@ test('a short touch (below the hold threshold) cancels and does not delete the l
 // (should delete) got silently cancelled instead. See testing/reports/2026-07-06-mobile-touch-qa.md.
 test('holding two different line swatches at once with two fingers is independent per-line', async ({ page }) => {
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
 
   // Line 1 (red, l1): circle -> triangle. Line 2 (blue, l2): triangle -> square.

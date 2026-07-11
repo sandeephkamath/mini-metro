@@ -19,6 +19,7 @@ An isolated harness and agent that plays the running game, drives it through def
 - The harness lives entirely under `testing/`, as its own package with its own dependencies. It is not a dependency of the game app and must not appear in the root `package.json`.
 - The harness may read `specs/` to decide whether a finding is a bug, a known divergence, or already tracked. It must not write to `specs/` — findings are written to `testing/reports/` only. Promoting a finding into `specs/memo.md` or the Bug Log in `themes/metro.md` §9 is a human decision.
 - Running the harness must never require changes to game source to add hooks, test IDs, or instrumentation. Debug mode (see `DEBUG.md`) is the only sanctioned instrumentation surface — it already exists for this purpose.
+- Every flow below arms the Debug Auto-Tutorial Override (`DEBUG.md` § Debug Auto-Tutorial Override, the `U` key) right after navigating and before clicking Play, so the scripted auto-run Tutorial (`TUTORIAL.md` §1) never intercepts a fresh browser profile's board — a real risk since a new Playwright browser context always starts with no `tutorialSeen` state, exactly the condition that triggers it. A flow that specifically exercises the Tutorial itself should skip this call instead (`Auto Tutorial Enabled` defaults on — `themes/metro.md` §5).
 
 ---
 

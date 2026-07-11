@@ -3,6 +3,7 @@ import {
   FIXED_STATIONS,
   debugAddPassenger,
   forceAdUnavailable,
+  forceAutoTutorialOff,
   getPhase,
   getScoreAndWeek,
   restartGame,
@@ -16,6 +17,7 @@ import {
 // about restart, not the Continue flow. See overflow-gameover.spec.ts.
 test('restart from game over resets to a fresh playing state', async ({ page }) => {
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
   await toggleDebugMode(page);
   await forceAdUnavailable(page);

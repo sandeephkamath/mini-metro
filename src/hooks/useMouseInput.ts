@@ -117,6 +117,10 @@ export function useMouseInput({ canvasRef, stateRef, rotatedRef, onDebugLeaderbo
       } else if (e.key === 'v' || e.key === 'V') {
         // DEBUG.md § Debug Ad Availability — 'playing' phase only.
         if (s.phase === 'playing') s.debugAdForcedUnavailable = !s.debugAdForcedUnavailable;
+      } else if (e.key === 'u' || e.key === 'U') {
+        // DEBUG.md § Debug Auto-Tutorial Override — 'home' phase only (read once by
+        // startGame() when Play is clicked next; see useGameState.ts).
+        if (s.phase === 'home') s.debugAutoTutorialForcedOff = !s.debugAutoTutorialForcedOff;
       } else if (e.key === 'l' || e.key === 'L') {
         // DEBUG.md § Debug Leaderboard Sign-In — 'home'/'gameover' phases only.
         if (s.phase === 'home' || s.phase === 'gameover') onDebugLeaderboardSignInRef.current?.();

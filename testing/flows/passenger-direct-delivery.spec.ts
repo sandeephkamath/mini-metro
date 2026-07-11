@@ -3,6 +3,7 @@ import {
   FIXED_STATIONS,
   debugAddPassenger,
   drawLine,
+  forceAutoTutorialOff,
   startGame,
   toggleDebugMode,
   toggleStationSpawn,
@@ -15,6 +16,7 @@ import {
 // definitely get picked up" case — nothing to wait on.
 test('a passenger whose destination is the very next stop gets delivered', async ({ page }) => {
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
 
   // Draw the line BEFORE enabling debug mode: while debug mode is on, every canvas

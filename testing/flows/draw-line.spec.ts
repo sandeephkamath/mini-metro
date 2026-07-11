@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { FIXED_STATIONS, drawLine, getCanvasPixel, startGame } from '../helpers/gameDriver';
+import { FIXED_STATIONS, drawLine, forceAutoTutorialOff, getCanvasPixel, startGame } from '../helpers/gameDriver';
 
 test('dragging between two stations draws a line and spawns a train', async ({ page }) => {
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
 
   await drawLine(page, FIXED_STATIONS.circle, FIXED_STATIONS.triangle);

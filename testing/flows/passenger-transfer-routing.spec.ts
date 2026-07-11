@@ -3,6 +3,7 @@ import {
   FIXED_STATIONS,
   debugAddPassenger,
   drawLine,
+  forceAutoTutorialOff,
   startGame,
   toggleDebugMode,
   toggleStationSpawn,
@@ -24,6 +25,7 @@ async function buildTransferNetwork(page: Parameters<typeof drawLine>[0]) {
 // there directly — passenger should board anyway and transfer at triangle.
 test('a passenger reachable only via one connecting line gets delivered through the transfer', async ({ page }) => {
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
 
   // Both lines must be drawn before debug mode is enabled — see the note in
@@ -52,6 +54,7 @@ test('a passenger reachable only via one connecting line gets delivered through 
 // never reaching square, and this test would time out.
 test('a passenger at a transfer station waits for the connecting line instead of boarding the wrong train', async ({ page }) => {
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
 
   await buildTransferNetwork(page);

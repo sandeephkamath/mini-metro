@@ -112,9 +112,19 @@ Development/testing only. Lets a tester exercise the "no ads available" fail-gra
 
 ---
 
+## Debug Auto-Tutorial Override
+
+Development/testing only. Lets a tester (or the automated Playwright harness — `testing.md`) start a session with a clean board even on a browser profile that would otherwise auto-run the scripted Tutorial (`TUTORIAL.md` §1), without needing to seed or clear any persisted "has seen it" state.
+
+**How**: Press **`U`** while in debug mode, on the `home` phase — i.e. before clicking Play. Toggles a forced-off flag that's read once, the moment Play is next clicked.
+
+**Result**: The next session's auto-run Tutorial entry point is suppressed for that one session, regardless of `themes/metro.md` §5's `Auto Tutorial Enabled` default or whether this browser has ever seen the Tutorial before — the debug `T` trigger (`playing` phase, any session) is unaffected either way. Unlike every other debug flag, this one is deliberately *not* cleared when debug mode toggles off — it has to survive being armed while still on the `home` phase, then read later at the moment `playing` begins, by which point debug mode itself has already been reset to off by the fresh session's own initial state regardless. Press `U` again (while still on `home`, before Play) to un-arm it.
+
+---
+
 ## Rules
 
-- Debug actions are available only while the game phase is `playing`, with one exception: Debug Leaderboard Sign-In (`L`) is available on the `home`/`gameover` phases instead, since that's where the Leaderboard itself is shown.
+- Debug actions are available only while the game phase is `playing`, with two exceptions: Debug Leaderboard Sign-In (`L`) and Debug Auto-Tutorial Override (`U`) are available on the `home` phase instead (`L` also on `gameover`), since that's where each one is relevant.
 - Passengers added via debug bypass the "only spawn if destination shape exists" check — any shape can be assigned.
 - Stations added via debug bypass the minimum-distance constraint (useful for stress testing).
 - Speed multiplier is capped at 4× to avoid physics instability.

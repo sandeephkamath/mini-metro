@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { startGame, toggleDebugMode, setDebugSpeed } from '../helpers/gameDriver';
+import { forceAutoTutorialOff, startGame, toggleDebugMode, setDebugSpeed } from '../helpers/gameDriver';
 
 test('debug overlay appears and disappears with D', async ({ page }) => {
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
 
   await toggleDebugMode(page);

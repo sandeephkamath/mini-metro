@@ -3,6 +3,7 @@ import {
   FIXED_STATIONS,
   debugAddPassenger,
   forceAdUnavailable,
+  forceAutoTutorialOff,
   getPhase,
   setDebugSpeed,
   startGame,
@@ -20,6 +21,7 @@ import {
 // "Watch an ad to continue?" prompt instead of ending the game.
 test('station overflow ends the game after the Risk Timer expires', async ({ page }) => {
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
   await toggleDebugMode(page);
   await forceAdUnavailable(page);

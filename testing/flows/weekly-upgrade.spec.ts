@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { setDebugSpeed, startGame, toggleDebugMode, togglePassengerSpawn, waitForWeekAtLeast } from '../helpers/gameDriver';
+import { forceAutoTutorialOff, setDebugSpeed, startGame, toggleDebugMode, togglePassengerSpawn, waitForWeekAtLeast } from '../helpers/gameDriver';
 
 // themes/metro.md §4: a Weekly Upgrade (Milestone Event) fires every 5 weeks (300s of
 // game time). Metro's bonus mode is Choice, so it pauses and offers 3 options.
@@ -16,6 +16,7 @@ import { setDebugSpeed, startGame, toggleDebugMode, togglePassengerSpawn, waitFo
 test('weekly upgrade advances the week and offers a choice', async ({ page }) => {
   test.setTimeout(120_000);
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
   await toggleDebugMode(page);
   await togglePassengerSpawn(page);

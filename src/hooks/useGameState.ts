@@ -73,6 +73,7 @@ function createInitialState(): GameState {
     continuesRemaining: CONFIG.CONTINUE_LIMIT,
     adFlow: null,
     debugAdForcedUnavailable: false,
+    debugAutoTutorialForcedOff: false,
     adReady: true, // GameCanvas.tsx re-syncs this from useAdProvider() immediately after create (native only)
   };
 
@@ -234,13 +235,17 @@ export function useGameState() {
   }
 
   function startGame() {
+    // Read before the state replacement below discards it (DEBUG.md § Debug
+    // Auto-Tutorial Override) — set on the outgoing 'home'-phase state, not the
+    // fresh one about to be created.
+    const autoTutorialForcedOff = stateRef.current?.debugAutoTutorialForcedOff ?? false;
     stateRef.current = createInitialState();
     stateRef.current.phase = 'playing';
     // Player-facing Tutorial entry point (TUTORIAL.md §1, §8): auto-run once ever,
     // on this browser's first-ever session, right as a fresh board is created —
     // canStartTutorial's preconditions (no Lines, no Station at risk) are always
     // true here.
-    const autoTutorial = !hasSeenTutorial();
+    const autoTutorial = CONFIG.AUTO_TUTORIAL_ENABLED && !autoTutorialForcedOff && !hasSeenTutorial();
     if (autoTutorial) {
       startTutorial(stateRef.current);
       markTutorialSeen();

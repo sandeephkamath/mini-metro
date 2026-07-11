@@ -214,6 +214,19 @@ export async function forceAdUnavailable(page: Page) {
   await page.keyboard.press('v');
 }
 
+// Requires the 'home' phase (page already navigated, before Play is clicked).
+// DEBUG.md § Debug Auto-Tutorial Override — every flow in this suite calls this so the
+// scripted auto-run Tutorial (specs/TUTORIAL.md §1) never intercepts the fresh board a
+// test expects; a dedicated tutorial flow should simply not call it (the default,
+// CONFIG.AUTO_TUTORIAL_ENABLED, is on). Toggling debug mode on to set this has no
+// lasting effect — startGame() replaces the whole state (debugMode included) the
+// moment Play is clicked, and only debugAutoTutorialForcedOff is read across that
+// replacement (useGameState.ts).
+export async function forceAutoTutorialOff(page: Page) {
+  await page.keyboard.press('d'); // debug mode on
+  await page.keyboard.press('u'); // arm the override
+}
+
 // Requires debug mode already on. Click the station, then the shape button in the popup.
 // The popup itself is screen-space UI (mirrors src/input/mouseHandler.ts's clampMenu,
 // which clamps against the raw local click coordinates, not world coordinates), so its

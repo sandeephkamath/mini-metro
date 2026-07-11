@@ -182,6 +182,12 @@ export interface GameState {
   continuesRemaining: number; // Game-Over Continues left this session (core/monetization.md §5) — resets every session
   adFlow: AdFlowState | null; // On-Demand Bonus Request / Game-Over Continue flow (core/monetization.md §1-3)
   debugAdForcedUnavailable: boolean; // DEBUG.md § Debug Ad Availability
+  // DEBUG.md § Debug Auto-Tutorial Override — set on the 'home'-phase state, read once
+  // by startGame() (before it's discarded by the state replacement) to suppress the
+  // auto-run Tutorial entry point (TUTORIAL.md §1) for the session about to start.
+  // Deliberately NOT reset when debug mode toggles off (unlike the other debug-* flags
+  // above/below) — it must survive being armed pre-Play with debug mode left on.
+  debugAutoTutorialForcedOff: boolean;
   adReady: boolean; // Android: a real AdMob rewarded ad is currently preloaded (themes/metro.md §4.2); always true on web (Simulated Ad)
   // ID counters live in state — never in module scope, to avoid re-render side-effects
   nextIds: { station: number; passenger: number; train: number };

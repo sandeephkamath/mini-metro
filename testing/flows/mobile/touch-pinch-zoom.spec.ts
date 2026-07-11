@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { startGame } from '../../helpers/gameDriver';
+import { forceAutoTutorialOff, startGame } from '../../helpers/gameDriver';
 import { touchPinch } from '../../helpers/touchDriver';
 
 // Pinch-to-zoom has no DOM-exposed camera.zoom value to assert on directly, so these
@@ -8,6 +8,7 @@ import { touchPinch } from '../../helpers/touchDriver';
 
 test('two-finger pinch out zooms in (camera view changes)', async ({ page }) => {
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
 
   const canvasBox = await page.locator('canvas').boundingBox();
@@ -30,8 +31,9 @@ test('two-finger pinch out zooms in (camera view changes)', async ({ page }) => 
 test('repeated two-finger pinch-in past the zoom-out limit stays stable (no crash, still rendering)', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
-
   await page.goto('/');
+
+  await forceAutoTutorialOff(page);
   await startGame(page);
 
   const canvasBox = await page.locator('canvas').boundingBox();

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import {
-  FIXED_STATIONS, canvasPoint, getCanvasPixel, getCanvasPixelAtLocal, getLiveCameraViewportSnapshot,
+  FIXED_STATIONS, canvasPoint, forceAutoTutorialOff, getCanvasPixel, getCanvasPixelAtLocal, getLiveCameraViewportSnapshot,
   localPoint, projectWorldToLocal, startGame,
 } from '../../helpers/gameDriver';
 import { touchDrag, touchPan } from '../../helpers/touchDriver';
@@ -11,6 +11,7 @@ import { touchDrag, touchPan } from '../../helpers/touchDriver';
 
 test('game stage fits the mobile viewport without horizontal overflow', async ({ page }) => {
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
 
   const viewport = page.viewportSize()!;
@@ -31,6 +32,7 @@ test('game stage fits the mobile viewport without horizontal overflow', async ({
 // separately below).
 test('portrait viewport is filled edge-to-edge by the rotated stage (no letterboxing)', async ({ page }) => {
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
 
   const viewport = page.viewportSize()!;
@@ -46,6 +48,7 @@ test('portrait viewport is filled edge-to-edge by the rotated stage (no letterbo
 
 test('single-finger touch drag draws a line between stations', async ({ page }) => {
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
 
   const from = await canvasPoint(page, FIXED_STATIONS.circle.x, FIXED_STATIONS.circle.y);
@@ -63,6 +66,7 @@ test('single-finger touch drag draws a line between stations', async ({ page }) 
 
 test('one-finger drag on empty map space pans the camera', async ({ page }) => {
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
 
   const before = await page.screenshot();
@@ -88,6 +92,7 @@ test('one-finger drag on empty map space pans the camera', async ({ page }) => {
 // by predicting exactly where a known Station ends up (not just "something changed").
 test('two-finger pan (constant pinch distance) translates the camera without zooming', async ({ page }) => {
   await page.goto('/');
+  await forceAutoTutorialOff(page);
   await startGame(page);
 
   // This device's rotated canvas is shorter than the old fixed 600px design height, so

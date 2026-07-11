@@ -12,7 +12,7 @@ A scripted, interactive tutorial that teaches a first-time player the core loop 
 
 Two independent entry points:
 
-- **Auto-run on first-ever session.** The moment a player's very first `playing` session begins (Play clicked on the `home` phase, before this browser has ever seen the Tutorial — §8 Persistence), the Tutorial starts automatically instead of dropping the player straight onto an empty board. This is the primary player-facing entry point resolving `memo.md` §FTUE's "auto-run on first-ever session" item.
+- **Auto-run on first-ever session.** The moment a player's very first `playing` session begins (Play clicked on the `home` phase, before this browser has ever seen the Tutorial — §8 Persistence), the Tutorial starts automatically instead of dropping the player straight onto an empty board. This is the primary player-facing entry point resolving `memo.md` §FTUE's "auto-run on first-ever session" item. This entry point alone (not the debug trigger) is additionally gated by a theme/build config flag (`Auto Tutorial Enabled`, `themes/metro.md` §5), on by default — the same "code default, not a player setting" category as the Player Speed Controls flag (core §6). Its only current use is letting automated tests opt a fresh browser profile out of the auto-run so flows exercise a clean board instead of the scripted onboarding — see `testing.md`.
 - **Debug-triggered**, for QA/replay on any session: press **`T`** while debug mode is on and the game phase is `playing`. Unaffected by whether this browser has already seen the Tutorial — it always runs the full script from step 1 on a startable board.
 
 Both entry points share the same preconditions and script — the only difference is what fires the trigger:

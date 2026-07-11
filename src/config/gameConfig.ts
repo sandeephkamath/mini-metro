@@ -117,6 +117,7 @@ export const CONFIG = {
 
   // Ad-gated monetization (core/monetization.md, metro.md §4.2)
   CONTINUE_LIMIT: 1, // Game-Over Continues available per session
+  CONTINUE_RELIEF_FRACTION: 0.5, // fraction of capacity a Continue-relieved Station's queue is cut back to — well under the "approaching" warning threshold (maxCapacity - 1), so relief is a real reprieve, not a value that instantly re-triggers it (metro.md §11 B21)
   SIMULATED_AD_DURATION_MS: 3000, // development stand-in Ad Provider's fixed playback length
 
   // Leaderboard (core/meta_progression.md §7-8, metro.md §9.6)
@@ -177,6 +178,11 @@ export const CONFIG = {
   PICTURE_TRAIN_SEATS: 4, // metro.md §9.3.2 — rider dots shown per train (cosmetic only)
 
   // Scripted tutorial (specs/TUTORIAL.md §7)
+  // Gates the auto-run entry point only (specs/TUTORIAL.md §1) — the debug `T` key
+  // trigger is unaffected. True for real players; the Playwright harness forces this
+  // off by default (specs/testing.md) via the test-only config-override channel in
+  // main.tsx, so flows get a clean board instead of the scripted onboarding.
+  AUTO_TUTORIAL_ENABLED: true,
   TUTORIAL_RESCUE_WINDOW_MS: 30000, // Risk Timer granted at rescue commit / on skip-safety exit
   TUTORIAL_DEMO_MS: 2000, // how long the clock runs so the player sees the risk arc shrink
   TUTORIAL_PULSE_MS: 1000, // highlight halo pulse period (wall-time driven)
