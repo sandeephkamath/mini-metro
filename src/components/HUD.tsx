@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReserveItemKind } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
+import { hasSeenLineUnlockHint, markLineUnlockHintSeen } from '../storage/ftueHints';
 
 interface LineSlot {
   id: string;
@@ -135,6 +136,24 @@ export function HUD({
 }: HUDProps) {
   const toastVisible = milestoneAge < 3000 && milestoneMessage;
   const toastOpacity = toastVisible ? Math.min(1, Math.max(0, 1 - (milestoneAge - 2000) / 1000)) : 0;
+
+  // First-occurrence Line unlock hint (TUTORIAL.md §9) — a separate one-time toast,
+  // independent of the milestone toast above. HUD only mounts during 'playing'
+  // (GameCanvas.tsx), so prevUnlockedCountRef's lazy init always starts fresh at
+  // this session's real starting count — no stale carry-over from a prior session.
+  const prevUnlockedCountRef = useRef(lineSlots.filter(s => s.isUnlocked).length);
+  const [lineUnlockHintShownAt, setLineUnlockHintShownAt] = useState<number | null>(null);
+  useEffect(() => {
+    const unlockedCount = lineSlots.filter(s => s.isUnlocked).length;
+    if (unlockedCount > prevUnlockedCountRef.current && !hasSeenLineUnlockHint()) {
+      setLineUnlockHintShownAt(Date.now());
+      markLineUnlockHintSeen();
+    }
+    prevUnlockedCountRef.current = unlockedCount;
+  }, [lineSlots]);
+  const lineUnlockHintAge = lineUnlockHintShownAt !== null ? Date.now() - lineUnlockHintShownAt : Infinity;
+  const lineUnlockToastVisible = lineUnlockHintAge < 4000;
+  const lineUnlockToastOpacity = lineUnlockToastVisible ? Math.min(1, Math.max(0, 1 - (lineUnlockHintAge - 3000) / 1000)) : 0;
 
   // Hold-to-delete on a Line's own legend swatch — grows into a red circle with an
   // X over DELETE_HOLD_MS; releasing early cancels. Matches the original's gesture
@@ -411,6 +430,27 @@ export function HUD({
           whiteSpace: 'nowrap',
         }}>
           {milestoneMessage}
+        </div>
+      )}
+
+      {lineUnlockToastVisible && (
+        <div style={{
+          position: 'absolute',
+          bottom: 88,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.75)',
+          color: '#fff',
+          fontFamily: 'monospace',
+          fontSize: '13px',
+          padding: '8px 18px',
+          borderRadius: '20px',
+          pointerEvents: 'none',
+          zIndex: 10,
+          opacity: lineUnlockToastOpacity,
+          whiteSpace: 'nowrap',
+        }}>
+          A new line just unlocked — draw it like the others
         </div>
       )}
     </>

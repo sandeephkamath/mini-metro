@@ -160,6 +160,7 @@ export async function startGame(page: Page) {
 
 export async function restartGame(page: Page) {
   await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: 'Return' }).click(); // Game Over restart confirmation (themes/metro.md §8)
   await startGame(page);
 }
 

@@ -4,6 +4,7 @@ import { CONFIG } from '../config/gameConfig';
 interface BonusChoiceModalProps {
   title: string;
   subtitle: string;
+  hint?: string; // first-occurrence explanatory line (TUTORIAL.md §9) — free Milestone Choice only
   onChoose: (kind: MilestoneBonusKind) => void;
 }
 
@@ -15,7 +16,7 @@ const OPTIONS: Array<{ kind: MilestoneBonusKind; label: string; desc: string }> 
 // The Weekly Upgrade's Choice-mode popup (core/logic.md §3 Milestone Events) — also
 // reused, same presentation, for the ad-gated bonus-kind pick after a completed
 // Rewarded Ad (core/monetization.md §2, §3 — "using the same choice presentation").
-export function BonusChoiceModal({ title, subtitle, onChoose }: BonusChoiceModalProps) {
+export function BonusChoiceModal({ title, subtitle, hint, onChoose }: BonusChoiceModalProps) {
   return (
     <div style={{
       position: 'absolute',
@@ -35,7 +36,10 @@ export function BonusChoiceModal({ title, subtitle, onChoose }: BonusChoiceModal
         minWidth: 320,
       }}>
         <h3 style={{ margin: '0 0 4px', fontFamily: 'monospace', color: CONFIG.UI_INK_COLOR }}>{title}</h3>
-        <p style={{ color: CONFIG.UI_MUTED_TEXT_COLOR, margin: '0 0 20px', fontSize: '13px' }}>{subtitle}</p>
+        <p style={{ color: CONFIG.UI_MUTED_TEXT_COLOR, margin: hint ? '0 0 8px' : '0 0 20px', fontSize: '13px' }}>{subtitle}</p>
+        {hint && (
+          <p style={{ color: CONFIG.UI_MUTED_TEXT_COLOR, margin: '0 0 20px', fontSize: '11px', fontStyle: 'italic' }}>{hint}</p>
+        )}
         <div style={{ display: 'flex', gap: 12 }}>
           {OPTIONS.map(opt => (
             <button

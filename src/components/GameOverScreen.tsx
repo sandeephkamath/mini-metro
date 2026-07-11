@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import type { RevealSegment } from '../logic/collectibles';
 import type { LeaderboardResult } from '../hooks/useLeaderboard';
+import type { StationShape } from '../types/game';
 import { PictureReveal } from './PictureReveal';
+import { ConfirmModal } from './ConfirmModal';
 import { CONFIG } from '../config/gameConfig';
 
 interface GameOverScreenProps {
@@ -10,12 +13,23 @@ interface GameOverScreenProps {
   isNewBest: boolean;
   leaderboardResult: LeaderboardResult | null;
   pictureRevealSegments: RevealSegment[] | null;
+  overflowStationShape: StationShape | null;
   onRestart: () => void;
 }
 
+function overflowMessage(shape: StationShape | null): string {
+  if (!shape) return 'A station overflowed.';
+  return `The ${shape} station overflowed.`;
+}
+
 export function GameOverScreen({
-  score, weekNumber, bestWeeksSurvived, isNewBest, leaderboardResult, pictureRevealSegments, onRestart,
+  score, weekNumber, bestWeeksSurvived, isNewBest, leaderboardResult, pictureRevealSegments, overflowStationShape, onRestart,
 }: GameOverScreenProps) {
+  // Guards against an accidental tap on the small corner close icon discarding this
+  // summary (score, Best Weeks, Leaderboard rank, Picture reveal) before it's been
+  // read — themes/metro.md §8.
+  const [confirmingRestart, setConfirmingRestart] = useState(false);
+
   return (
     <div style={{
       position: 'absolute',
@@ -36,7 +50,7 @@ export function GameOverScreen({
         minWidth: 280,
       }}>
         <button
-          onClick={onRestart}
+          onClick={() => setConfirmingRestart(true)}
           aria-label="Close"
           title="Close"
           style={{
@@ -62,7 +76,7 @@ export function GameOverScreen({
           ×
         </button>
         <h2 style={{ margin: '0 0 4px', color: CONFIG.UI_PRIMARY_COLOR, fontFamily: 'monospace', fontSize: '1.8rem' }}>Game over</h2>
-        <p style={{ color: CONFIG.UI_MUTED_TEXT_COLOR, margin: '0 0 16px' }}>A station overflowed.</p>
+        <p style={{ color: CONFIG.UI_MUTED_TEXT_COLOR, margin: '0 0 16px' }}>{overflowMessage(overflowStationShape)}</p>
         <div style={{ fontSize: '3rem', fontWeight: 'bold', fontFamily: 'monospace', marginBottom: 4, color: CONFIG.UI_INK_COLOR }}>{score}</div>
         <div style={{ color: CONFIG.UI_MUTED_TEXT_COLOR, marginBottom: 12 }}>passengers delivered</div>
         {isNewBest ? (
@@ -82,6 +96,14 @@ export function GameOverScreen({
         )}
         {pictureRevealSegments && <PictureReveal segments={pictureRevealSegments} />}
       </div>
+      {confirmingRestart && (
+        <ConfirmModal
+          message="Return to home screen?"
+          confirmLabel="Return"
+          onConfirm={onRestart}
+          onCancel={() => setConfirmingRestart(false)}
+        />
+      )}
     </div>
   );
 }

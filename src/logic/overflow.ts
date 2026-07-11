@@ -28,6 +28,10 @@ export function updateOverflowRisk(state: GameState, dt: number): void {
     } else {
       station.riskTimer -= dt;
       if (station.riskTimer <= 0) {
+        // Recorded unconditionally, before the Continue-offer branch — the game
+        // over screen (themes/metro.md §8) still needs it if this Continue is
+        // later declined (monetization.ts declineAdOffer).
+        state.overflowStationShape = station.shape;
         if (canOfferContinue(state)) {
           offerGameOverContinue(state);
         } else {

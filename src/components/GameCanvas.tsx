@@ -10,6 +10,7 @@ import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useAndroidBackButton } from '../hooks/useAndroidBackButton';
 import { useAudio } from '../hooks/useAudio';
 import { isMuted, toggleMuted } from '../audio/audioManager';
+import { hasSeenMilestoneChoiceHint, markMilestoneChoiceHintSeen } from '../storage/ftueHints';
 import { resolveMilestoneChoice } from '../logic/milestone';
 import { removeLine } from '../logic/lines';
 import { advanceTutorial, exitTutorial } from '../logic/tutorial';
@@ -23,14 +24,14 @@ import { BonusChoiceModal } from './BonusChoiceModal';
 import { AdConfirmModal } from './AdConfirmModal';
 import { SimulatedAdModal } from './SimulatedAdModal';
 import { NativeAdLoadingModal } from './NativeAdLoadingModal';
-import { ExitConfirmModal } from './ExitConfirmModal';
+import { ConfirmModal } from './ConfirmModal';
 
 export function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const {
     stateRef, score, phase, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending,
     selectedReserveItem, playerPaused, playerSpeedMultiplier, tutorialStep, metaProgression, pictureRevealSegments, isNewBest,
-    finalWeeksSurvived, adFlow, adAvailable,
+    finalWeeksSurvived, overflowStationShape, adFlow, adAvailable,
     startGame, goHome, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
     requestOnDemandBonus, acceptAdOffer, declineAdOffer, completeAdPlayback, resolveAdBonusChoice,
   } = useGameState();
@@ -46,6 +47,23 @@ export function GameCanvas() {
   function handleToggleMute() {
     setMutedState(toggleMuted());
   }
+
+  // First-occurrence Weekly Upgrade choice hint (TUTORIAL.md §9) — decided once per
+  // popup appearance (on the false->true transition), not re-derived every render,
+  // so marking it seen doesn't make the hint vanish mid-view on the next re-render.
+  const wasMilestoneChoicePendingRef = useRef(false);
+  const [showMilestoneHint, setShowMilestoneHint] = useState(false);
+  useEffect(() => {
+    if (milestoneChoicePending && !wasMilestoneChoicePendingRef.current) {
+      if (!hasSeenMilestoneChoiceHint()) {
+        setShowMilestoneHint(true);
+        markMilestoneChoiceHintSeen();
+      } else {
+        setShowMilestoneHint(false);
+      }
+    }
+    wasMilestoneChoicePendingRef.current = milestoneChoicePending;
+  }, [milestoneChoicePending]);
 
   // Rendered upright as a sibling of the rotated stage, not nested inside HomeScreen
   // (metro.md §6.1, §11 B19) — rotated text was hard to read and its cards clipped
@@ -308,7 +326,12 @@ export function GameCanvas() {
       )}
 
       {phase === 'playing' && milestoneChoicePending && (
-        <BonusChoiceModal title={`Level ${level}!`} subtitle="Pick one upgrade" onChoose={chooseMilestoneBonus} />
+        <BonusChoiceModal
+          title={`Level ${level}!`}
+          subtitle="Pick one upgrade"
+          hint={showMilestoneHint ? 'This happens every few weeks — pick whichever helps more right now.' : undefined}
+          onChoose={chooseMilestoneBonus}
+        />
       )}
 
       {adFlow?.stage === 'confirm' && (
@@ -383,12 +406,13 @@ export function GameCanvas() {
           isNewBest={isNewBest}
           leaderboardResult={leaderboardResult}
           pictureRevealSegments={pictureRevealSegments}
+          overflowStationShape={overflowStationShape}
           onRestart={handleGoHome}
         />
       )}
 
       {exitConfirmOpen && (
-        <ExitConfirmModal onExit={confirmExit} onCancel={cancelExit} />
+        <ConfirmModal message="Exit game?" confirmLabel="Exit" onConfirm={confirmExit} onCancel={cancelExit} />
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from 'react';
 import type { MutableRefObject } from 'react';
-import type { GameState, GamePhase, ReserveItemKind, TutorialStepId, AdFlowState, MilestoneBonusKind } from '../types/game';
+import type { GameState, GamePhase, ReserveItemKind, TutorialStepId, AdFlowState, MilestoneBonusKind, StationShape } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
 import { createInitialStations } from '../logic/stations';
 import { createInitialLines } from '../logic/lines';
@@ -52,6 +52,7 @@ function createInitialState(): GameState {
     viewport: { width: CONFIG.CANVAS_WIDTH, height: CONFIG.CANVAS_HEIGHT },
     lastMilestoneMessage: '',
     lastMilestoneTime: -99999,
+    overflowStationShape: null,
     graceDurationMs: CONFIG.RISK_TIMER_BASE_MS,
     reserveCarriers: 0,
     reserveCarriages: 0,
@@ -111,6 +112,9 @@ export function useGameState() {
   // This session's Final Weeks Survived (core/meta_progression.md §1), frozen at game end —
   // exposed so the Leaderboard (§7) can submit the exact same value Best Weeks Survived used.
   const [finalWeeksSurvived, setFinalWeeksSurvived] = useState(0);
+  // Which Station's overflow ended this session (metro.md §8) — frozen at game end,
+  // same as finalWeeksSurvived above.
+  const [overflowStationShape, setOverflowStationShape] = useState<StationShape | null>(null);
   // On-Demand Bonus Request / Game-Over Continue flow (core/monetization.md §1-3).
   const [adFlow, setAdFlowState] = useState<AdFlowState | null>(null);
   const [adAvailable, setAdAvailable] = useState(true);
@@ -143,6 +147,7 @@ export function useGameState() {
       setPictureRevealSegments(segments);
       setIsNewBest(newBest);
       setFinalWeeksSurvived(finalWeeks);
+      setOverflowStationShape(s.overflowStationShape);
 
       logGameEvent('game_over', {
         week_reached: s.weekNumber,
@@ -260,6 +265,7 @@ export function useGameState() {
     setPictureRevealSegments(null);
     setIsNewBest(false);
     setFinalWeeksSurvived(0);
+    setOverflowStationShape(null);
     logGameEvent('game_start');
   }
 
@@ -271,13 +277,14 @@ export function useGameState() {
     setPictureRevealSegments(null);
     setIsNewBest(false);
     setFinalWeeksSurvived(0);
+    setOverflowStationShape(null);
   }
 
   return {
     stateRef: stateRef as MutableRefObject<GameState>,
     score, phase, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending, selectedReserveItem,
     playerPaused, playerSpeedMultiplier, tutorialStep, metaProgression, pictureRevealSegments, isNewBest, finalWeeksSurvived,
-    adFlow, adAvailable,
+    overflowStationShape, adFlow, adAvailable,
     startGame, goHome, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
     requestOnDemandBonus, acceptAdOffer, declineAdOffer, completeAdPlayback, resolveAdBonusChoice,
   };

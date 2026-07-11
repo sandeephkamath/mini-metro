@@ -27,12 +27,12 @@ See also `specs/research/mini_metro_original_analysis.md` — gameplay analysis 
 - Current scoring is flat: +1 per delivered passenger, no multipliers or bonus scoring.
 - No distinction between a short trip and a long multi-transfer delivery — consider whether harder deliveries should score more.
 - No combo/streak mechanic.
-- No persistent high score in code yet — every session starts from zero and nothing is saved (noted in metro.md divergences). Best Weeks Survived persistence is now fully spec'd (`core/meta_progression.md` §2, §6; `themes/metro.md` §9.2, §9.5) — not yet implemented.
+- Best Weeks Survived persistence is implemented (`src/storage/metaProgression.ts`, `core/meta_progression.md` §2/§6, `themes/metro.md` §9.2/§9.5) — shown on the Home Screen and the Game Over screen.
 
 ## Levels / Maps
 
 - Single fixed map only. Original Mini Metro has multiple cities with different layouts and constraints (rivers, tunnels). Explicitly deferred — no obstacle/river mechanic for MVP; revisit only if a single map's procedural variety proves insufficient.
-- Long-term progression is now specified end-to-end, including persistence and home-screen UI: `specs/core/meta_progression.md` (theme-neutral Weeks-Survived/Best-Weeks-Survived/Collectible-Reward rules, §3 Minimum Session Contribution guarantee, §6 Persistence), `specs/themes/metro.md` §9 (concrete Picture Collection values + §9.5 localStorage persistence), and `specs/themes/home_screen.md` (Best Weeks Survived / Picture thumbnail / Collectibles Screen display). Progression is measured by Weeks Survived (the existing week/day clock), not a separate Level counter — Milestone Events still fire and still grant bonuses, but no longer double as a meta-progression metric. Not yet implemented in code.
+- Long-term progression is specified end-to-end and **implemented**, including persistence and home-screen UI: `specs/core/meta_progression.md` (theme-neutral Weeks-Survived/Best-Weeks-Survived/Collectible-Reward rules, §3 Minimum Session Contribution guarantee, §6 Persistence), `specs/themes/metro.md` §9 (concrete Picture Collection values + §9.5 localStorage persistence via `src/storage/metaProgression.ts`), and `specs/themes/home_screen.md` (Best Weeks Survived / Collectibles Screen entry point). Progression is measured by Weeks Survived (the existing week/day clock), not a separate Level counter — Milestone Events still fire and still grant bonuses, but no longer double as a meta-progression metric. Still pending: the real per-city Picture datasets (see Collectibles below) — the mechanism is live, only running on a small built-in fallback pool so far.
 
 ## Collectibles
 
@@ -88,7 +88,7 @@ Real dependency: an Android Studio / Android SDK install is required to actually
 ## Persistence
 
 - No save/resume — closing the tab loses all progress. In-session state is deliberately never persisted (`core/meta_progression.md` §6) — only meta-progression is.
-- Best Weeks Survived and Picture Collection progress (Collection size + current Picture's Accumulated Progress) are fully spec'd as persistent values, backed by `localStorage` under a single key (`core/meta_progression.md` §6, `themes/metro.md` §9.5) — not yet implemented in code.
+- Best Weeks Survived and Picture Collection progress (Collection size + current Picture's Accumulated Progress) are persistent values, backed by `localStorage` under a single key — implemented (`src/storage/metaProgression.ts`, `core/meta_progression.md` §6, `themes/metro.md` §9.5).
 - "Has the Tutorial ever been shown" is a separate `localStorage` flag (`TUTORIAL.md` §8, `src/storage/tutorialSeen.ts`), implemented 2026-07-11 — deliberately not folded into the meta-progression key above since it's onboarding state, not survival/collection progress.
 
 ## Leaderboard
@@ -110,8 +110,8 @@ Real dependency: an Android Studio / Android SDK install is required to actually
 
 ## Onboarding / UX
 
-- No pause functionality outside of debug mode's speed controls. The original treats pause/normal/fast-forward as three always-visible, player-facing buttons, not debug-only tooling — confirmed directly (not inferred) via `research/mini_metro_original_analysis_2_ui_timing.md` §3, including a skilled player routinely using fast-forward through quiet stretches.
-- No confirmation before restart from the game over screen.
+- **Implemented**: the HUD's Pause/Play/Fast-Forward control (`core/logic.md` §6, `themes/metro.md` §5) is on by default now — three always-visible, player-facing buttons, matching the original per `research/mini_metro_original_analysis_2_ui_timing.md` §3 (including a skilled player routinely using fast-forward through quiet stretches).
+- **Implemented**: the Game Over screen's corner close control now asks for confirmation (Return / Cancel) before actually returning to `home`, so an accidental tap can't discard the run summary (`themes/metro.md` §8).
 
 ### First-Time User Experience (FTUE)
 
@@ -124,22 +124,23 @@ Current onboarding is close to nothing: clicking Play on the home screen goes st
 
 **First minute of gameplay**
 - No guided first action. Nothing highlights or pulses the first two stations a new player should connect, and no in-canvas affordance (arrow, glow, cursor hint) points at valid click targets — with both the pre-game bullets and the HUD corner hint gone, there is currently *no* textual guidance anywhere telling a brand-new player to drag between stations.
-- No contextual, first-occurrence hints tied to real events — first passenger spawn, first station nearing capacity, first Weekly Upgrade choice all fire identically for new and veteran players.
+- First real Weekly Upgrade choice and first Line unlock now get a one-time contextual hint (`TUTORIAL.md` §9); first passenger spawn and first station nearing capacity still fire identically for new and veteran players — the scripted tutorial already covers both of those live, so no separate hint was added for them.
 - The only in-game overflow signal is the pulsing red ring (see Styling section) — nothing explains what it means or what happens if it's ignored, before a new player loses because of it.
-- No step-through or pause available to non-debug players during their first game. Debug mode's spawn-pause (`S` key) exists but is explicitly developer/QA tooling per `specs/DEBUG.md`, not a player-facing feature.
+- **Implemented**: the Pause/Play/Fast-Forward control is now on by default (see Onboarding / UX above) — a non-debug player can step through/pause their first game.
 - The scripted tutorial (`specs/TUTORIAL.md`) now auto-runs on a player's first-ever session (see Pre-game above), so a real first-time player does get guided onboarding; the debug `T` key remains available separately for QA replay on any session.
 
 **Post-game / repeat sessions**
-- `GameOverScreen.tsx` shows score and week reached but no "what went wrong" detail — the message is a generic "A station overflowed" with no identification of which station or replay/highlight of the moment it happened.
+- **Implemented**: `GameOverScreen.tsx` now names which Station overflowed, by shape (e.g. "The triangle station overflowed.") — `themes/metro.md` §8. Still no replay/highlight of the moment it happened, or *why* it filled up (which line/passenger volume caused it) — a bigger feature, left for later.
 - No tips or difficulty ramp-down offered after a fast early loss (e.g. game over within the first Week).
 - No tracking of session count (1st vs. 2nd vs. 50th game), so there's no way to progressively fade out hints as a player demonstrates competence.
 
 **Resolved**: the tutorial-style question (scripted vs. contextual vs. hybrid) is settled in favor of a **scripted sandbox tutorial**, now spec'd in `specs/TUTORIAL.md` — guided first Line, scripted board/ride/deliver, and a can't-fail overflow rescue, with a Skip control on every step. It auto-runs once per browser on the first-ever session (`TUTORIAL.md` §1, §8) and remains separately available via the debug `T` key for QA replay.
 
+**Implemented**: contextual first-occurrence hints for the two events the scripted tutorial only describes rather than walks through live — the first real Weekly Upgrade choice (extra line inside the choice popup) and the first Line unlock (a toast) — `TUTORIAL.md` §9. Each is a separate, lifetime-once `localStorage` flag.
+
 **Still open**
 - A manual home-screen Tutorial button for returning players who want to replay it (auto-run is strictly first-session-only, per `TUTORIAL.md` §8 — it never reappears on its own).
 - Should a first-time session use an easier spawn/decay curve than `core/progression.md`'s default, or should difficulty be identical from game one?
-- Contextual first-occurrence toasts for events the scripted tutorial can't cover live (first real Weekly Upgrade choice, first Line unlock) — worth adding on top of the scripted tutorial, or is the wrap-up step's mention enough?
 - No instrumentation exists to learn where new players actually get stuck or quit (ties into the empty Analytics section above) — without that data, any FTUE design is a guess rather than something validated.
 
 ## Known Gaps Already Tracked

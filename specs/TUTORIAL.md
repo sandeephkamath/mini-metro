@@ -66,7 +66,7 @@ Steps run strictly in order. "Clock" is the state the tutorial holds game time i
 | 6 | Delivery | Running → paused on event | — | The moment the scripted Passenger is delivered at the triangle Station, pause and explain: delivered, +1 point — the score in the HUD just went up. | Next |
 | 7 | Overflow | See below | Inject Passengers at the square Station until its queue reaches capacity, putting it at risk. | See step 7 detail below. | The square Station leaves Overflow Risk (queue back below capacity) |
 | 8 | Crisis Averted | Paused | — | The ring vanished: a station recovers the moment its queue drops below capacity. Keep every station connected and flowing. | Next |
-| 9 | Wrap-Up | Paused | — | Briefly name what wasn't shown hands-on: weeks pass and more stations keep appearing; every 5 weeks a Weekly Upgrade offers a new train, carriage, or more time; new lines unlock as the city grows; the pause/fast-forward buttons are always available. | Done → exit (§6) |
+| 9 | Wrap-Up | Paused | — | Briefly name what wasn't shown hands-on: weeks pass and more stations keep appearing; every 5 weeks a Weekly Upgrade offers a new train or carriage; new lines unlock as the city grows; the pause/fast-forward buttons are always available. | Done → exit (§6) |
 
 ### Step 7 detail — Overflow and the Risk Timer
 
@@ -114,3 +114,12 @@ Kept inline here (like `DEBUG.md`'s key tables) rather than in `themes/metro.md`
 - Read once, at the moment Play is clicked on the `home` phase, to decide whether this session's `playing` transition should auto-start the Tutorial.
 - If `localStorage` is unavailable or the flag is unreadable, the Tutorial falls back to auto-running every time Play is clicked from a fresh browser state — never blocks play, just repeats the onboarding rather than silently skipping it.
 - Does not affect the debug `T` key, which remains available regardless of this flag's value.
+
+## 9. Post-Tutorial Contextual Hints
+
+The scripted Tutorial (§5) only ever *describes* two events in passing (Wrap-Up, step 9) rather than walking the player through them live: a real Weekly Upgrade choice, and a Line unlocking. This section adds two small, separate, one-time hints that fire the first time each of those actually happens live — independent of whether the Tutorial ever ran, was skipped, or hasn't been seen by this browser at all.
+
+- **First Weekly Upgrade Choice hint**: the first time the free Milestone Event Choice popup (`core/logic.md` §3 Milestone Events, not the ad-gated Reserve bonus choice — §2) is ever shown to this browser, it carries one extra explanatory line beneath its normal subtitle, e.g. "This happens every few weeks — pick whichever helps more right now." Every later Milestone Choice, and every ad-gated bonus choice (same popup, reused), shows the normal subtitle only.
+- **First Line unlock hint**: the first time any Line beyond the three starting ones unlocks (`core/progression.md` §4), a brief toast appears (same position/style/duration as the existing Weekly-Upgrade-bonus toast, but this is a separate message) naming what happened, e.g. "A new line just unlocked — draw it like the others." Every later unlock is silent, same as today.
+- **Persistence**: each hint is its own single boolean `localStorage` flag, separate from both the Tutorial's own flag (§8) and meta-progression (`core/meta_progression.md` §6) — this is onboarding state tied to a specific UI moment, not survival/collection progress or the Tutorial itself. Set the instant the hint is shown; never reset. If `localStorage` is unavailable, the hint just shows every time that event first occurs in a session rather than blocking anything.
+- Neither hint can fire while the Tutorial itself is active (§3) — not a special case, just a consequence of the Tutorial owning the clock and never driving a live Milestone Choice or Line unlock itself.

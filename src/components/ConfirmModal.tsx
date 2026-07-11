@@ -1,13 +1,16 @@
 import { CONFIG } from '../config/gameConfig';
 
-interface ExitConfirmModalProps {
-  onExit: () => void;
+interface ConfirmModalProps {
+  message: string;
+  confirmLabel: string;
+  onConfirm: () => void;
   onCancel: () => void;
 }
 
-// Android back-button confirmation (themes/metro.md §8.1) — always renders upright,
-// as a sibling of the rotated inner stage in GameCanvas.tsx, same as GameOverScreen.
-export function ExitConfirmModal({ onExit, onCancel }: ExitConfirmModalProps) {
+// Generic Confirm/Cancel dialog shell, always upright regardless of device rotation
+// (themes/metro.md §6.1) — shared by the Android Exit confirmation (§8.1) and the
+// Game Over restart confirmation (§8).
+export function ConfirmModal({ message, confirmLabel, onConfirm, onCancel }: ConfirmModalProps) {
   return (
     <div style={{
       position: 'absolute',
@@ -27,7 +30,7 @@ export function ExitConfirmModal({ onExit, onCancel }: ExitConfirmModalProps) {
         textAlign: 'center',
         minWidth: 300,
       }}>
-        <p style={{ margin: '0 0 20px', fontFamily: 'monospace', fontSize: 15, color: CONFIG.UI_INK_COLOR }}>Exit game?</p>
+        <p style={{ margin: '0 0 20px', fontFamily: 'monospace', fontSize: 15, color: CONFIG.UI_INK_COLOR }}>{message}</p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
           <button
             onClick={onCancel}
@@ -45,7 +48,7 @@ export function ExitConfirmModal({ onExit, onCancel }: ExitConfirmModalProps) {
             Cancel
           </button>
           <button
-            onClick={onExit}
+            onClick={onConfirm}
             style={{
               background: CONFIG.UI_PRIMARY_COLOR,
               color: '#fff',
@@ -57,7 +60,7 @@ export function ExitConfirmModal({ onExit, onCancel }: ExitConfirmModalProps) {
               fontFamily: 'monospace',
             }}
           >
-            Exit
+            {confirmLabel}
           </button>
         </div>
       </div>

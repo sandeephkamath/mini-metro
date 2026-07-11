@@ -172,6 +172,12 @@ export interface GameState {
   viewport: ViewportSize;
   lastMilestoneMessage: string;
   lastMilestoneTime: number;
+  // Which Station's Grace Timer expiry most recently caused (or is en route to
+  // causing, pending a Continue offer) a game over — read by the Game Over screen
+  // (themes/metro.md §8) to name the Station by shape. Set in overflow.ts, never
+  // cleared, so a stale value from a rescued Continue is harmless (only ever read
+  // once phase is actually 'gameover').
+  overflowStationShape: StationShape | null;
   graceDurationMs: number; // Grace Duration — fixed for the whole session (core/monetization.md removed the old "grace" bonus kind that used to grow it)
   reserveCarriers: number; // unplaced Depot Trains
   reserveCarriages: number; // unplaced Depot Carriages
