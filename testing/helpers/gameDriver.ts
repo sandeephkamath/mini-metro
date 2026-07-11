@@ -121,7 +121,12 @@ export async function getCanvasPixelAtLocal(page: Page, localX: number, localY: 
   return page.evaluate(([px, py]) => {
     const canvas = document.querySelector('canvas') as HTMLCanvasElement;
     const ctx = canvas.getContext('2d')!;
-    const data = ctx.getImageData(Math.round(px), Math.round(py), 1, 1).data;
+    // The backing store is supersampled by devicePixelRatio (themes/metro.md §6.1) —
+    // getImageData operates in backing-store pixels, not CSS pixels, so a DPR>1 device
+    // (e.g. the mobile Playwright project) needs local coords scaled up first, or this
+    // silently samples the wrong pixel (only a no-op on desktop's DPR-1 default).
+    const dpr = window.devicePixelRatio || 1;
+    const data = ctx.getImageData(Math.round(px * dpr), Math.round(py * dpr), 1, 1).data;
     return [data[0], data[1], data[2], data[3]] as [number, number, number, number];
   }, [localX, localY]);
 }
@@ -300,7 +305,9 @@ export async function getCanvasPixel(page: Page, worldX: number, worldY: number)
   return page.evaluate(([px, py]) => {
     const canvas = document.querySelector('canvas') as HTMLCanvasElement;
     const ctx = canvas.getContext('2d')!;
-    const data = ctx.getImageData(Math.round(px), Math.round(py), 1, 1).data;
+    // See getCanvasPixelAtLocal above — DPR scaling needed for getImageData.
+    const dpr = window.devicePixelRatio || 1;
+    const data = ctx.getImageData(Math.round(px * dpr), Math.round(py * dpr), 1, 1).data;
     return [data[0], data[1], data[2], data[3]] as [number, number, number, number];
   }, [local.x, local.y]);
 }
