@@ -151,6 +151,10 @@ export interface TutorialState {
 
 export interface GameState {
   phase: GamePhase;
+  // Once true, Node Overflow can never end the game again (core/logic.md §3
+  // Creative Mode) — set only by choosing "Continue in Creative Mode" from the
+  // gameover screen, never reset except by a fresh createInitialState().
+  creativeMode: boolean;
   score: number;
   gameTimeMs: number;
   weekNumber: number;

@@ -1,6 +1,6 @@
 import type { GameState, MilestoneBonusKind } from '../types/game';
-import { CONFIG } from '../config/gameConfig';
 import { grantReserveBonus } from './milestone';
+import { relieveStation } from './stationRelief';
 
 // Ad-gated monetization (core/monetization.md). Both the On-Demand Bonus Request
 // and the Game-Over Continue share the same confirm -> ad -> bonus-choice flow
@@ -67,18 +67,7 @@ export function resolveAdBonusChoice(state: GameState, kind: MilestoneBonusKind)
 
   if (flowKind === 'continue') {
     for (const station of Object.values(state.stations)) {
-      if (station.riskTimer !== null) {
-        // Cut back to a safe fraction of capacity (core/monetization.md §3) — well
-        // under the "approaching" warning threshold (maxCapacity - 1), not just
-        // one under it, so the relief is a real reprieve (metro.md §11 B21).
-        const safeCount = Math.floor(station.maxCapacity * CONFIG.CONTINUE_RELIEF_FRACTION);
-        station.passengerQueue.length = Math.min(station.passengerQueue.length, safeCount);
-        // Reset every remaining Resource's wait clock so one that was about to
-        // breach the Passenger Patience Limit doesn't immediately re-arm the
-        // same Grace Timer it just escaped.
-        for (const p of station.passengerQueue) p.queuedAtMs = state.gameTimeMs;
-        station.riskTimer = null;
-      }
+      if (station.riskTimer !== null) relieveStation(state, station);
     }
     state.continuesRemaining -= 1;
   }

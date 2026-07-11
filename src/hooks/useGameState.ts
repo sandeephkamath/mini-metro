@@ -24,6 +24,7 @@ import { logGameEvent } from '../firebase/analytics';
 function createInitialState(): GameState {
   const state: GameState = {
     phase: 'home',
+    creativeMode: false,
     score: 0,
     gameTimeMs: 0,
     weekNumber: 0,
@@ -93,6 +94,7 @@ export function useGameState() {
 
   const [score, setScore] = useState(0);
   const [phase, setPhase] = useState<GamePhase>('home');
+  const [creativeMode, setCreativeModeState] = useState(false);
   const [weekNumber, setWeekNumber] = useState(0);
   const [level, setLevel] = useState(0);
   const [weekProgress, setWeekProgress] = useState(0); // 0..1 fraction of the current week elapsed, for the HUD clock
@@ -126,6 +128,7 @@ export function useGameState() {
     const s = stateRef.current!;
     setScore(s.score);
     setPhase(s.phase);
+    setCreativeModeState(s.creativeMode);
     setWeekNumber(s.weekNumber);
     setLevel(s.level);
     setWeekProgress(getWeekProgress(s));
@@ -272,6 +275,7 @@ export function useGameState() {
   function goHome() {
     stateRef.current = createInitialState();
     setPhase('home');
+    setCreativeModeState(false);
     resetReactState();
     sessionEndRecordedRef.current = false;
     setPictureRevealSegments(null);
@@ -280,12 +284,22 @@ export function useGameState() {
     setOverflowStationShape(null);
   }
 
+  // "Continue in Creative Mode" from the gameover screen (core/logic.md §3 Creative
+  // Mode, themes/metro.md §8) — resumes the exact same board, no reset. Unlike
+  // startGame()/goHome(), stateRef.current is mutated in place, not replaced.
+  function continueInCreativeMode() {
+    stateRef.current!.creativeMode = true;
+    stateRef.current!.phase = 'playing';
+    setPhase('playing');
+    setCreativeModeState(true);
+  }
+
   return {
     stateRef: stateRef as MutableRefObject<GameState>,
-    score, phase, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending, selectedReserveItem,
+    score, phase, creativeMode, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending, selectedReserveItem,
     playerPaused, playerSpeedMultiplier, tutorialStep, metaProgression, pictureRevealSegments, isNewBest, finalWeeksSurvived,
     overflowStationShape, adFlow, adAvailable,
-    startGame, goHome, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
+    startGame, goHome, continueInCreativeMode, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
     requestOnDemandBonus, acceptAdOffer, declineAdOffer, completeAdPlayback, resolveAdBonusChoice,
   };
 }

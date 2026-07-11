@@ -132,6 +132,16 @@ One point is awarded per Resource delivered. Score accumulates throughout the se
 
 There is no win condition. The game ends when any Node overflows, and the final score is recorded.
 
+### Creative Mode
+
+After the game ends (Win / Loss above), the player may optionally keep playing the exact same board — same Nodes, Routes, Carriers, queued Resources, Score, and Week — in **Creative Mode**, instead of starting a fresh session. This is a distinct thing from a Game-Over Continue (`monetization.md` §3), which rescues a still-*active* session before it ends; Creative Mode is only ever offered once a session has already genuinely ended.
+
+- **Entering**: presented as an option alongside restarting, at the moment the game ends. Choosing it resumes simulation immediately from the exact state the game ended in — nothing is reset, reshuffled, or rewound.
+- **Rule change**: for the rest of this Creative Mode session, Node Overflow can never end the game again. A Node's Grace Timer still counts down and the same Overflow Risk warning still shows while it does — congestion is still visible and still worth resolving — but if it reaches zero, the Node is relieved automatically (the same relief a completed Game-Over Continue grants, `monetization.md` §3) instead of ending the session. A Game-Over Continue offer never appears in Creative Mode, since there is nothing left for it to rescue. Multiple Nodes expiring in the same instant are each relieved independently, same as normal Overflow Risk handling.
+- **Everything else about the simulation is unchanged**: Resources keep spawning and being delivered, Score keeps increasing, the Game Clock keeps advancing, Milestone Events keep firing and granting bonuses, Routes can still be drawn/edited/deleted, the On-Demand Bonus Request (`monetization.md` §2) still works normally. Creative Mode is a rule change to Node Overflow specifically, not a different game mode with different mechanics.
+- **Does not affect any already-recorded result**: the session's Final Weeks Survived (`meta_progression.md` §1) was already read and recorded at the moment the game ended, before Creative Mode was ever offered — nothing that happens afterward in Creative Mode revises Best Weeks Survived, the Leaderboard, or Collectible Reward progress. Creative Mode is purely a practice/sandbox continuation of a session whose result is already locked in, not a way to keep improving it.
+- Leaving Creative Mode (returning to the home phase and starting a new session) has no lasting effect — a fresh session always starts under the normal Node Overflow rule.
+
 ---
 
 ## 4. Route Drawing Interaction

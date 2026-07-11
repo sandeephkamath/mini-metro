@@ -15,6 +15,7 @@ interface GameOverScreenProps {
   pictureRevealSegments: RevealSegment[] | null;
   overflowStationShape: StationShape | null;
   onRestart: () => void;
+  onContinueCreative: () => void;
 }
 
 function overflowMessage(shape: StationShape | null): string {
@@ -23,7 +24,8 @@ function overflowMessage(shape: StationShape | null): string {
 }
 
 export function GameOverScreen({
-  score, weekNumber, bestWeeksSurvived, isNewBest, leaderboardResult, pictureRevealSegments, overflowStationShape, onRestart,
+  score, weekNumber, bestWeeksSurvived, isNewBest, leaderboardResult, pictureRevealSegments, overflowStationShape,
+  onRestart, onContinueCreative,
 }: GameOverScreenProps) {
   // Guards against an accidental tap on the small corner close icon discarding this
   // summary (score, Best Weeks, Leaderboard rank, Picture reveal) before it's been
@@ -95,6 +97,22 @@ export function GameOverScreen({
           </div>
         )}
         {pictureRevealSegments && <PictureReveal segments={pictureRevealSegments} />}
+        <button
+          onClick={onContinueCreative}
+          style={{
+            marginTop: 16,
+            background: 'transparent',
+            color: CONFIG.UI_INK_COLOR,
+            border: `1px solid ${CONFIG.UI_INK_COLOR}`,
+            borderRadius: 8,
+            padding: '10px 18px',
+            fontSize: 13,
+            cursor: 'pointer',
+            fontFamily: 'monospace',
+          }}
+        >
+          Continue in Creative Mode
+        </button>
       </div>
       {confirmingRestart && (
         <ConfirmModal

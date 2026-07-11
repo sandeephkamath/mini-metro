@@ -29,10 +29,10 @@ import { ConfirmModal } from './ConfirmModal';
 export function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const {
-    stateRef, score, phase, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending,
+    stateRef, score, phase, creativeMode, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending,
     selectedReserveItem, playerPaused, playerSpeedMultiplier, tutorialStep, metaProgression, pictureRevealSegments, isNewBest,
     finalWeeksSurvived, overflowStationShape, adFlow, adAvailable,
-    startGame, goHome, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
+    startGame, goHome, continueInCreativeMode, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
     requestOnDemandBonus, acceptAdOffer, declineAdOffer, completeAdPlayback, resolveAdBonusChoice,
   } = useGameState();
 
@@ -297,6 +297,7 @@ export function GameCanvas() {
       {phase === 'playing' && (
         <HUD
           score={score}
+          creativeMode={creativeMode}
           weekNumber={weekNumber}
           weekProgress={weekProgress}
           lineSlots={lineSlots}
@@ -408,6 +409,7 @@ export function GameCanvas() {
           pictureRevealSegments={pictureRevealSegments}
           overflowStationShape={overflowStationShape}
           onRestart={handleGoHome}
+          onContinueCreative={continueInCreativeMode}
         />
       )}
 

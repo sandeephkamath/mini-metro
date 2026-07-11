@@ -15,6 +15,7 @@ const INK = '#2d2d2d'; // dark text/icon color for the transparent HUD, matching
 
 interface HUDProps {
   score: number;
+  creativeMode: boolean; // core/logic.md §3 Creative Mode — Node Overflow can no longer end the session
   weekNumber: number;
   weekProgress: number; // 0..1 fraction of the current week elapsed
   lineSlots: LineSlot[];
@@ -128,7 +129,7 @@ function SpeedControls({ playerPaused, playerSpeedMultiplier, onPause, onPlayNor
 }
 
 export function HUD({
-  score, weekNumber, weekProgress, lineSlots, milestoneMessage, milestoneAge,
+  score, creativeMode, weekNumber, weekProgress, lineSlots, milestoneMessage, milestoneAge,
   reserveCarriers, reserveCarriages, selectedReserveItem,
   onSelectReserveCarrier, onSelectReserveCarriage,
   overflowRiskActive, playerPaused, playerSpeedMultiplier, onPause, onPlayNormal, onFastForward,
@@ -287,9 +288,28 @@ export function HUD({
         >
           <MuteIcon color={INK} muted={muted} />
         </button>
-        <span data-testid="hud-week" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
-          Week {weekNumber}
-        </span>
+        <div style={{
+          position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <span data-testid="hud-week">Week {weekNumber}</span>
+          {creativeMode && (
+            <span
+              data-testid="hud-creative-mode-badge"
+              title="Node Overflow can no longer end this session"
+              style={{
+                fontSize: '10px',
+                letterSpacing: '0.5px',
+                background: CONFIG.UI_INK_COLOR,
+                color: '#fff',
+                borderRadius: '10px',
+                padding: '2px 8px',
+              }}
+            >
+              CREATIVE MODE
+            </span>
+          )}
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           {CONFIG.PLAYER_SPEED_CONTROLS_ENABLED && (
             <SpeedControls
