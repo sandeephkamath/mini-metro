@@ -110,7 +110,14 @@ export function GameCanvas() {
   const [leaderboardResult, setLeaderboardResult] = useState<LeaderboardResult | null>(null);
   const leaderboardSubmittedRef = useRef(false);
   useEffect(() => {
-    if (phase === 'gameover' && leaderboard.available && !leaderboardSubmittedRef.current) {
+    // finalWeeksSurvived is null until the same sync tick that sets phase to 'gameover'
+    // actually computes it (useGameState.ts) — checking for null here, not just
+    // phase === 'gameover', matters because those two updates can land a render apart
+    // (e.g. after declineAdOffer(), which mutates state directly without an immediate
+    // syncReactState() call — see themes/metro.md B29). Without this check, this effect
+    // could fire once on the in-between render with the stale default and permanently
+    // lock out the correct value behind leaderboardSubmittedRef.
+    if (phase === 'gameover' && finalWeeksSurvived !== null && leaderboard.available && !leaderboardSubmittedRef.current) {
       leaderboardSubmittedRef.current = true;
       leaderboard.submitAndFetchRank(finalWeeksSurvived).then(setLeaderboardResult);
     }

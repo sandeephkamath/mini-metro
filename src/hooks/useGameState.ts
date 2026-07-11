@@ -113,7 +113,13 @@ export function useGameState() {
   const [isNewBest, setIsNewBest] = useState(false);
   // This session's Final Weeks Survived (core/meta_progression.md §1), frozen at game end —
   // exposed so the Leaderboard (§7) can submit the exact same value Best Weeks Survived used.
-  const [finalWeeksSurvived, setFinalWeeksSurvived] = useState(0);
+  // null (not 0) until computed: a real session can legitimately end at ~0 weeks survived,
+  // so 0 can't double as a "not computed yet" sentinel without being ambiguous with that
+  // real value (see themes/metro.md B29 — this ambiguity is exactly what let GameCanvas.tsx's
+  // leaderboard-submission effect fire once with the stale default before the real value
+  // landed one render later, permanently locking out the correct submission behind its
+  // once-only guard).
+  const [finalWeeksSurvived, setFinalWeeksSurvived] = useState<number | null>(null);
   // Which Station's overflow ended this session (metro.md §8) — frozen at game end,
   // same as finalWeeksSurvived above.
   const [overflowStationShape, setOverflowStationShape] = useState<StationShape | null>(null);
@@ -267,7 +273,7 @@ export function useGameState() {
     sessionEndRecordedRef.current = false;
     setPictureRevealSegments(null);
     setIsNewBest(false);
-    setFinalWeeksSurvived(0);
+    setFinalWeeksSurvived(null);
     setOverflowStationShape(null);
     logGameEvent('game_start');
   }
@@ -280,7 +286,7 @@ export function useGameState() {
     sessionEndRecordedRef.current = false;
     setPictureRevealSegments(null);
     setIsNewBest(false);
-    setFinalWeeksSurvived(0);
+    setFinalWeeksSurvived(null);
     setOverflowStationShape(null);
   }
 
