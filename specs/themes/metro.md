@@ -397,7 +397,7 @@ Configuration values:
 | River / tunnels | Yes | No |
 | Sound | Licensed/recorded music + SFX | Yes, but procedurally synthesized (§13) rather than licensed/recorded |
 | Mobile support | Yes | No |
-| High score | Persistent leaderboard | Single-device Best Weeks Survived only (§9.2) — no leaderboard, no accounts |
+| High score | Persistent leaderboard | Single-device Best Weeks Survived (§9.2) plus a real global Leaderboard (§9.6) once signed in — Play Games identity on Android, interim Google Sign-In on web |
 | Creative Mode (post-Game-Over sandbox) | Yes | No |
 
 ---
