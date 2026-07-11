@@ -43,7 +43,10 @@ export function declineAdOffer(state: GameState): void {
   if (!state.adFlow) return;
   const wasContinue = state.adFlow.kind === 'continue';
   state.adFlow = null;
-  if (wasContinue) state.phase = 'gameover';
+  if (wasContinue) {
+    state.phase = 'gameover';
+    state.audioEvents.push('gameOver');
+  }
 }
 
 // The Simulated (or real) ad finished playing successfully — advance to the

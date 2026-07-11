@@ -8,6 +8,8 @@ import { useLeaderboard, type LeaderboardResult } from '../hooks/useLeaderboard'
 import { useAdProvider } from '../hooks/useAdProvider';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useAndroidBackButton } from '../hooks/useAndroidBackButton';
+import { useAudio } from '../hooks/useAudio';
+import { isMuted, toggleMuted } from '../audio/audioManager';
 import { resolveMilestoneChoice } from '../logic/milestone';
 import { removeLine } from '../logic/lines';
 import { advanceTutorial, exitTutorial } from '../logic/tutorial';
@@ -39,6 +41,11 @@ export function GameCanvas() {
   const adProvider = useAdProvider();
   usePushNotifications();
   const { exitConfirmOpen, confirmExit, cancelExit } = useAndroidBackButton();
+  useAudio(phase);
+  const [muted, setMutedState] = useState(() => isMuted());
+  function handleToggleMute() {
+    setMutedState(toggleMuted());
+  }
 
   // Rendered upright as a sibling of the rotated stage, not nested inside HomeScreen
   // (metro.md §6.1, §11 B19) — rotated text was hard to read and its cards clipped
@@ -291,6 +298,8 @@ export function GameCanvas() {
           onDeleteLine={deleteLine}
           adAvailable={adAvailable}
           onRequestBonus={() => { if (!tutorialActive) requestOnDemandBonus(); }}
+          muted={muted}
+          onToggleMute={handleToggleMute}
         />
       )}
 
@@ -346,6 +355,8 @@ export function GameCanvas() {
             leaderboardIdentity={leaderboard.available ? leaderboard.identity : null}
             onSignIn={leaderboard.signIn}
             onOpenCollectibles={() => setShowCollectibles(true)}
+            muted={muted}
+            onToggleMute={handleToggleMute}
           />
         </div>
       )}

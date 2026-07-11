@@ -102,6 +102,7 @@ export function trySpawnStation(state: GameState): void {
     const shape = pickShape(state);
     const label = nextLabel(state, shape);
     state.stations[id] = { id, label, shape, pos, passengerQueue: [], maxCapacity: CONFIG.STATION_INITIAL_CAPACITY, lineIds: [], riskTimer: null, spawnedAtMs: state.gameTimeMs };
+    state.audioEvents.push('stationSpawn');
     return;
   }
 }

@@ -179,6 +179,7 @@ function disembarkPassengers(train: Train, stationId: string, state: GameState):
     if (p.destinationShape === station.shape) {
       state.score += 1;
       state.passengerFx.push({ stationId: station.id, shape: p.destinationShape, kind: 'deliver', atMs: state.gameTimeMs });
+      state.audioEvents.push('passengerDelivered');
       log(state, train, `@${sym(station.shape)} delivered ${sym(p.destinationShape)} ✓`);
     } else if (shouldTransferHere(train, p, station, state) && station.passengerQueue.length < station.maxCapacity) {
       p.queuedAtMs = state.gameTimeMs;

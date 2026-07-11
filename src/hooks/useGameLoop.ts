@@ -3,6 +3,7 @@ import type { MutableRefObject } from 'react';
 import type { GameState } from '../types/game';
 import { tick } from '../logic/gameLoop';
 import { render } from '../render/renderer';
+import { playQueuedCues } from '../audio/audioManager';
 
 interface UseGameLoopOptions {
   stateRef: MutableRefObject<GameState>;
@@ -28,6 +29,8 @@ export function useGameLoop({ stateRef, canvasRef, syncReactState }: UseGameLoop
         const speedMult = state.tutorial ? 1 : state.debugMode ? state.debugSpeed : state.playerSpeedMultiplier;
         tick(state, dt * speedMult);
       }
+
+      playQueuedCues(state);
 
       const canvas = canvasRef.current;
       if (canvas) {

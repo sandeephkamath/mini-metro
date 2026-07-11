@@ -46,7 +46,7 @@ export function useLeaderboard() {
 
   // Submits this session's Final Weeks Survived, then resolves this player's own
   // rank (and the total player count, for "#4,382 of 61,203 players") against it —
-  // called together so the rank reflects the just-submitted score (core §7: "the
+  // called together so the rank reflects the just-submitted score (core §8: "the
   // same moment Best Weeks Survived is evaluated locally").
   // No error UI is spec'd for the game-over rank line (home_screen.md leaves it as
   // "simply appears a moment later once ready") — a failed rank fetch here just

@@ -6,6 +6,18 @@ export type MilestoneBonusMode = 'auto' | 'choice';
 export type MilestoneBonusKind = 'carrier' | 'carriage';
 export type ReserveItemKind = 'carrier' | 'carriage';
 
+// Theme-neutral Audio Cue keys (core/logic.md §7); concrete sounds are mapped in
+// src/config/audioConfig.ts. Pushed onto GameState.audioEvents by logic functions,
+// drained and played once per frame by useGameLoop.ts — logic itself never touches
+// the DOM/Audio API (core §8 Architecture Constraints).
+export type AudioCueType =
+  | 'passengerDelivered'
+  | 'stationSpawn'
+  | 'lineDrawn'
+  | 'milestone'
+  | 'overflowRisk'
+  | 'gameOver';
+
 // Ad-gated monetization (core/monetization.md §1-3). 'onDemand' is the player-triggered
 // mid-session bonus request; 'continue' is the Game-Over rescue offered when a Node's
 // Grace Timer expires. Both share the same offer -> ad -> bonus-choice flow.
@@ -151,6 +163,7 @@ export interface GameState {
   lines: Record<string, MetroLine>;
   trains: Record<string, Train>;
   passengerFx: PassengerFx[]; // time-ordered; pruned each tick once older than the flourish duration
+  audioEvents: AudioCueType[]; // cues queued this frame; drained and cleared by useGameLoop.ts
   drawing: DrawingState;
   camera: CameraState;
   // Real on-screen canvas size (post-rotation-alignment). Equals CONFIG.CANVAS_WIDTH/HEIGHT

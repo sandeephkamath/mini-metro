@@ -9,19 +9,18 @@ See also `specs/research/mini_metro_original_analysis.md` — gameplay analysis 
 ## Styling / Visual Polish
 
 - Station spawn now fades/scales in (matching the original's shrinking-gray-halo look, `research/mini_metro_original_analysis_2_ui_timing.md` §2). Passenger boarding/alighting, new-train appearance, and Depot Carriage attachment now all animate too (queue-in fade/scale, board/deliver ghost flourishes, train spawn fade/scale, carriage attach fade/scale — `themes/metro.md` §5 config values + §7 item 10). Nothing left un-animated in this list.
-- No sound effects or music (noted in metro.md divergences).
 - Canvas is a fixed 800×600 — no responsive scaling for different window/screen sizes.
 - Overflow warning is a pulsing red ring — consider whether near-capacity states need earlier/gentler visual cues. The original's global cue (a HUD-corner element turning solid red while *any* station is in overflow risk, `research/mini_metro_original_analysis_2_ui_timing.md` §1) is implemented: the HUD's day-of-week clock badge recolors solid red while any Station is at risk and reverts once none are (`themes/metro.md` §7 item 7, `HUD.tsx` ClockBadge) — placed on the clock badge rather than the pause button, but the same mechanic. Considered and resolved; nothing further planned here unless the per-station visual itself changes.
 - No dark mode.
 
 ## Audio
 
-- No sound effects or music at all currently (also noted in the Styling section above and in `metro.md` §10 divergences). Nothing decided yet:
-  - Background music — ambient loop during gameplay, distinct (if any) home-screen track, whether it pauses/ducks during Milestone Events or Game Over.
-  - Sound effects — candidates: Line drawn/deleted, Train departs/arrives, Passenger boards/alights, Station overflow warning, Node Overflow/Game Over, Weekly Upgrade choice, delivery/score tick.
-  - Mute/volume control — player-facing toggle needed (HUD or home screen), plus whether the setting persists (ties into the broader Persistence gap above).
-  - Asset sourcing — licensed/stock audio vs. procedurally generated (e.g. Web Audio API synthesized tones) vs. commissioned; no direction chosen yet, unlike Collectibles' art-asset decision.
-  - Mobile/Android considerations — Capacitor WebView audio playback, autoplay restrictions on first user interaction (browsers require a user gesture before audio can play).
+- Implemented 2026-07-11: Background Music (Menu Track for `home`/`gameover`, Session Track for `playing`) and six Audio Cues (Resource Delivered, Node Spawned, Route Committed, Milestone Event, Overflow Risk Started, Game Over), all procedurally synthesized — `core/logic.md` §7 (theme-neutral) and `themes/metro.md` §13 (concrete tracks/cues/config). Mute toggle (HUD + Home Screen) persists to `localStorage`. See `src/audio/audioManager.ts`, `src/config/audioConfig.ts`, `scripts/generate-audio.mjs`.
+- Still open / deferred, not blocking the above:
+  - No Line-deleted cue (only Route *Committed* has one) — deletion is a hold-gesture with its own visual feedback already; revisit if it feels audio-silent in practice.
+  - No Train departs/arrives or Passenger boards (only delivery) — considered too frequent/noisy for the "soothing" brief; revisit if playtesting wants more train-level ambience.
+  - No independent music/SFX volume sliders — a single mute toggle only, per `metro.md` §13. Revisit if players want fine-grained control.
+  - Assets are synthesized `.wav` files, not licensed/recorded/commissioned — swapping in different audio later is a one-file-per-cue change (`src/config/audioConfig.ts`), see `metro.md` §13 "Asset files & swapping".
 
 ## Scoring
 

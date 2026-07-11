@@ -24,6 +24,7 @@ export function updateOverflowRisk(state: GameState, dt: number): void {
 
     if (station.riskTimer === null) {
       station.riskTimer = state.graceDurationMs;
+      state.audioEvents.push('overflowRisk');
     } else {
       station.riskTimer -= dt;
       if (station.riskTimer <= 0) {
@@ -31,6 +32,7 @@ export function updateOverflowRisk(state: GameState, dt: number): void {
           offerGameOverContinue(state);
         } else {
           state.phase = 'gameover';
+          state.audioEvents.push('gameOver');
         }
         return;
       }

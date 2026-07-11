@@ -22,6 +22,7 @@ function announce(state: GameState, msg: string): void {
 // Fires a Milestone Event. In Auto mode the bonus is picked and granted immediately.
 // In Choice mode this only opens the choice popup — resolveMilestoneChoice grants it.
 export function fireMilestoneEvent(state: GameState): void {
+  state.audioEvents.push('milestone');
   if (state.milestoneBonusMode === 'auto') {
     const kind = AUTO_ORDER[state.milestoneAutoIndex % AUTO_ORDER.length];
     state.milestoneAutoIndex += 1;

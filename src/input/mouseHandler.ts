@@ -218,12 +218,14 @@ function commitDrawing(state: GameState): void {
   if (!d.lineId) return;
   const line = state.lines[d.lineId];
   if (!line) return;
+  const stationCountBefore = line.stationIds.length;
 
   if (line.stationIds.length === 0) {
     // Brand-new line: path[0] is the start station; needs at least one more to exist.
     for (let i = 1; i < d.path.length; i++) {
       addStationToLine(state, d.lineId, d.path[i], d.path[i - 1]);
     }
+    if (line.stationIds.length > stationCountBefore) state.audioEvents.push('lineDrawn');
     return;
   }
 
@@ -236,6 +238,7 @@ function commitDrawing(state: GameState): void {
     addStationToLine(state, d.lineId, stationId, endId);
     endId = stationId;
   }
+  if (line.stationIds.length > stationCountBefore) state.audioEvents.push('lineDrawn');
 }
 
 export function onMouseUp(state: GameState, canvasX: number, canvasY: number): void {
@@ -258,6 +261,7 @@ export function onMouseUp(state: GameState, canvasX: number, canvasY: number): v
       const line = state.lines[state.drawing.lineId];
       if (line && !line.stationIds.includes(endStation.id)) {
         insertStationIntoLine(state, state.drawing.lineId, insertAfterIndex, endStation.id);
+        state.audioEvents.push('lineDrawn');
       }
     }
   } else {

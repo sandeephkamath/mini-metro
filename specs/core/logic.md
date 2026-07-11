@@ -193,7 +193,30 @@ The player may also run the clock at a faster rate than normal (Fast-Forward) ra
 
 ---
 
-## 7. Architecture Constraints
+## 7. Audio Cues
+
+The game has two theme-neutral audio layers: a continuous **Background Music** track and one-shot **Audio Cues** tied to specific rule moments.
+
+**Background Music.** Exactly one of two Music Tracks plays at a time: a Menu Track (while the game is in the home/menu state or the game-over state — neither is "in session") and a Session Track (while the game is in the playing state, including while paused, a Milestone Event Choice is presented, or an ad-gated flow is open — all of those are still "in session"). Switching states swaps the track; the same track continues playing across a swap that resolves back to the same state (e.g. pausing and resuming does not restart the Session Track). Both tracks loop indefinitely and are stylistically and harmonically related — a theme is free to build its Audio Cues (below) from the same musical material as its Music Tracks so they read as one soundscape rather than clashing overlays.
+
+**Audio Cues.** A short, non-looping sound plays once at each of the following moments:
+
+| Cue | Fires when |
+|-----|-----------|
+| Resource Delivered | A Resource reaches a Node matching its destination type (§3 Delivery) |
+| Node Spawned | A new Node is added to the map (§3 Node lifecycle) |
+| Route Committed | A drag gesture that adds at least one Node to a Route is released (§4) |
+| Milestone Event | A Milestone Event fires, whether it auto-grants a bonus or opens the Choice popup (§3 Milestone Events) |
+| Overflow Risk Started | A Node's Grace Timer starts counting down (§3 Node Overflow) |
+| Game Over | The session ends, by either the Grace Timer expiring with no Continue offered, or a Continue offer being declined (§3 Node Overflow) |
+
+Cues are fire-and-forget: overlapping cues (e.g. several Resources delivered in the same instant) are each allowed to sound rather than being coalesced into one, though a theme may apply a short per-cue cooldown purely to avoid audio clipping/distortion from stacking identical sounds, not to suppress the underlying event. Audio Cues and Background Music share a single player-facing mute control (theme-defined placement) that silences both; muting is a presentation setting only and never changes game rules or timing.
+
+Because browsers require a user gesture before audio can play, Background Music may not start immediately when a state is entered — implementations should begin playback (silently, if needed) as soon as the first gesture arrives, without requiring the player to retrigger the state.
+
+---
+
+## 8. Architecture Constraints
 
 - Game state is a single mutable object updated each frame. UI state (score, phase) is a shallow copy synchronised at ~10Hz.
 - The render loop must be stable: it must not restart on UI re-renders.
@@ -202,7 +225,7 @@ The player may also run the clock at a faster rate than normal (Fast-Forward) ra
 
 ---
 
-## 8. Terminology Reference
+## 9. Terminology Reference
 
 | Abstract Term | Definition |
 |---------------|-----------|

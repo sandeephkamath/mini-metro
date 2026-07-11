@@ -36,6 +36,7 @@ function createInitialState(): GameState {
     lines: {},
     trains: {},
     passengerFx: [],
+    audioEvents: [],
     drawing: {
       isDrawing: false,
       lineId: null,

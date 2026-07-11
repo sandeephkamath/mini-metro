@@ -47,7 +47,7 @@ export async function signInWithGoogle(): Promise<LeaderboardIdentity | null> {
   }
 }
 
-// The client never needs to compare against a previous value first (core §7) —
+// The client never needs to compare against a previous value first (core §8) —
 // Firestore Security Rules (firestore.rules) are what actually reject a
 // regressing or out-of-range submission.
 export async function submitScore(identity: LeaderboardIdentity, weeksSurvived: number): Promise<void> {
