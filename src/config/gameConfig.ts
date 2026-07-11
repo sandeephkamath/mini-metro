@@ -189,8 +189,8 @@ export const CONFIG = {
   TUTORIAL_HINT_LOOP_MS: 1500, // gesture-hint dot traversal time (wall-time driven)
 
   // Player-facing Pause/Play/Fast-Forward HUD control (core/logic.md §6, themes/metro.md §5) —
-  // build-time flag, not a player setting. On by default; flip to false to hide the control.
-  PLAYER_SPEED_CONTROLS_ENABLED: true,
+  // build-time flag, not a player setting. Off by default; flip to true to show the control.
+  PLAYER_SPEED_CONTROLS_ENABLED: false,
 
   SHAPE_COLORS: {
     circle:   '#e74c3c',

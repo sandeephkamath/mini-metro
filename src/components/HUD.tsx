@@ -215,7 +215,37 @@ export function HUD({
       display: 'flex',
       alignItems: 'center',
       gap: 5,
+      position: 'relative' as const,
     };
+  }
+
+  // Dedicated ad-reward affordance (metro.md §4.2) — a small "+" badge pinned to the
+  // corner of a ×0 Depot button when an ad is available, so the button reads as "get
+  // one via ad" at a glance instead of relying solely on the tinted background/border
+  // to communicate it's clickable.
+  function AdBonusBadge() {
+    return (
+      <span
+        data-testid="hud-depot-ad-badge"
+        style={{
+          position: 'absolute',
+          top: -6,
+          right: -6,
+          width: 16,
+          height: 16,
+          borderRadius: '50%',
+          background: '#4fa3c4',
+          color: '#fff',
+          fontSize: 12,
+          fontWeight: 'bold',
+          lineHeight: '16px',
+          textAlign: 'center',
+          pointerEvents: 'none',
+        }}
+      >
+        +
+      </span>
+    );
   }
 
   // Depot icons drawn in the game's own visual language (metro.md §4.1, §7 item
@@ -331,6 +361,7 @@ export function HUD({
         >
           <TrainIcon color={reserveCarriers > 0 ? '#fff' : reserveCarriers === 0 && adAvailable ? '#bfe4f5' : '#666'} />
           ×{reserveCarriers}
+          {reserveCarriers === 0 && adAvailable && <AdBonusBadge />}
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -388,6 +419,7 @@ export function HUD({
         >
           <CarriageIcon color={reserveCarriages > 0 ? '#fff' : reserveCarriages === 0 && adAvailable ? '#bfe4f5' : '#666'} />
           ×{reserveCarriages}
+          {reserveCarriages === 0 && adAvailable && <AdBonusBadge />}
         </button>
       </div>
 

@@ -4,6 +4,7 @@ import type { GameState } from '../types/game';
 import { tick } from '../logic/gameLoop';
 import { render } from '../render/renderer';
 import { playQueuedCues } from '../audio/audioManager';
+import { CONFIG } from '../config/gameConfig';
 
 interface UseGameLoopOptions {
   stateRef: MutableRefObject<GameState>;
@@ -27,7 +28,19 @@ export function useGameLoop({ stateRef, canvasRef, syncReactState }: UseGameLoop
         // The tutorial owns the clock at 1x (specs/TUTORIAL.md §3) — a debug speed
         // keyed before it started must not fast-forward the scripted steps.
         const speedMult = state.tutorial ? 1 : state.debugMode ? state.debugSpeed : state.playerSpeedMultiplier;
-        tick(state, dt * speedMult);
+        // Backgrounding no longer freezes the clock (core/logic.md §6) — after a
+        // hidden tab/app becomes visible again, `dt` here is the real elapsed
+        // wall-clock gap (the visibilitychange listener below deliberately never
+        // resets lastTimeRef, so RAF's own timestamp already reflects it). tick()
+        // caps a single call to CONFIG.MAX_DT, so a large gap is drained through a
+        // loop of capped steps rather than one call silently losing everything past
+        // the first MAX_DT.
+        let remaining = dt * speedMult;
+        while (remaining > 0) {
+          const step = Math.min(remaining, CONFIG.MAX_DT);
+          tick(state, step);
+          remaining -= step;
+        }
       }
 
       playQueuedCues(state);
@@ -66,16 +79,8 @@ export function useGameLoop({ stateRef, canvasRef, syncReactState }: UseGameLoop
 
     rafRef.current = requestAnimationFrame(loop);
 
-    const handleVisibility = () => {
-      if (document.hidden) {
-        lastTimeRef.current = 0;
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-
     return () => {
       cancelAnimationFrame(rafRef.current);
-      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [stateRef, canvasRef, syncReactState]);
 }
