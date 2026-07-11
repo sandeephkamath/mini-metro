@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { GamePhase } from '../types/game';
-import { playMusic, unlockAudio } from '../audio/audioManager';
+import { pauseMusicForBackground, playMusic, resumeMusicFromBackground, unlockAudio } from '../audio/audioManager';
 
 // Menu Track for home/gameover, Session Track for playing (themes/metro.md §13).
 // A one-time gesture listener unlocks playback per core/logic.md §7 — registered
@@ -19,6 +19,21 @@ export function useAudio(phase: GamePhase): void {
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
     };
+  }, []);
+
+  // Same background/foreground signal useGameLoop.ts already uses to reset its
+  // clock (document.hidden) — Background Music otherwise keeps looping, audible,
+  // while the app isn't in front of the player (themes/metro.md B26).
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.hidden) {
+        pauseMusicForBackground();
+      } else {
+        resumeMusicFromBackground();
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
   useEffect(() => {
