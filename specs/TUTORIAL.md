@@ -10,17 +10,16 @@ A scripted, interactive tutorial that teaches a first-time player the core loop 
 
 ## 1. Triggering
 
-Two independent entry points:
+Three independent entry points:
 
-- **Auto-run on first-ever session.** The moment a player's very first `playing` session begins (Play clicked on the `home` phase, before this browser has ever seen the Tutorial — §8 Persistence), the Tutorial starts automatically instead of dropping the player straight onto an empty board. This is the primary player-facing entry point resolving `memo.md` §FTUE's "auto-run on first-ever session" item. This entry point alone (not the debug trigger) is additionally gated by a theme/build config flag (`Auto Tutorial Enabled`, `themes/metro.md` §5), on by default — the same "code default, not a player setting" category as the Player Speed Controls flag (core §6). Its only current use is letting automated tests opt a fresh browser profile out of the auto-run so flows exercise a clean board instead of the scripted onboarding — see `testing.md`.
+- **Auto-run on first-ever session.** The moment a player's very first `playing` session begins (Play clicked on the `home` phase, before this browser has ever seen the Tutorial — §8 Persistence), the Tutorial starts automatically instead of dropping the player straight onto an empty board. This is the primary player-facing entry point resolving `memo.md` §FTUE's "auto-run on first-ever session" item. This entry point alone (not the other two) is additionally gated by a theme/build config flag (`Auto Tutorial Enabled`, `themes/metro.md` §5), on by default — the same "code default, not a player setting" category as the Player Speed Controls flag (core §6). Its only current use is letting automated tests opt a fresh browser profile out of the auto-run so flows exercise a clean board instead of the scripted onboarding — see `testing.md`.
+- **Manual replay from the Home Screen** (`home_screen.md` § Content), for a returning player who wants to see it again: a small, always-present icon-only control starts a brand-new session exactly like Play, except the Tutorial runs regardless of `Auto Tutorial Enabled` or whether this browser has ever seen it before. Unlike the auto-run entry point, this one never marks the Tutorial "seen" if it wasn't already — it doesn't change whether the *next plain* Play click would have auto-run it.
 - **Debug-triggered**, for QA/replay on any session: press **`T`** while debug mode is on and the game phase is `playing`. Unaffected by whether this browser has already seen the Tutorial — it always runs the full script from step 1 on a startable board.
 
-Both entry points share the same preconditions and script — the only difference is what fires the trigger:
+All three entry points share the same preconditions and script — the only difference is what fires the trigger:
 
-- The trigger is **ignored** unless the board is in a startable state: **no Lines drawn yet** and **no Station currently at risk**. For the auto-run case this is always true (it fires on a freshly created board, before the player has drawn anything); for the debug case it means triggering it at the start of a run.
+- The trigger is **ignored** unless the board is in a startable state: **no Lines drawn yet** and **no Station currently at risk**. For the auto-run and manual-replay cases this is always true (both fire on a freshly created board, before the player has drawn anything); for the debug case it means triggering it at the start of a run.
 - The three fixed starting Stations (circle, triangle, square — `themes/metro.md` §2) are the tutorial's actors; they always exist, so the script is deterministic.
-
-A home-screen Tutorial button (manual replay after the first session) remains deferred — tracked in `memo.md` §FTUE.
 
 ## 2. Relationship to Game Rules
 

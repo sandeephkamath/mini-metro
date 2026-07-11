@@ -248,7 +248,12 @@ export function useGameState() {
     setAdAvailable(true);
   }
 
-  function startGame() {
+  // forceTutorial is the Home Screen's "Restart Tutorial" entry point (TUTORIAL.md
+  // §1, home_screen.md § Content) — starts a fresh session with the Tutorial on
+  // regardless of Auto Tutorial Enabled or whether this browser has ever seen it;
+  // unlike the auto-run path it never calls markTutorialSeen() on its own account,
+  // so it doesn't affect whether the next plain Play click would have auto-run it.
+  function startGame(forceTutorial = false) {
     // Read before the state replacement below discards it (DEBUG.md § Debug
     // Auto-Tutorial Override) — set on the outgoing 'home'-phase state, not the
     // fresh one about to be created.
@@ -259,16 +264,16 @@ export function useGameState() {
     // on this browser's first-ever session, right as a fresh board is created —
     // canStartTutorial's preconditions (no Lines, no Station at risk) are always
     // true here.
-    const autoTutorial = CONFIG.AUTO_TUTORIAL_ENABLED && !autoTutorialForcedOff && !hasSeenTutorial();
+    const autoTutorial = forceTutorial || (CONFIG.AUTO_TUTORIAL_ENABLED && !autoTutorialForcedOff && !hasSeenTutorial());
     if (autoTutorial) {
       startTutorial(stateRef.current);
-      markTutorialSeen();
+      if (!forceTutorial) markTutorialSeen();
     }
     setPhase('playing');
     resetReactState();
     if (autoTutorial && stateRef.current.tutorial) {
       setTutorialStep(stateRef.current.tutorial.step);
-      logGameEvent('tutorial_started', { trigger: 'auto_first_play' });
+      logGameEvent('tutorial_started', { trigger: forceTutorial ? 'manual_replay' : 'auto_first_play' });
     }
     sessionEndRecordedRef.current = false;
     setPictureRevealSegments(null);

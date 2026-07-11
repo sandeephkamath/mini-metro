@@ -204,8 +204,8 @@ export function GameCanvas() {
   // startGame()/goHome() both replace stateRef.current with a fresh createInitialState()
   // (native-size default viewport) — re-apply the real, currently-known viewport
   // immediately afterward so the camera doesn't misbehave until the next resize/rotate.
-  function handleStartGame() {
-    startGame();
+  function handleStartGame(forceTutorial = false) {
+    startGame(forceTutorial);
     stateRef.current.viewport.width = viewportRef.current.width;
     stateRef.current.viewport.height = viewportRef.current.height;
     stateRef.current.adReady = adProvider.ready;
@@ -392,6 +392,7 @@ export function GameCanvas() {
         }}>
           <HomeScreen
             onPlay={handleStartGame}
+            onReplayTutorial={() => handleStartGame(true)}
             bestWeeksSurvived={metaProgression.bestWeeksSurvived}
             leaderboardIdentity={leaderboard.available ? leaderboard.identity : null}
             onSignIn={leaderboard.signIn}

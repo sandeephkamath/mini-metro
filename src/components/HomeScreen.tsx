@@ -17,6 +17,7 @@ interface HomeScreenProps {
   // not owned locally — GameCanvas.tsx holds the open/closed state.
   onOpenCollectibles: () => void;
   onOpenSettings: () => void; // Settings screen (home_screen.md § Settings) — same pattern as Collectibles
+  onReplayTutorial: () => void; // Manual replay entry point (TUTORIAL.md §1, home_screen.md § Content)
 }
 
 const BG = CONFIG.UI_BG_COLOR;
@@ -285,8 +286,19 @@ function SettingsIcon({ color }: { color: string }) {
   );
 }
 
+// Circular-arrow "replay" glyph for the Restart Tutorial entry point (home_screen.md
+// § Content, TUTORIAL.md §1) — same visual weight as the other icon-only controls.
+function ReplayTutorialIcon({ color }: { color: string }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14">
+      <path d="M12.2 7A5.2 5.2 0 1 1 10.4 3" fill="none" stroke={color} strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M10.4 0.8v2.6h-2.6" fill="none" stroke={color} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function HomeScreen({
-  onPlay, bestWeeksSurvived, leaderboardIdentity, onSignIn, onOpenCollectibles, onOpenSettings,
+  onPlay, bestWeeksSurvived, leaderboardIdentity, onSignIn, onOpenCollectibles, onOpenSettings, onReplayTutorial,
 }: HomeScreenProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -565,6 +577,26 @@ export function HomeScreen({
             }}
           >
             <SettingsIcon color={INK} />
+          </button>
+          <button
+            onClick={onReplayTutorial}
+            aria-label="Restart Tutorial"
+            title="Restart Tutorial"
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: '50%',
+              background: '#fff',
+              border: `1px solid ${INK}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+            }}
+          >
+            <ReplayTutorialIcon color={INK} />
           </button>
           {!leaderboardIdentity && !Capacitor.isNativePlatform() && (
             <button
