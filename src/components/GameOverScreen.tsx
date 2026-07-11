@@ -73,7 +73,7 @@ export function GameOverScreen({
         <div style={{
           background: CONFIG.UI_BG_COLOR,
           borderRadius: '12px',
-          padding: '40px 48px',
+          padding: '26px 48px',
           boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
           textAlign: 'center',
           minWidth: 280,
@@ -81,29 +81,40 @@ export function GameOverScreen({
           overflowY: 'auto',
         }}>
           <h2 style={{ margin: '0 0 4px', color: CONFIG.UI_PRIMARY_COLOR, fontFamily: 'monospace', fontSize: '1.8rem' }}>Game over</h2>
-          <p style={{ color: CONFIG.UI_MUTED_TEXT_COLOR, margin: '0 0 16px' }}>{overflowMessage(overflowStationShape)}</p>
-          <div style={{ fontSize: '3rem', fontWeight: 'bold', fontFamily: 'monospace', marginBottom: 4, color: CONFIG.UI_INK_COLOR }}>{score}</div>
-          <div style={{ color: CONFIG.UI_MUTED_TEXT_COLOR, marginBottom: 12 }}>passengers delivered</div>
-          {isNewBest ? (
-            <div style={{ color: CONFIG.LINE_COLORS[2], fontWeight: 'bold', fontFamily: 'monospace', marginBottom: 8 }}>
-              New best — Week {weekNumber}
+          <p style={{ color: CONFIG.UI_MUTED_TEXT_COLOR, margin: '0 0 10px' }}>{overflowMessage(overflowStationShape)}</p>
+          {/* Side by side rather than stacked: on a landscape phone (this game's
+              required orientation, §6.1) there's ample spare width but little spare
+              height, and the Picture Reveal is the tallest single element here — a
+              single centered column made this card scroll internally on short
+              viewports (B27) even after fixing the worse invisible-clipping version
+              of that bug. Wraps back to stacked/centered if either column runs out
+              of room, e.g. a narrow desktop window. */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 32, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontSize: '3rem', fontWeight: 'bold', fontFamily: 'monospace', marginBottom: 4, color: CONFIG.UI_INK_COLOR }}>{score}</div>
+              <div style={{ color: CONFIG.UI_MUTED_TEXT_COLOR, marginBottom: 8 }}>passengers delivered</div>
+              {isNewBest ? (
+                <div style={{ color: CONFIG.LINE_COLORS[2], fontWeight: 'bold', fontFamily: 'monospace', marginBottom: 8 }}>
+                  New best — Week {weekNumber}
+                </div>
+              ) : (
+                <div style={{ color: CONFIG.UI_MUTED_TEXT_COLOR, fontSize: '0.85rem', marginBottom: 8 }}>
+                  Reached Week {weekNumber} · Best: Week {Math.floor(bestWeeksSurvived)}
+                </div>
+              )}
+              {leaderboardResult && (
+                <div style={{ color: CONFIG.UI_MUTED_TEXT_COLOR, fontSize: '0.8rem', marginBottom: 8 }}>
+                  #{leaderboardResult.rank.toLocaleString()}
+                  {leaderboardResult.totalPlayers !== null && ` of ${leaderboardResult.totalPlayers.toLocaleString()} players`}
+                </div>
+              )}
             </div>
-          ) : (
-            <div style={{ color: CONFIG.UI_MUTED_TEXT_COLOR, fontSize: '0.85rem', marginBottom: 8 }}>
-              Reached Week {weekNumber} · Best: Week {Math.floor(bestWeeksSurvived)}
-            </div>
-          )}
-          {leaderboardResult && (
-            <div style={{ color: CONFIG.UI_MUTED_TEXT_COLOR, fontSize: '0.8rem', marginBottom: 8 }}>
-              #{leaderboardResult.rank.toLocaleString()}
-              {leaderboardResult.totalPlayers !== null && ` of ${leaderboardResult.totalPlayers.toLocaleString()} players`}
-            </div>
-          )}
-          {pictureRevealSegments && <PictureReveal segments={pictureRevealSegments} />}
+            {pictureRevealSegments && <PictureReveal segments={pictureRevealSegments} />}
+          </div>
           <button
             onClick={onContinueCreative}
             style={{
-              marginTop: 16,
+              marginTop: 10,
               background: 'transparent',
               color: CONFIG.UI_INK_COLOR,
               border: `1px solid ${CONFIG.UI_INK_COLOR}`,

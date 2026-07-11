@@ -99,7 +99,7 @@ export function PictureReveal({ segments }: PictureRevealProps) {
   const percent = Math.round((displayProgress / segment.required) * 100);
 
   return (
-    <div style={{ marginTop: 20, marginBottom: 8 }}>
+    <div style={{ marginBottom: 8 }}>
       <canvas
         ref={canvasRef}
         width={THUMB_W}
