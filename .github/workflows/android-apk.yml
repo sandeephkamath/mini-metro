@@ -80,6 +80,10 @@ jobs:
 
       - run: npx cap sync android
 
+      - name: Show resolved signing config
+        working-directory: android
+        run: ./gradlew :app:signingReport --no-daemon
+
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
