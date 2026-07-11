@@ -539,6 +539,7 @@ export function addCarriageToTrain(state: GameState, trainId: string): boolean {
   if (!train) return false;
   train.maxCapacity += CONFIG.CARRIAGE_CAPACITY_BONUS;
   train.carriageCount += 1;
+  train.carriageAttachedAtMs.push(state.gameTimeMs);
   return true;
 }
 

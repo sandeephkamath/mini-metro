@@ -89,6 +89,10 @@ export interface Train {
   state: TrainState;
   stopTimer: number;
   spawnedAtMs: number; // state.gameTimeMs at creation — drives the spawn-in animation, freezes with the Game Clock
+  // gameTimeMs each carriage was attached, index-aligned with carriageCount — index 0
+  // (the base train) equals spawnedAtMs since it's covered by the whole-train spawn
+  // animation instead. Drives the per-carriage attach-in animation (themes/metro.md §7 item 10).
+  carriageAttachedAtMs: number[];
 }
 
 export interface DrawingState {

@@ -297,5 +297,6 @@ export function createTrain(lineId: string, state: GameState): Train {
     state: 'moving',
     stopTimer: 0,
     spawnedAtMs: state.gameTimeMs,
+    carriageAttachedAtMs: [state.gameTimeMs],
   };
 }

@@ -8,8 +8,7 @@ See also `specs/research/mini_metro_original_analysis.md` — gameplay analysis 
 
 ## Styling / Visual Polish
 
-- Only one visual theme exists (Metro). Decide if alternate themes (e.g. water pipes, blood vessels, airline routes) are worth building on top of `core/logic.md`.
-- Station spawn now fades/scales in (matching the original's shrinking-gray-halo look, `research/mini_metro_original_analysis_2_ui_timing.md` §2). Passenger boarding/alighting and new-train appearance now animate too (queue-in fade/scale, board/deliver ghost flourishes, train spawn fade/scale — `themes/metro.md` §5 config values + §7 items 9–10). Remaining un-animated pop: a Depot Carriage attaching to a Train adds its carriage box instantly.
+- Station spawn now fades/scales in (matching the original's shrinking-gray-halo look, `research/mini_metro_original_analysis_2_ui_timing.md` §2). Passenger boarding/alighting, new-train appearance, and Depot Carriage attachment now all animate too (queue-in fade/scale, board/deliver ghost flourishes, train spawn fade/scale, carriage attach fade/scale — `themes/metro.md` §5 config values + §7 item 10). Nothing left un-animated in this list.
 - No sound effects or music (noted in metro.md divergences).
 - Canvas is a fixed 800×600 — no responsive scaling for different window/screen sizes.
 - Overflow warning is a pulsing red ring — consider whether near-capacity states need earlier/gentler visual cues. The original's global cue (a HUD-corner element turning solid red while *any* station is in overflow risk, `research/mini_metro_original_analysis_2_ui_timing.md` §1) is implemented: the HUD's day-of-week clock badge recolors solid red while any Station is at risk and reverts once none are (`themes/metro.md` §7 item 7, `HUD.tsx` ClockBadge) — placed on the clock badge rather than the pause button, but the same mechanic. Considered and resolved; nothing further planned here unless the per-station visual itself changes.

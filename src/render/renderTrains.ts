@@ -40,38 +40,56 @@ export function renderTrains(ctx: CanvasRenderingContext2D, state: GameState): v
     let passengerCursor = 0;
     for (let c = 0; c < train.carriageCount; c++) {
       const cx = -c * (w + gap);
+      // Attach-in fade/scale, scoped to just this carriage (themes/metro.md §7 item 10)
+      // — index 0 is the base train, already covered by the whole-train spawn fade above.
+      const attachT = c === 0 ? 1 : Math.max(0, Math.min(1,
+        (state.gameTimeMs - train.carriageAttachedAtMs[c]) / CONFIG.CARRIAGE_ATTACH_ANIM_MS));
 
       if (c > 0) {
-        // Link to the previous carriage
+        // Link to the previous carriage — fades in alongside the new carriage
+        ctx.save();
+        ctx.globalAlpha = attachT;
         ctx.strokeStyle = darken(line.color, 0.1);
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(cx + w / 2, 0);
         ctx.lineTo(cx + w / 2 + gap, 0);
         ctx.stroke();
+        ctx.restore();
+      }
+
+      ctx.save();
+      ctx.translate(cx, 0);
+      if (attachT < 1) {
+        ctx.globalAlpha = 0.2 + 0.8 * attachT;
+        const s = 0.4 + 0.6 * attachT;
+        ctx.scale(s, s);
       }
 
       ctx.fillStyle = darken(line.color);
       ctx.strokeStyle = line.color;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.roundRect(cx - w / 2, -h / 2, w, h, 3);
+      ctx.roundRect(-w / 2, -h / 2, w, h, 3);
       ctx.fill();
       ctx.stroke();
 
-      // Passenger icons inside this carriage — tiny destination shapes
+      // Passenger icons inside this carriage — tiny destination shapes, in this
+      // carriage's own local space (translated above)
       const capacity = capacities[c];
       const inCarriage = train.passengers.slice(passengerCursor, passengerCursor + capacity);
       passengerCursor += capacity;
       const maxIcons = Math.min(inCarriage.length, 6);
       for (let i = 0; i < maxIcons; i++) {
         const shape = inCarriage[i].destinationShape;
-        const px = cx - w / 2 + 3 + i * ((w - 6) / maxIcons) + (w - 6) / (maxIcons * 2);
+        const px = -w / 2 + 3 + i * ((w - 6) / maxIcons) + (w - 6) / (maxIcons * 2);
         // Light-on-dark for legibility against the dark train body (themes/metro.md §7 item 11)
         traceShapePath(ctx, px, 0, shape, 2);
         ctx.fillStyle = '#f5f0e8';
         ctx.fill();
       }
+
+      ctx.restore();
     }
 
     ctx.restore();

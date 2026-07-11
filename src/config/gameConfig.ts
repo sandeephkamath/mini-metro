@@ -35,6 +35,7 @@ export const CONFIG = {
   STATION_RADIUS: 14,
   STATION_SPAWN_ANIM_MS: 600, // spawn-in fade/scale duration for a newly-created Station
   TRAIN_SPAWN_ANIM_MS: 400, // spawn-in fade/scale duration for a newly-created Train
+  CARRIAGE_ATTACH_ANIM_MS: 400, // fade/scale-in duration for a Depot Carriage attaching to a Train, scoped to just that carriage
   PASSENGER_QUEUE_ANIM_MS: 300, // fade/scale-in of a Passenger icon newly added to a Station queue
   PASSENGER_FX_MS: 400, // lifetime of the board/deliver ghost flourish
   // Hit radius for STARTING a drag and for capturing stations into the provisional chain
