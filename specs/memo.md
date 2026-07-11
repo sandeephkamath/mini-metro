@@ -68,6 +68,8 @@ Touch input and responsive sizing are now implemented (`useMouseInput.ts`, `Game
 
 **Decided, not a gap**: no portrait-native HUD layout is planned — landscape is the game's required/intended orientation on phones, not just the default. The rotate-to-fill behavior above (spin the whole landscape design 90° so it still fills a phone screen if the player happens to be holding it in portrait) is the accepted handling for that case, not a stand-in for a "real" portrait redesign.
 
+**Resolved 2026-07-11**: the rotate-to-fill behavior was silently mismatched with dialogs (Game Over, Collectibles, Exit confirm) that deliberately stay upright (B19) — on a real Android phone held in portrait, the rotated board and the upright dialog visibly disagreed about which way was "up" (`themes/metro.md` §11 B20). Fixed at the root rather than patched per-dialog: Android's Activity is now locked to `sensorLandscape` (`android/app/src/main/AndroidManifest.xml`), so the device is simply never presented to the WebView in portrait on Android and the whole rotation system (dialogs included) never activates there. Only the web build still needs §6.1's rotate-to-fill fallback, for a portrait browser window — no OS-level orientation lock is available for a plain browser tab.
+
 ### Android Packaging (decided 2026-07-09: Capacitor)
 
 Game ships as an Android app via **Capacitor** — wraps the existing Vite build in a native WebView shell, reuses `src/render/` and all game logic untouched, produces a real Play Store APK/AAB. Web app remains the fully supported, undiverged primary target; the `android/` native project is a packaging layer on top, not a fork.
