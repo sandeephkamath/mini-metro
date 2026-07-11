@@ -39,14 +39,20 @@ export function useMouseInput({ canvasRef, stateRef, rotatedRef, onDebugLeaderbo
     // CSS `rotate(90deg)`: local (0,0)→screen top-right, (W,0)→bottom-right,
     // (0,H)→top-left, (W,H)→bottom-left. u/v below are the touch/click position
     // normalized 0..1 within the on-screen rect, independent of rotation.
+    //
+    // Projects onto state.viewport (CSS-pixel/world-space dimensions), not the
+    // canvas element's own width/height — those are the backing-store pixel buffer,
+    // which is supersampled by devicePixelRatio (themes/metro.md §6.1) and so no
+    // longer equals viewport size 1:1.
     function getCanvasPos(e: { clientX: number; clientY: number }) {
       const rect = canvas!.getBoundingClientRect();
       const u = (e.clientX - rect.left) / rect.width;
       const v = (e.clientY - rect.top) / rect.height;
+      const { width, height } = stateRef.current.viewport;
       if (rotatedRef.current) {
-        return { x: v * canvas!.width, y: (1 - u) * canvas!.height };
+        return { x: v * width, y: (1 - u) * height };
       }
-      return { x: u * canvas!.width, y: v * canvas!.height };
+      return { x: u * width, y: v * height };
     }
 
     const handleDown = (e: MouseEvent) => {

@@ -32,7 +32,16 @@ export function useGameLoop({ stateRef, canvasRef, syncReactState }: UseGameLoop
       const canvas = canvasRef.current;
       if (canvas) {
         const ctx = canvas.getContext('2d');
-        if (ctx) render(ctx, state, now);
+        if (ctx) {
+          // Backing store is supersampled by devicePixelRatio (themes/metro.md §6.1,
+          // GameCanvas.tsx's canvas width/height attrs) — this maps render()'s own
+          // CSS-pixel/world-space drawing (state.viewport units) onto it. setTransform
+          // is absolute, not multiplicative, so this is safe to call every frame ahead
+          // of render()'s own relative translate/scale calls.
+          const dpr = window.devicePixelRatio || 1;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          render(ctx, state, now);
+        }
       }
 
       // Read-only mirror of the live camera/viewport for the Playwright test harness

@@ -65,7 +65,9 @@ Touch input and responsive sizing are now implemented (`useMouseInput.ts`, `Game
 - The whole 800×600 canvas+HUD stage scales to fit any viewport, never scaling up past native size. On a portrait phone specifically, it rotates 90° before scaling to actually fill the screen, rather than a plain contain-fit that would otherwise leave most of a tall narrow screen empty (`themes/metro.md` §6.1) — confirmed necessary via real-device testing (a plain scale-to-fit alone left the game tiny and letterboxed on an actual phone in portrait).
 - Real-device testing also surfaced that the drag-to-connect-Lines target radius was too tight for touch on a scaled-down screen — releasing near-but-not-exactly-on a Node would silently fail to connect. Fixed by widening (and using nearest-not-first-found for) the drop-tolerance specifically on drag release — see `core/logic.md` §4.
 
-Still a real gap, not addressed: the internal canvas resolution stays fixed at 800×600 regardless of `devicePixelRatio` — on a high-DPI phone the game renders correctly-scaled but not at native sharpness (no supersampling). There's also no portrait-specific HUD layout — the rotate-to-fill above means the existing HUD just rotates along with everything else rather than being redesigned for a tall narrow screen.
+**Resolved 2026-07-11**: the canvas backing store is now supersampled by `devicePixelRatio` (`GameCanvas.tsx`'s canvas width/height attrs, `useGameLoop.ts`'s per-frame `ctx.setTransform`, `themes/metro.md` §6.1) — the CSS box and every coordinate the game reasons about (camera, world positions, click/tap mapping) stay in the same units as before, only the rasterization is denser. `useMouseInput.ts`'s `getCanvasPos` was updated to project onto `state.viewport` instead of the canvas element's own `width`/`height`, since those two stopped being equal once the backing store outgrew the CSS box.
+
+**Decided, not a gap**: no portrait-native HUD layout is planned — landscape is the game's required/intended orientation on phones, not just the default. The rotate-to-fill behavior above (spin the whole landscape design 90° so it still fills a phone screen if the player happens to be holding it in portrait) is the accepted handling for that case, not a stand-in for a "real" portrait redesign.
 
 ### Android Packaging (decided 2026-07-09: Capacitor)
 
@@ -136,7 +138,6 @@ Current onboarding is close to nothing: clicking Play on the home screen goes st
 
 **Still open**
 - A manual home-screen Tutorial button for returning players who want to replay it (auto-run is strictly first-session-only, per `TUTORIAL.md` §8 — it never reappears on its own).
-- Should a first-time session use an easier spawn/decay curve than `core/progression.md`'s default, or should difficulty be identical from game one?
 - Should a first-time session use an easier spawn/decay curve than `core/progression.md`'s default, or should difficulty be identical from game one?
 - Contextual first-occurrence toasts for events the scripted tutorial can't cover live (first real Weekly Upgrade choice, first Line unlock) — worth adding on top of the scripted tutorial, or is the wrap-up step's mention enough?
 - No instrumentation exists to learn where new players actually get stuck or quit (ties into the empty Analytics section above) — without that data, any FTUE design is a guess rather than something validated.

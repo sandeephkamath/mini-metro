@@ -237,6 +237,9 @@ export function GameCanvas() {
   // same transform-origin (its own center) works whether or not rotate(90deg) is applied.
   const outerWidth = rotated ? viewport.height : viewport.width;
   const outerHeight = rotated ? viewport.width : viewport.height;
+  // Canvas backing-store supersampling (themes/metro.md §6.1) — the CSS box (set via
+  // the style width/height below) stays exactly viewport.width/height regardless.
+  const dpr = window.devicePixelRatio || 1;
 
   return (
     <div style={{
@@ -255,9 +258,15 @@ export function GameCanvas() {
     }}>
       <canvas
         ref={canvasRef}
-        width={viewport.width}
-        height={viewport.height}
-        style={{ display: 'block', cursor: 'crosshair', touchAction: 'none' }}
+        width={Math.round(viewport.width * dpr)}
+        height={Math.round(viewport.height * dpr)}
+        style={{
+          display: 'block',
+          cursor: 'crosshair',
+          touchAction: 'none',
+          width: viewport.width,
+          height: viewport.height,
+        }}
       />
 
       {phase === 'playing' && (
