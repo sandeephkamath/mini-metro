@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HAS_GOOGLE_SERVICES_JSON: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON != '' }}
+      HAS_DEBUG_KEYSTORE: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -67,7 +68,7 @@ jobs:
       # stable keystore to the default path before the build keeps every CI-built debug
       # APK's SHA-1 matching what's actually registered in Play Console.
       - name: Write stable debug keystore
-        if: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_DEBUG_KEYSTORE == 'true' }}
         env:
           DEBUG_KEYSTORE_BASE64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
         run: |
