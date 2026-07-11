@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import type { MilestoneBonusKind, ViewportSize } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
 import { useGameState } from '../hooks/useGameState';
@@ -159,7 +160,12 @@ export function GameCanvas() {
       // display and isn't affected by that zoom, so it's used as a ceiling.
       const winW = Math.min(rawW, window.screen.width);
       const winH = Math.min(rawH, window.screen.height);
-      const portrait = winH > winW;
+      // Android's Activity is locked to sensorLandscape (§6.1, B20) so the WebView
+      // should never see a genuine portrait viewport there — but resuming from the
+      // recent-apps background transition briefly reports the animating, still-small
+      // (portrait-shaped) surface mid-unfreeze, which a bare winH > winW check took
+      // at face value and rotated into, clipping the stage for a few frames (B25).
+      const portrait = !Capacitor.isNativePlatform() && winH > winW;
 
       // Realign the real viewport onto the design's own axes: presentedW pairs with
       // CANVAS_WIDTH (the design's horizontal/long axis), presentedH with CANVAS_HEIGHT.
