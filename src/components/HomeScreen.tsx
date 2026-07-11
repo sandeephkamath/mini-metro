@@ -16,8 +16,7 @@ interface HomeScreenProps {
   // Rendered upright as a sibling outside the rotated stage (metro.md §6.1, §11 B19),
   // not owned locally — GameCanvas.tsx holds the open/closed state.
   onOpenCollectibles: () => void;
-  muted: boolean; // Audio mute toggle (themes/metro.md §13) — persisted, shared with HUD
-  onToggleMute: () => void;
+  onOpenSettings: () => void; // Settings screen (home_screen.md § Settings) — same pattern as Collectibles
 }
 
 const BG = CONFIG.UI_BG_COLOR;
@@ -269,20 +268,25 @@ function SignInIcon({ color }: { color: string }) {
   );
 }
 
-// Speaker glyph, with a diagonal slash overlay when muted (themes/metro.md §13).
-function MuteIcon({ color, muted }: { color: string; muted: boolean }) {
+// Gear glyph for the Settings entry point (home_screen.md § Settings) — replaces
+// the old standalone Mute icon; Music/Sound toggles now live inside the screen
+// this opens, alongside the Privacy Policy link.
+function SettingsIcon({ color }: { color: string }) {
   return (
     <svg width="15" height="15" viewBox="0 0 15 15">
-      <path d="M2 5.8h2.6l3.4-2.8v9l-3.4-2.8H2z" fill={color} />
-      <path d="M10 5.2c1 .8 1 3.8 0 4.6" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
-      {!muted && <path d="M11.6 3.6c2 1.8 2 6 0 7.8" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" />}
-      {muted && <path d="M2 2.2l11 10.6" stroke={color} strokeWidth="1.3" strokeLinecap="round" />}
+      <circle cx="7.5" cy="7.5" r="2.6" fill="none" stroke={color} strokeWidth="1.3" />
+      <path
+        d="M7.5 1.2v1.7M7.5 12.1v1.7M13.8 7.5h-1.7M3.4 7.5H1.7M11.9 3.1l-1.2 1.2M4.3 10.7l-1.2 1.2M11.9 11.9l-1.2-1.2M4.3 4.3L3.1 3.1"
+        stroke={color}
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
 export function HomeScreen({
-  onPlay, bestWeeksSurvived, leaderboardIdentity, onSignIn, onOpenCollectibles, muted, onToggleMute,
+  onPlay, bestWeeksSurvived, leaderboardIdentity, onSignIn, onOpenCollectibles, onOpenSettings,
 }: HomeScreenProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -543,9 +547,9 @@ export function HomeScreen({
         )}
         <div style={{ display: 'flex', gap: 8 }}>
           <button
-            onClick={onToggleMute}
-            aria-label={muted ? 'Unmute' : 'Mute'}
-            title={muted ? 'Unmute' : 'Mute'}
+            onClick={onOpenSettings}
+            aria-label="Settings"
+            title="Settings"
             style={{
               width: 34,
               height: 34,
@@ -560,7 +564,7 @@ export function HomeScreen({
               boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
             }}
           >
-            <MuteIcon color={INK} muted={muted} />
+            <SettingsIcon color={INK} />
           </button>
           {!leaderboardIdentity && !Capacitor.isNativePlatform() && (
             <button

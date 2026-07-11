@@ -214,4 +214,10 @@ export const CONFIG = {
   // How long app startup waits for the Remote Config Override fetch (below) before
   // proceeding with pure code defaults — see themes/metro.md §5.1.
   REMOTE_CONFIG_FETCH_TIMEOUT_MS: 3000,
+
+  // Shown as a "Privacy Policy" link in the Home Screen's Settings screen
+  // (themes/metro.md §5, home_screen.md § Settings). Blank by default — the link is
+  // omitted entirely until a real URL is filled in here, same fail-gracefully
+  // posture as the Firebase/AdMob placeholder config values elsewhere.
+  PRIVACY_POLICY_URL: '',
 };

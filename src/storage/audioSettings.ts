@@ -1,20 +1,39 @@
-// Persistence for the mute toggle (themes/metro.md §13 "Mute control") — a single
-// localStorage flag, read/write fail silent, same posture as tutorialSeen.ts.
+// Persistence for the Music/Sound toggles (themes/metro.md §13 "Music/Sound
+// controls") — two independent localStorage flags, read/write fail silent, same
+// posture as tutorialSeen.ts. Both default to enabled when unset.
 
-const STORAGE_KEY = 'miniMetro.audioMuted.v1';
+const MUSIC_KEY = 'miniMetro.musicEnabled.v1';
+const SOUND_KEY = 'miniMetro.soundEnabled.v1';
 
-export function loadMuted(): boolean {
+function loadFlag(key: string): boolean {
   try {
-    return localStorage.getItem(STORAGE_KEY) === '1';
+    const v = localStorage.getItem(key);
+    return v === null ? true : v === '1';
   } catch {
-    return false;
+    return true;
   }
 }
 
-export function saveMuted(muted: boolean): void {
+function saveFlag(key: string, enabled: boolean): void {
   try {
-    localStorage.setItem(STORAGE_KEY, muted ? '1' : '0');
+    localStorage.setItem(key, enabled ? '1' : '0');
   } catch {
-    // storage disabled/unavailable — mute just won't persist across sessions
+    // storage disabled/unavailable — setting just won't persist across sessions
   }
+}
+
+export function loadMusicEnabled(): boolean {
+  return loadFlag(MUSIC_KEY);
+}
+
+export function saveMusicEnabled(enabled: boolean): void {
+  saveFlag(MUSIC_KEY, enabled);
+}
+
+export function loadSoundEnabled(): boolean {
+  return loadFlag(SOUND_KEY);
+}
+
+export function saveSoundEnabled(enabled: boolean): void {
+  saveFlag(SOUND_KEY, enabled);
 }

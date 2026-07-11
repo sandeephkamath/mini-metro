@@ -16,7 +16,14 @@
     </style>
 
 
+    <!-- The only theme ever assigned to MainActivity (AndroidManifest.xml) — active
+         for the entire app lifetime, not just the initial splash, since nothing
+         switches the Activity to AppTheme.NoActionBar afterward. android:windowBackground
+         (not the old, invalid "android:background" item — themes/metro.md §11 B24)
+         is the real native window background painted before the WebView surface
+         (re)attaches, on cold start AND on every resume-from-background alike. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <item name="android:windowBackground">@color/windowBackground</item>
+        <item name="windowSplashScreenBackground">@color/windowBackground</item>
     </style>
 </resources>

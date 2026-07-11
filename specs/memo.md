@@ -15,11 +15,12 @@ See also `specs/research/mini_metro_original_analysis.md` — gameplay analysis 
 
 ## Audio
 
-- Implemented 2026-07-11: Background Music (Menu Track for `home`/`gameover`, Session Track for `playing`) and six Audio Cues (Resource Delivered, Node Spawned, Route Committed, Milestone Event, Overflow Risk Started, Game Over), all procedurally synthesized — `core/logic.md` §7 (theme-neutral) and `themes/metro.md` §13 (concrete tracks/cues/config). Mute toggle (HUD + Home Screen) persists to `localStorage`. See `src/audio/audioManager.ts`, `src/config/audioConfig.ts`, `scripts/generate-audio.mjs`.
+- Implemented 2026-07-11: Background Music (Menu Track for `home`/`gameover`, Session Track for `playing`) and six Audio Cues (Resource Delivered, Node Spawned, Route Committed, Milestone Event, Overflow Risk Started, Game Over), all procedurally synthesized — `core/logic.md` §7 (theme-neutral) and `themes/metro.md` §13 (concrete tracks/cues/config). See `src/audio/audioManager.ts`, `src/config/audioConfig.ts`, `scripts/generate-audio.mjs`.
+- **Updated 2026-07-11**: replaced the single shared mute toggle with two independent Music/Sound toggles, moved out of the HUD and Home Screen's own icon row into a new Home Screen Settings screen (`home_screen.md` § Settings) — a player reported Menu Track music effectively never being heard in practice (their first gesture was almost always the Play button itself, switching the track before the gesture-gated unlock ever became audible). Fixed by attempting muted autoplay immediately rather than waiting for a gesture, with the first gesture only unmuting whatever's already playing — `core/logic.md` §7, `metro.md` §13 "Autoplay/gesture handling". Settings also gained a Privacy Policy link (`metro.md` §5 `Privacy Policy URL`, blank/omitted until a real URL is filled in).
 - Still open / deferred, not blocking the above:
   - No Line-deleted cue (only Route *Committed* has one) — deletion is a hold-gesture with its own visual feedback already; revisit if it feels audio-silent in practice.
   - No Train departs/arrives or Passenger boards (only delivery) — considered too frequent/noisy for the "soothing" brief; revisit if playtesting wants more train-level ambience.
-  - No independent music/SFX volume sliders — a single mute toggle only, per `metro.md` §13. Revisit if players want fine-grained control.
+  - No independent volume sliders (just on/off) for either Music or Sound. Revisit if players want finer-grained control.
   - Assets are synthesized `.wav` files, not licensed/recorded/commissioned — swapping in different audio later is a one-file-per-cue change (`src/config/audioConfig.ts`), see `metro.md` §13 "Asset files & swapping".
 
 ## Scoring

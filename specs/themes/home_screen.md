@@ -23,6 +23,7 @@ This document defines the **home screen**: a top-level phase (`home`) the player
 - A "View Collectibles" control opening the Collectibles Screen (below): a small, standalone icon-only button — not a picture-thumbnail preview and not a labeled button. The current Picture's own partially-revealed state (`metro.md` §9.3, §9.3.2) is not shown anywhere on the home screen itself; it's only visible once the Collectibles Screen is opened. Unlike the other additions on this list, this control is never omitted — there's always a current Picture to look at, even before the first one is ever completed.
 - A "Sign In" control, next to "View Collectibles": a small, standalone icon-only button (same visual weight/style as the Collectibles icon) that triggers the interim Google Sign-In popup (`metro.md` §9.6). Web only — on Android, identity comes from the silent Play Games sign-in instead, so this control never appears there regardless of sign-in state. On web, shown only while the session has no signed-in identity yet; once signed in, it disappears (replaced functionally by "View Leaderboard" below) — there's no need to sign in twice in one session, and no "signed in as X" state is shown here.
 - A "View Leaderboard" control, opening the Leaderboard (below). Present only once the current session has a signed-in identity (`metro.md` §9.6 — either the interim Sign In icon on web, or production Play Games sign-in on Android); absent before that, with no placeholder or explanation shown in its place.
+- A "Settings" control opening the Settings screen (below): a small, standalone icon-only button (a gear glyph, same visual weight/style as the other icons), always present. This is the only place either audio toggle is reachable — there is no separate standalone mute icon anywhere on the home screen, and none in the in-game HUD either (`metro.md` §13).
 - These additions sit below the tagline/Play control, not competing with them for primary visual weight — Play remains the dominant call to action.
 - The Collectibles Screen depends on the Picture pool (`metro.md` §9.3.1), which is fetched once per app load alongside meta-progression — by the time the home screen would otherwise render, that fetch has already resolved one way or another (live data, a local cache, or the built-in fallback), so nothing here needs its own loading state the way the Leaderboard does.
 
@@ -81,6 +82,15 @@ Reached from the home screen's "View Leaderboard" control — present only when 
 - Shows a live-fetched ranked list of the Leaderboard Top N (`metro.md` §9.6 config) players by Best Weeks Survived (`core/meta_progression.md` §7), each row showing rank, Play Games display name/avatar, and Weeks Survived.
 - The current player's own row is highlighted within that list if they're in it; if not, a separate row pinned below the list always shows their own rank regardless, e.g. "#4,382 — You — Week 9".
 - While the list is loading, a simple loading state is shown in its place. If the fetch fails (no network, backend error), a short message plus a retry control is shown instead of a blank or broken list — nothing else on the home screen is affected either way.
+- A close control returns to the home screen with no other side effect.
+
+## Settings
+
+Reached from the home screen's "Settings" control — present regardless of any other state (signed in or not, any Collection progress or none). Not a new top-level phase — a modal overlay on top of `home`, the same relationship the Collectibles Screen and Leaderboard above have. Home-screen-only: there is no way to reach it from `playing` or `gameover`, so changing a setting mid-run means returning to `home` first (§8.1's Android back-button behavior, `metro.md` §8.1, is one way there).
+
+- **Music** — on/off toggle for Background Music (`metro.md` §13).
+- **Sound** — on/off toggle for Audio Cues (`metro.md` §13), independent of Music — a player can run with one on and the other off in any combination.
+- **Privacy Policy** — a text link opening the Privacy Policy URL (`metro.md` §5 Configuration Values) in the system browser/a new tab. Omitted entirely if no URL is configured, same fail-gracefully posture as the Leaderboard/Remote Config/Collectibles Firebase dependencies (`memo.md`).
 - A close control returns to the home screen with no other side effect.
 
 ## Not yet decided

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#e74c3c</color>
+    <color name="colorPrimaryDark">#c0392b</color>
+    <color name="colorAccent">#e74c3c</color>
+
+    <!-- Matches the web app's own outer/letterbox background (index.css, App.tsx —
+         themes/metro.md §11 B24) so any native window redraw before the WebView
+         (re)paints — cold start or resume-from-background alike — shows the correct
+         color instead of an unstyled system default. -->
+    <color name="windowBackground">#2c2c2c</color>
+</resources>

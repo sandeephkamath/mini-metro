@@ -4,7 +4,7 @@
 // src/logic/), and useGameLoop.ts drains that queue into playSfx() once per frame.
 import type { AudioCueType, GameState } from '../types/game';
 import { AUDIO_CONFIG, SFX_COOLDOWN_MS, type MusicTrackKey, type SfxKey } from '../config/audioConfig';
-import { loadMuted, saveMuted } from '../storage/audioSettings';
+import { loadMusicEnabled, loadSoundEnabled, saveMusicEnabled, saveSoundEnabled } from '../storage/audioSettings';
 
 const CUE_TO_SFX: Record<AudioCueType, SfxKey> = {
   passengerDelivered: 'passengerDelivered',
@@ -15,12 +15,14 @@ const CUE_TO_SFX: Record<AudioCueType, SfxKey> = {
   gameOver: 'gameOver',
 };
 
-let muted = loadMuted();
-// Playback can't start until a user gesture has occurred (browsers block autoplay) —
-// see core §7's closing note. unlockAudio() flips this once, from a one-time gesture
-// listener registered by useAudio.ts.
+let musicEnabled = loadMusicEnabled();
+let soundEnabled = loadSoundEnabled();
+// Playback can't start fully unmuted until a user gesture has occurred (browsers
+// block it) — see core §7's closing note. `playMusic` below attempts *muted*
+// autoplay immediately regardless (broadly allowed without a gesture), and
+// unlockAudio() just flips the currently-playing track's `.muted` off once a
+// one-time gesture listener (useAudio.ts) fires.
 let unlocked = false;
-let pendingTrack: MusicTrackKey | null = null;
 let currentTrack: MusicTrackKey | null = null;
 
 const musicEls: Partial<Record<MusicTrackKey, HTMLAudioElement>> = {};
@@ -32,7 +34,7 @@ function getMusicEl(track: MusicTrackKey): HTMLAudioElement {
     const cfg = AUDIO_CONFIG.music[track];
     el = new Audio(cfg.src);
     el.loop = true;
-    el.volume = muted ? 0 : cfg.volume;
+    el.volume = musicEnabled ? cfg.volume : 0;
     musicEls[track] = el;
   }
   return el;
@@ -44,25 +46,23 @@ export function playMusic(track: MusicTrackKey): void {
   for (const key of Object.keys(musicEls) as MusicTrackKey[]) {
     if (key !== track) musicEls[key]?.pause();
   }
-  if (!unlocked) {
-    pendingTrack = track;
-    return;
-  }
-  getMusicEl(track).play().catch(() => {});
+  const el = getMusicEl(track);
+  el.muted = !unlocked;
+  el.play().catch(() => {});
 }
 
 export function unlockAudio(): void {
   if (unlocked) return;
   unlocked = true;
-  if (pendingTrack) {
-    const track = pendingTrack;
-    pendingTrack = null;
-    getMusicEl(track).play().catch(() => {});
+  if (currentTrack) {
+    const el = getMusicEl(currentTrack);
+    el.muted = false;
+    el.play().catch(() => {});
   }
 }
 
 export function playSfx(key: SfxKey): void {
-  if (muted || !unlocked) return;
+  if (!soundEnabled || !unlocked) return;
   const now = performance.now();
   const last = lastPlayedAtMs[key] ?? 0;
   if (now - last < SFX_COOLDOWN_MS) return;
@@ -85,19 +85,33 @@ export function playQueuedCues(state: GameState): void {
   state.audioEvents.length = 0;
 }
 
-export function isMuted(): boolean {
-  return muted;
+export function isMusicEnabled(): boolean {
+  return musicEnabled;
 }
 
-export function setMuted(next: boolean): void {
-  muted = next;
-  saveMuted(next);
+export function setMusicEnabled(next: boolean): void {
+  musicEnabled = next;
+  saveMusicEnabled(next);
   for (const key of Object.keys(musicEls) as MusicTrackKey[]) {
-    musicEls[key]!.volume = muted ? 0 : AUDIO_CONFIG.music[key].volume;
+    musicEls[key]!.volume = musicEnabled ? AUDIO_CONFIG.music[key].volume : 0;
   }
 }
 
-export function toggleMuted(): boolean {
-  setMuted(!muted);
-  return muted;
+export function toggleMusic(): boolean {
+  setMusicEnabled(!musicEnabled);
+  return musicEnabled;
+}
+
+export function isSoundEnabled(): boolean {
+  return soundEnabled;
+}
+
+export function setSoundEnabled(next: boolean): void {
+  soundEnabled = next;
+  saveSoundEnabled(next);
+}
+
+export function toggleSound(): boolean {
+  setSoundEnabled(!soundEnabled);
+  return soundEnabled;
 }

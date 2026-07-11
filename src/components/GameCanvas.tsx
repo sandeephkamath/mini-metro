@@ -9,7 +9,7 @@ import { useAdProvider } from '../hooks/useAdProvider';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useAndroidBackButton } from '../hooks/useAndroidBackButton';
 import { useAudio } from '../hooks/useAudio';
-import { isMuted, toggleMuted } from '../audio/audioManager';
+import { isMusicEnabled, isSoundEnabled, toggleMusic, toggleSound } from '../audio/audioManager';
 import { hasSeenMilestoneChoiceHint, markMilestoneChoiceHintSeen } from '../storage/ftueHints';
 import { resolveMilestoneChoice } from '../logic/milestone';
 import { removeLine } from '../logic/lines';
@@ -25,6 +25,7 @@ import { AdConfirmModal } from './AdConfirmModal';
 import { SimulatedAdModal } from './SimulatedAdModal';
 import { NativeAdLoadingModal } from './NativeAdLoadingModal';
 import { ConfirmModal } from './ConfirmModal';
+import { SettingsScreen } from './SettingsScreen';
 
 export function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -41,12 +42,17 @@ export function GameCanvas() {
   const leaderboard = useLeaderboard();
   const adProvider = useAdProvider();
   usePushNotifications();
-  const { exitConfirmOpen, confirmExit, cancelExit } = useAndroidBackButton();
+  const { exitConfirmOpen, exitMessage, exitConfirmLabel, confirmExit, cancelExit } = useAndroidBackButton(phase, handleGoHome);
   useAudio(phase);
-  const [muted, setMutedState] = useState(() => isMuted());
-  function handleToggleMute() {
-    setMutedState(toggleMuted());
+  const [musicEnabled, setMusicEnabledState] = useState(() => isMusicEnabled());
+  const [soundEnabled, setSoundEnabledState] = useState(() => isSoundEnabled());
+  function handleToggleMusic() {
+    setMusicEnabledState(toggleMusic());
   }
+  function handleToggleSound() {
+    setSoundEnabledState(toggleSound());
+  }
+  const [showSettings, setShowSettings] = useState(false);
 
   // First-occurrence Weekly Upgrade choice hint (TUTORIAL.md §9) — decided once per
   // popup appearance (on the false->true transition), not re-derived every render,
@@ -317,8 +323,6 @@ export function GameCanvas() {
           onDeleteLine={deleteLine}
           adAvailable={adAvailable}
           onRequestBonus={() => { if (!tutorialActive) requestOnDemandBonus(); }}
-          muted={muted}
-          onToggleMute={handleToggleMute}
         />
       )}
 
@@ -379,8 +383,7 @@ export function GameCanvas() {
             leaderboardIdentity={leaderboard.available ? leaderboard.identity : null}
             onSignIn={leaderboard.signIn}
             onOpenCollectibles={() => setShowCollectibles(true)}
-            muted={muted}
-            onToggleMute={handleToggleMute}
+            onOpenSettings={() => setShowSettings(true)}
           />
         </div>
       )}
@@ -388,6 +391,16 @@ export function GameCanvas() {
       {/* Rendered upright as a sibling of the rotated inner div, not inside it —
           rotated text was hard to read and the cards clipped against the rotated
           design space's short axis on a real phone (themes/metro.md §11 B19). */}
+      {phase === 'home' && showSettings && (
+        <SettingsScreen
+          musicEnabled={musicEnabled}
+          soundEnabled={soundEnabled}
+          onToggleMusic={handleToggleMusic}
+          onToggleSound={handleToggleSound}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
       {phase === 'home' && showCollectibles && (
         <CollectiblesScreen
           collectionSize={metaProgression.collectionSize}
@@ -414,7 +427,7 @@ export function GameCanvas() {
       )}
 
       {exitConfirmOpen && (
-        <ConfirmModal message="Exit game?" confirmLabel="Exit" onConfirm={confirmExit} onCancel={cancelExit} />
+        <ConfirmModal message={exitMessage} confirmLabel={exitConfirmLabel} onConfirm={confirmExit} onCancel={cancelExit} />
       )}
     </div>
   );

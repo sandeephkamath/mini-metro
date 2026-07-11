@@ -35,20 +35,16 @@ interface HUDProps {
   onDeleteLine: (lineId: string) => void;
   adAvailable: boolean; // core/monetization.md §4 — Ad Provider availability
   onRequestBonus: () => void;
-  muted: boolean; // Audio mute toggle (themes/metro.md §13) — shared with HomeScreen
-  onToggleMute: () => void;
 }
 
-// Speaker glyph, with a diagonal slash overlay when muted — same drawing as
-// HomeScreen.tsx's MuteIcon, kept local since HUD draws in the transparent
-// in-game ink color rather than the home screen's card-button style.
-function MuteIcon({ color, muted }: { color: string; muted: boolean }) {
+// Small person glyph shown beside the score so it reads as "Passengers
+// delivered" rather than an unlabeled number (themes/metro.md §8 playing row) —
+// a player reported not knowing what the plain score number meant.
+function PassengerIcon({ color }: { color: string }) {
   return (
-    <svg width="15" height="15" viewBox="0 0 15 15">
-      <path d="M2 5.8h2.6l3.4-2.8v9l-3.4-2.8H2z" fill={color} />
-      <path d="M10 5.2c1 .8 1 3.8 0 4.6" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
-      {!muted && <path d="M11.6 3.6c2 1.8 2 6 0 7.8" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" />}
-      {muted && <path d="M2 2.2l11 10.6" stroke={color} strokeWidth="1.3" strokeLinecap="round" />}
+    <svg width="12" height="14" viewBox="0 0 12 14">
+      <circle cx="6" cy="3" r="2.6" fill={color} />
+      <path d="M1 13.5c0-3.6 2.2-5.5 5-5.5s5 1.9 5 5.5" fill={color} />
     </svg>
   );
 }
@@ -133,7 +129,7 @@ export function HUD({
   reserveCarriers, reserveCarriages, selectedReserveItem,
   onSelectReserveCarrier, onSelectReserveCarriage,
   overflowRiskActive, playerPaused, playerSpeedMultiplier, onPause, onPlayNormal, onFastForward,
-  onDeleteLine, adAvailable, onRequestBonus, muted, onToggleMute,
+  onDeleteLine, adAvailable, onRequestBonus,
 }: HUDProps) {
   const toastVisible = milestoneAge < 3000 && milestoneMessage;
   const toastOpacity = toastVisible ? Math.min(1, Math.max(0, 1 - (milestoneAge - 2000) / 1000)) : 0;
@@ -269,25 +265,6 @@ export function HUD({
         pointerEvents: 'none',
         zIndex: 10,
       }}>
-        <button
-          data-testid="hud-mute"
-          onClick={onToggleMute}
-          aria-label={muted ? 'Unmute' : 'Mute'}
-          title={muted ? 'Unmute' : 'Mute'}
-          style={{
-            position: 'absolute',
-            left: 16,
-            background: 'transparent',
-            border: 'none',
-            padding: 4,
-            cursor: 'pointer',
-            pointerEvents: 'auto',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <MuteIcon color={INK} muted={muted} />
-        </button>
         <div style={{
           position: 'absolute', left: '50%', transform: 'translateX(-50%)',
           display: 'flex', alignItems: 'center', gap: 8,
@@ -321,7 +298,10 @@ export function HUD({
             />
           )}
           <ClockBadge weekProgress={weekProgress} overflowRiskActive={overflowRiskActive} />
-          <span data-testid="hud-score" style={{ fontSize: '22px', fontWeight: 'bold' }}>{score}</span>
+          <div title="Passengers delivered" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <PassengerIcon color={INK} />
+            <span data-testid="hud-score" style={{ fontSize: '22px', fontWeight: 'bold' }}>{score}</span>
+          </div>
         </div>
       </div>
 
