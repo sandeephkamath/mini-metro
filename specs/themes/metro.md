@@ -120,7 +120,7 @@ These are the concrete values for the tunable parameters defined abstractly in `
 | Station spawn interval | 15 000 ms | First spawn at 15s |
 | Station min spacing | 90 px | Between any two stations |
 | Station edge margin | 70 px | From canvas edges |
-| Max stations | 20 | |
+| Max stations | 30 | |
 | Initial station count | 3 | The fixed starting cluster |
 | Station spawn area, starting size | 520 × 360 px | Rectangle centered on the map a new Station can appear in, right after the initial cluster |
 | Station spawn area, maximum size | 1240 × 900 px | Ceiling the spawn area grows toward on an ease-in curve (squared) with Station count — deliberately much smaller than the 2400 × 1800 map (core §5), so the network stays compact and the auto-camera never zooms out past roughly 0.5× at the native viewport; the rest of the map is panning space only |
@@ -128,7 +128,7 @@ These are the concrete values for the tunable parameters defined abstractly in `
 | Initial unlocked station shape count | 3 | Circle, Triangle, Square |
 | Star unlock week | 1 | |
 | Hexagon unlock week | 2 | |
-| Plus unlock week | 3 | Must land before the ~4.25-week point Max stations (20) stops new spawns, or a later shape never gets placed |
+| Plus unlock week | 3 | Must land before the ~6.75-week point Max stations (30) stops new spawns, or a later shape never gets placed |
 | Passenger spawn base | 5 000 ms | Tick interval at week 0 |
 | Passenger spawn decay | 15% per week | Tick interval multiplied by 0.85 each week |
 | Passenger spawn floor | 1 800 ms | Minimum tick interval |
@@ -165,6 +165,10 @@ These are the concrete values for the tunable parameters defined abstractly in `
 | Line segment hit radius | 10 px | For grabbing a mid-Line segment (insertion drag) |
 | Player Speed Controls enabled | `false` | Whether the HUD's Pause/Play/Fast-Forward control (core §6) is shown at all — a build-time flag, not a player-facing setting. When `false`, the HUD omits the control entirely and the clock always runs at normal speed outside of a Milestone Event Choice. |
 | Remote config fetch timeout | 3 000 ms | How long app startup waits for the Remote Config Override document (§5.1) before proceeding with pure code defaults |
+| UI background | `#f5f0e8` | Shared paper/cream tone for every dialog/overlay card (Game Over, Weekly Upgrade choice, ad prompts, Collectibles, Leaderboard, Exit confirm) — matches the Home Screen background so dialogs read as the same theme, not a generic white card |
+| UI ink | `#2d2d2d` | Shared primary text/border tone for dialog chrome — matches the Home Screen title color |
+| UI muted text | `#6b6459` | Shared secondary/caption text tone for dialog chrome — matches the Home Screen subtitle color |
+| UI primary action color | `#e74c3c` | Shared color for a dialog's main call-to-action button (Watch Ad, Retry, tutorial Next/Done, etc.) — matches the Home Screen Play button and the circle shape/first Line color |
 
 All drawing hit radii above (end marker, station hit/drop, line segment) are **screen-space** values per core §4: below 1× camera zoom, the world-space radius grows by 1/zoom so targets keep their intended on-screen size; at or above 1× the base value is used as-is.
 
@@ -255,7 +259,7 @@ Rules:
 | playing | Full canvas + HUD (score, Week number, day-of-week/clock indicator showing progress through the current week, Depot tray, Line unlock slots — colored for unlocked Lines, dim for locked, and the Pause/Play/Fast-Forward control when the build-time flag for it is enabled — §5, off by default) + Weekly Upgrade choice popup when a Milestone Event fires (pauses the game, §4) + ad-offer/simulated-ad/bonus-choice popups when the On-Demand Bonus Request is used (§4.2). The HUD has no background band of its own — its elements sit directly over the canvas, each self-contained (its own colored badge/button/icon) or dark-on-cream text, rather than the top/bottom strips resting on a shared translucent bar. |
 | gameover | Reached only once no Game-Over Continue was available or one was declined/failed (§4.2) — canvas dimmed, game over overlay with final score and Weeks Survived (no Level shown — Level is not a meta-progression metric, per `core/meta_progression.md`), plus Best Weeks Survived / Picture progress (§9) and an icon-only corner close control (same pattern as the Collectibles Screen/Detail View, §9.3.2) that returns to `home` |
 
-Clicking Play on the `home` phase goes directly to `playing` — there is no intermediate instructions overlay. Best Weeks Survived, the current Picture, and the Collection gallery entry point (§9) live on the `home` phase — see `home_screen.md`.
+Clicking Play on the `home` phase goes directly to `playing` — there is no intermediate instructions overlay. On a player's first-ever session in this browser, the scripted Tutorial (`TUTORIAL.md`) auto-starts the instant `playing` begins instead of dropping them onto an empty board; every session after that (per `TUTORIAL.md` §8 Persistence) goes straight into normal play. Best Weeks Survived, the current Picture, and the Collection gallery entry point (§9) live on the `home` phase — see `home_screen.md`.
 
 The app starts the one-time Remote Config Override fetch (§5.1) in the background the moment it loads — `home` still renders immediately and is fully usable while it's in flight. The fetch only becomes visible to the player if they click Play before it resolves, at which point §5.1's themed loading indicator appears in place of the Play control until the game actually starts — so a player never sees a game that starts with one config and silently reconfigures itself underneath them, without needing a separate pre-`home` loading screen.
 

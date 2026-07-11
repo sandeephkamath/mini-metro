@@ -1,4 +1,5 @@
 import type { MilestoneBonusKind } from '../types/game';
+import { CONFIG } from '../config/gameConfig';
 
 interface BonusChoiceModalProps {
   title: string;
@@ -26,15 +27,15 @@ export function BonusChoiceModal({ title, subtitle, onChoose }: BonusChoiceModal
       zIndex: 15,
     }}>
       <div style={{
-        background: '#fff',
+        background: CONFIG.UI_BG_COLOR,
         borderRadius: '10px',
         padding: '24px 32px',
         boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
         textAlign: 'center',
         minWidth: 320,
       }}>
-        <h3 style={{ margin: '0 0 4px', fontFamily: 'monospace' }}>{title}</h3>
-        <p style={{ color: '#666', margin: '0 0 20px', fontSize: '13px' }}>{subtitle}</p>
+        <h3 style={{ margin: '0 0 4px', fontFamily: 'monospace', color: CONFIG.UI_INK_COLOR }}>{title}</h3>
+        <p style={{ color: CONFIG.UI_MUTED_TEXT_COLOR, margin: '0 0 20px', fontSize: '13px' }}>{subtitle}</p>
         <div style={{ display: 'flex', gap: 12 }}>
           {OPTIONS.map(opt => (
             <button
@@ -42,8 +43,8 @@ export function BonusChoiceModal({ title, subtitle, onChoose }: BonusChoiceModal
               onClick={() => onChoose(opt.kind)}
               style={{
                 flex: 1,
-                background: '#f5f0e8',
-                border: '2px solid #333',
+                background: '#fff',
+                border: `2px solid ${CONFIG.UI_INK_COLOR}`,
                 borderRadius: '8px',
                 padding: '14px 10px',
                 cursor: 'pointer',
@@ -51,8 +52,8 @@ export function BonusChoiceModal({ title, subtitle, onChoose }: BonusChoiceModal
                 textAlign: 'left',
               }}
             >
-              <div style={{ fontWeight: 'bold', marginBottom: 6 }}>{opt.label}</div>
-              <div style={{ fontSize: '11px', color: '#555' }}>{opt.desc}</div>
+              <div style={{ fontWeight: 'bold', marginBottom: 6, color: CONFIG.UI_INK_COLOR }}>{opt.label}</div>
+              <div style={{ fontSize: '11px', color: CONFIG.UI_MUTED_TEXT_COLOR }}>{opt.desc}</div>
             </button>
           ))}
         </div>

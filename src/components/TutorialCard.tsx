@@ -1,4 +1,5 @@
 import type { TutorialStepId } from '../types/game';
+import { CONFIG } from '../config/gameConfig';
 
 // Card content per step (specs/TUTORIAL.md §5 — required content, copy lives here).
 // `next` is the advance-button label; null means the step advances on a game event.
@@ -114,7 +115,7 @@ export function TutorialCard({ step, onNext, onSkip }: TutorialCardProps) {
             data-testid="tutorial-next"
             onClick={onNext}
             style={{
-              background: '#e67e22',
+              background: CONFIG.UI_PRIMARY_COLOR,
               color: '#fff',
               border: 'none',
               borderRadius: 6,

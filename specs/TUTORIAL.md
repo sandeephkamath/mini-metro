@@ -10,11 +10,17 @@ A scripted, interactive tutorial that teaches a first-time player the core loop 
 
 ## 1. Triggering
 
-Debug-only for now. Player-facing entry points (a home-screen Tutorial button, auto-run on first-ever session once persistence exists) are deferred — tracked in `memo.md` §FTUE.
+Two independent entry points:
 
-- Press **`T`** while debug mode is on and the game phase is `playing`.
-- The press is **ignored** unless the board is in a startable state: **no Lines drawn yet** and **no Station currently at risk**. In practice this means triggering it at the start of a run, before drawing anything.
+- **Auto-run on first-ever session.** The moment a player's very first `playing` session begins (Play clicked on the `home` phase, before this browser has ever seen the Tutorial — §8 Persistence), the Tutorial starts automatically instead of dropping the player straight onto an empty board. This is the primary player-facing entry point resolving `memo.md` §FTUE's "auto-run on first-ever session" item.
+- **Debug-triggered**, for QA/replay on any session: press **`T`** while debug mode is on and the game phase is `playing`. Unaffected by whether this browser has already seen the Tutorial — it always runs the full script from step 1 on a startable board.
+
+Both entry points share the same preconditions and script — the only difference is what fires the trigger:
+
+- The trigger is **ignored** unless the board is in a startable state: **no Lines drawn yet** and **no Station currently at risk**. For the auto-run case this is always true (it fires on a freshly created board, before the player has drawn anything); for the debug case it means triggering it at the start of a run.
 - The three fixed starting Stations (circle, triangle, square — `themes/metro.md` §2) are the tutorial's actors; they always exist, so the script is deterministic.
+
+A home-screen Tutorial button (manual replay after the first session) remains deferred — tracked in `memo.md` §FTUE.
 
 ## 2. Relationship to Game Rules
 
@@ -84,11 +90,11 @@ On **Done** (step 9) or **Skip/Escape** (any step):
 - The board keeps everything real that happened: Lines drawn, Passengers injected, points scored.
 - **Skip safety**: if the player skips during step 7 or 8 while the square Station is still at risk, its Risk Timer is set to the Rescue Window on the way out — skipping the tutorial must not hand the player an unavoidable game over seconds later.
 
-The tutorial is stateless between runs: pressing `T` again on a fresh board (per §1 preconditions) runs the whole script from step 1. Nothing about tutorial completion is persisted — "has seen the tutorial" tracking belongs to the deferred player-facing entry point (`memo.md` §FTUE, Persistence).
+The board itself is stateless between runs: triggering the Tutorial again on a fresh board (per §1 preconditions) runs the whole script from step 1 regardless of trigger source. What *is* now persisted is whether this browser has ever seen it at all — see §8 — which governs only the auto-run entry point; the debug `T` key ignores that flag entirely.
 
 ## 7. Configuration Values
 
-Kept inline here (like `DEBUG.md`'s key tables) rather than in `themes/metro.md` §5, since the tutorial is a debug-triggered tool for now; fold these into the theme config if a player-facing entry point ships.
+Kept inline here (like `DEBUG.md`'s key tables) rather than in `themes/metro.md` §5, since these are script-internal timings, not general theme config.
 
 | Parameter | Value | Notes |
 |-----------|-------|-------|
@@ -100,3 +106,11 @@ Kept inline here (like `DEBUG.md`'s key tables) rather than in `themes/metro.md`
 | Card position | Bottom-center of canvas | Clear of the starting-Station cluster |
 | Highlight pulse period | 1 000 ms | Wall-time driven (§4) |
 | Gesture hint loop | 1 500 ms per traversal | Wall-time driven; hidden once a drag starts (§4) |
+
+## 8. Persistence
+
+- Backing store: the browser's `localStorage`, under a single boolean flag, separate from the meta-progression key (`core/meta_progression.md` §6) — this flag is onboarding state, not survival/collection progress.
+- Set the moment the auto-run entry point (§1) fires — not on completion or skip. Once the Tutorial has been *shown*, it does not auto-show again for this browser, regardless of whether the player finished it, skipped it, or closed the tab mid-script (session state itself is never persisted, per the no-save/resume rule).
+- Read once, at the moment Play is clicked on the `home` phase, to decide whether this session's `playing` transition should auto-start the Tutorial.
+- If `localStorage` is unavailable or the flag is unreadable, the Tutorial falls back to auto-running every time Play is clicked from a fresh browser state — never blocks play, just repeats the onboarding rather than silently skipping it.
+- Does not affect the debug `T` key, which remains available regardless of this flag's value.

@@ -1,3 +1,5 @@
+import { CONFIG } from '../config/gameConfig';
+
 interface AdConfirmModalProps {
   message: string;
   onAccept: () => void;
@@ -23,7 +25,7 @@ export function AdConfirmModal({ message, onAccept, onDecline, closeIconOnly }: 
     }}>
       <div style={{
         position: 'relative',
-        background: '#fff',
+        background: CONFIG.UI_BG_COLOR,
         borderRadius: '10px',
         padding: '28px 32px',
         boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
@@ -43,7 +45,7 @@ export function AdConfirmModal({ message, onAccept, onDecline, closeIconOnly }: 
               height: 30,
               borderRadius: '50%',
               background: '#fff',
-              border: '1px solid #333',
+              border: `1px solid ${CONFIG.UI_INK_COLOR}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -51,22 +53,22 @@ export function AdConfirmModal({ message, onAccept, onDecline, closeIconOnly }: 
               cursor: 'pointer',
               fontSize: 16,
               lineHeight: 1,
-              color: '#333',
+              color: CONFIG.UI_INK_COLOR,
               boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
             }}
           >
             ×
           </button>
         )}
-        <p style={{ margin: '0 0 20px', fontFamily: 'monospace', fontSize: 15 }}>{message}</p>
+        <p style={{ margin: '0 0 20px', fontFamily: 'monospace', fontSize: 15, color: CONFIG.UI_INK_COLOR }}>{message}</p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
           {!closeIconOnly && (
             <button
               onClick={onDecline}
               style={{
-                background: '#eee',
-                color: '#333',
-                border: 'none',
+                background: '#fff',
+                color: CONFIG.UI_INK_COLOR,
+                border: `1px solid ${CONFIG.UI_INK_COLOR}`,
                 borderRadius: 8,
                 padding: '10px 20px',
                 fontSize: 14,
@@ -80,7 +82,7 @@ export function AdConfirmModal({ message, onAccept, onDecline, closeIconOnly }: 
           <button
             onClick={onAccept}
             style={{
-              background: '#3498db',
+              background: CONFIG.UI_PRIMARY_COLOR,
               color: '#fff',
               border: 'none',
               borderRadius: 8,

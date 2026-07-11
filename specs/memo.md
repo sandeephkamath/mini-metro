@@ -87,6 +87,7 @@ Real dependency: an Android Studio / Android SDK install is required to actually
 
 - No save/resume — closing the tab loses all progress. In-session state is deliberately never persisted (`core/meta_progression.md` §6) — only meta-progression is.
 - Best Weeks Survived and Picture Collection progress (Collection size + current Picture's Accumulated Progress) are fully spec'd as persistent values, backed by `localStorage` under a single key (`core/meta_progression.md` §6, `themes/metro.md` §9.5) — not yet implemented in code.
+- "Has the Tutorial ever been shown" is a separate `localStorage` flag (`TUTORIAL.md` §8, `src/storage/tutorialSeen.ts`), implemented 2026-07-11 — deliberately not folded into the meta-progression key above since it's onboarding state, not survival/collection progress.
 
 ## Leaderboard
 
@@ -115,7 +116,7 @@ Real dependency: an Android Studio / Android SDK install is required to actually
 Current onboarding is close to nothing: clicking Play on the home screen goes straight into a fresh run (per `themes/metro.md` §8 / `home_screen.md` — the pre-game instructions modal that used to show three bullet hints was removed 2026-07-08 in favor of getting players onto the real board immediately), and the HUD carries no persistent hint text either (the small always-on corner text was removed the same day — it was static and easy to miss anyway). Breakdown by moment in the flow:
 
 **Pre-game**
-- Nothing is shown pre-game at all now. No distinction between a first-ever session and a returning one either way — there's no persistence to track "has played before" (see Persistence section above).
+- A first-ever session (tracked via `localStorage`, `TUTORIAL.md` §8) now auto-starts the scripted Tutorial the instant Play is clicked, instead of dropping the player onto an empty board — implemented 2026-07-11. Returning sessions are unaffected and go straight into normal play.
 - Nothing explains what a "Week" is, that Lines unlock as more Stations appear while Trains/Carriages/Risk Timer bonuses come from the Weekly Upgrade, or that an overflowing Station only has a limited Risk Timer window before it's fatal.
 - No easier/slower pacing option for new players. First-timers get the same spawn-rate decay curve (`core/progression.md`) as an experienced player on run 50.
 
@@ -124,18 +125,18 @@ Current onboarding is close to nothing: clicking Play on the home screen goes st
 - No contextual, first-occurrence hints tied to real events — first passenger spawn, first station nearing capacity, first Weekly Upgrade choice all fire identically for new and veteran players.
 - The only in-game overflow signal is the pulsing red ring (see Styling section) — nothing explains what it means or what happens if it's ignored, before a new player loses because of it.
 - No step-through or pause available to non-debug players during their first game. Debug mode's spawn-pause (`S` key) exists but is explicitly developer/QA tooling per `specs/DEBUG.md`, not a player-facing feature.
-- With the pre-game modal gone, the scripted tutorial (`specs/TUTORIAL.md`) — still debug-triggered only (`T` in debug mode) — is now the *only* onboarding mechanism that exists at all for a real player. Surfacing a player-facing entry point for it (see "Still open" below) is more pressing than before this change.
+- The scripted tutorial (`specs/TUTORIAL.md`) now auto-runs on a player's first-ever session (see Pre-game above), so a real first-time player does get guided onboarding; the debug `T` key remains available separately for QA replay on any session.
 
 **Post-game / repeat sessions**
 - `GameOverScreen.tsx` shows score and week reached but no "what went wrong" detail — the message is a generic "A station overflowed" with no identification of which station or replay/highlight of the moment it happened.
 - No tips or difficulty ramp-down offered after a fast early loss (e.g. game over within the first Week).
 - No tracking of session count (1st vs. 2nd vs. 50th game), so there's no way to progressively fade out hints as a player demonstrates competence.
 
-**Resolved**: the tutorial-style question (scripted vs. contextual vs. hybrid) is settled in favor of a **scripted sandbox tutorial**, now spec'd in `specs/TUTORIAL.md` — guided first Line, scripted board/ride/deliver, and a can't-fail overflow rescue, with a Skip control on every step. For now it is debug-triggered only (`T` in debug mode).
+**Resolved**: the tutorial-style question (scripted vs. contextual vs. hybrid) is settled in favor of a **scripted sandbox tutorial**, now spec'd in `specs/TUTORIAL.md` — guided first Line, scripted board/ride/deliver, and a can't-fail overflow rescue, with a Skip control on every step. It auto-runs once per browser on the first-ever session (`TUTORIAL.md` §1, §8) and remains separately available via the debug `T` key for QA replay.
 
 **Still open**
-- Player-facing entry points for the tutorial: a home-screen Tutorial button, and/or auto-running it on the first-ever session (needs "has played before" persistence — see Persistence section above).
-- Should hints/tutorial ever reappear for returning players, or show only once per browser ever (requires local storage — see Persistence)?
+- A manual home-screen Tutorial button for returning players who want to replay it (auto-run is strictly first-session-only, per `TUTORIAL.md` §8 — it never reappears on its own).
+- Should a first-time session use an easier spawn/decay curve than `core/progression.md`'s default, or should difficulty be identical from game one?
 - Should a first-time session use an easier spawn/decay curve than `core/progression.md`'s default, or should difficulty be identical from game one?
 - Contextual first-occurrence toasts for events the scripted tutorial can't cover live (first real Weekly Upgrade choice, first Line unlock) — worth adding on top of the scripted tutorial, or is the wrap-up step's mention enough?
 - No instrumentation exists to learn where new players actually get stuck or quit (ties into the empty Analytics section above) — without that data, any FTUE design is a guess rather than something validated.

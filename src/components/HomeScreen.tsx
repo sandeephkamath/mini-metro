@@ -18,8 +18,8 @@ interface HomeScreenProps {
   onOpenCollectibles: () => void;
 }
 
-const BG = '#f5f0e8';
-const INK = '#2d2d2d';
+const BG = CONFIG.UI_BG_COLOR;
+const INK = CONFIG.UI_INK_COLOR;
 const WATER = '#d9e8f0';
 const SHAPE_CYCLE: StationShape[] = ['circle', 'triangle', 'square', 'star', 'hexagon', 'plus'];
 

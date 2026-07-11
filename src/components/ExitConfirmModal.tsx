@@ -1,3 +1,5 @@
+import { CONFIG } from '../config/gameConfig';
+
 interface ExitConfirmModalProps {
   onExit: () => void;
   onCancel: () => void;
@@ -18,21 +20,21 @@ export function ExitConfirmModal({ onExit, onCancel }: ExitConfirmModalProps) {
     }}>
       <div style={{
         position: 'relative',
-        background: '#fff',
+        background: CONFIG.UI_BG_COLOR,
         borderRadius: '10px',
         padding: '28px 32px',
         boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
         textAlign: 'center',
         minWidth: 300,
       }}>
-        <p style={{ margin: '0 0 20px', fontFamily: 'monospace', fontSize: 15 }}>Exit game?</p>
+        <p style={{ margin: '0 0 20px', fontFamily: 'monospace', fontSize: 15, color: CONFIG.UI_INK_COLOR }}>Exit game?</p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
           <button
             onClick={onCancel}
             style={{
-              background: '#eee',
-              color: '#333',
-              border: 'none',
+              background: '#fff',
+              color: CONFIG.UI_INK_COLOR,
+              border: `1px solid ${CONFIG.UI_INK_COLOR}`,
               borderRadius: 8,
               padding: '10px 20px',
               fontSize: 14,
@@ -45,7 +47,7 @@ export function ExitConfirmModal({ onExit, onCancel }: ExitConfirmModalProps) {
           <button
             onClick={onExit}
             style={{
-              background: '#e74c3c',
+              background: CONFIG.UI_PRIMARY_COLOR,
               color: '#fff',
               border: 'none',
               borderRadius: 8,

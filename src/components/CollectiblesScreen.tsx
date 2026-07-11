@@ -44,7 +44,7 @@ function LockedThumbnail() {
 // deliberately reveals nothing about what's next.
 function PictureName({ index }: { index: number }) {
   return (
-    <div style={{ marginTop: 4, fontSize: 12, fontFamily: 'monospace', color: '#666' }}>
+    <div style={{ marginTop: 4, fontSize: 12, fontFamily: 'monospace', color: CONFIG.UI_MUTED_TEXT_COLOR }}>
       {getPictureForIndex(index).name}
     </div>
   );
@@ -92,7 +92,7 @@ export function CollectiblesScreen({ collectionSize, currentPictureProgress, onC
             height: 30,
             borderRadius: '50%',
             background: '#fff',
-            border: '1px solid #333',
+            border: `1px solid ${CONFIG.UI_INK_COLOR}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -100,7 +100,7 @@ export function CollectiblesScreen({ collectionSize, currentPictureProgress, onC
             cursor: 'pointer',
             fontSize: 16,
             lineHeight: 1,
-            color: '#333',
+            color: CONFIG.UI_INK_COLOR,
             boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
             zIndex: 1,
           }}
@@ -108,14 +108,14 @@ export function CollectiblesScreen({ collectionSize, currentPictureProgress, onC
           ×
         </button>
         <div style={{
-          background: '#fff',
+          background: CONFIG.UI_BG_COLOR,
           borderRadius: 12,
           padding: '28px 32px',
           boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
           maxHeight: '80vh',
           overflowY: 'auto',
         }}>
-        <h2 style={{ margin: '0 0 16px', fontFamily: 'monospace', textAlign: 'center' }}>Collectibles</h2>
+        <h2 style={{ margin: '0 0 16px', fontFamily: 'monospace', textAlign: 'center', color: CONFIG.UI_INK_COLOR }}>Collectibles</h2>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
           {completeIndices.map(index => (
@@ -180,14 +180,14 @@ export function CollectiblesScreen({ collectionSize, currentPictureProgress, onC
             </button>
             <div style={{
               textAlign: 'center',
-              background: '#fff',
+              background: CONFIG.UI_BG_COLOR,
               borderRadius: 12,
               padding: '20px 24px',
               boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
               maxHeight: '88vh',
               overflowY: 'auto',
             }}>
-              <div style={{ marginBottom: 10, fontSize: 18, fontFamily: 'monospace', color: '#333' }}>
+              <div style={{ marginBottom: 10, fontSize: 18, fontFamily: 'monospace', color: CONFIG.UI_INK_COLOR }}>
                 {getPictureForIndex(detailIndex).name}
               </div>
               <AnimatedPictureThumbnail index={detailIndex} revealedTileCount={detailTiles} width={DETAIL_W} height={DETAIL_H} />

@@ -9,6 +9,8 @@ import { getWeekProgress, getWeeksSurvived } from '../logic/metaProgression';
 import type { RevealSegment } from '../logic/collectibles';
 import type { MetaProgressionData } from '../storage/metaProgression';
 import { loadMetaProgression, recordSessionEnd } from '../storage/metaProgression';
+import { hasSeenTutorial, markTutorialSeen } from '../storage/tutorialSeen';
+import { startTutorial } from '../logic/tutorial';
 import {
   isAdAvailable,
   requestOnDemandBonus as requestOnDemandBonusAction,
@@ -233,8 +235,21 @@ export function useGameState() {
   function startGame() {
     stateRef.current = createInitialState();
     stateRef.current.phase = 'playing';
+    // Player-facing Tutorial entry point (TUTORIAL.md §1, §8): auto-run once ever,
+    // on this browser's first-ever session, right as a fresh board is created —
+    // canStartTutorial's preconditions (no Lines, no Station at risk) are always
+    // true here.
+    const autoTutorial = !hasSeenTutorial();
+    if (autoTutorial) {
+      startTutorial(stateRef.current);
+      markTutorialSeen();
+    }
     setPhase('playing');
     resetReactState();
+    if (autoTutorial && stateRef.current.tutorial) {
+      setTutorialStep(stateRef.current.tutorial.step);
+      logGameEvent('tutorial_started', { trigger: 'auto_first_play' });
+    }
     sessionEndRecordedRef.current = false;
     setPictureRevealSegments(null);
     setIsNewBest(false);

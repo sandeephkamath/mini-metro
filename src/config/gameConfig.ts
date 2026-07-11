@@ -26,7 +26,7 @@ export const CONFIG = {
   CAMERA_ZOOM_WHEEL_FACTOR: 1.0015,
 
   STATION_SPAWN_INTERVAL_MS: 15000,
-  STATION_MAX_COUNT: 20,
+  STATION_MAX_COUNT: 30,
   INITIAL_STATION_COUNT: 3,
   STATION_MARGIN: 70,
   MIN_STATION_DISTANCE: 90,
@@ -50,7 +50,7 @@ export const CONFIG = {
 
   // Additional station shapes unlock gradually by week number so new shapes don't
   // all appear at once — circle/triangle/square are available from week 0 (unlisted here).
-  // Kept inside the ~4.25-week window before STATION_MAX_COUNT (20) stops new spawns
+  // Kept inside the ~6.75-week window before STATION_MAX_COUNT (30) stops new spawns
   // entirely (see STATION_SPAWN_INTERVAL_MS below) — a later shape can't unlock if
   // the station budget is already exhausted.
   STATION_SHAPE_UNLOCK_WEEK: {
@@ -193,6 +193,16 @@ export const CONFIG = {
     hexagon:  '#9b59b6',
     plus:     '#e67e22',
   } as Record<string, string>,
+
+  // Shared dialog/overlay chrome (themes/metro.md §5) — every modal (Game Over,
+  // Weekly Upgrade choice, ad prompts, Collectibles, Leaderboard, Exit confirm) draws
+  // from the same palette as the Home Screen (HomeScreen.tsx) instead of a generic
+  // white card, so the whole app reads as one theme rather than home screen vs. everything
+  // else. UI_PRIMARY_COLOR mirrors the Play button / circle shape color (LINE_COLORS[0]).
+  UI_BG_COLOR: '#f5f0e8',
+  UI_INK_COLOR: '#2d2d2d',
+  UI_MUTED_TEXT_COLOR: '#6b6459',
+  UI_PRIMARY_COLOR: '#e74c3c',
 
   // How long app startup waits for the Remote Config Override fetch (below) before
   // proceeding with pure code defaults — see themes/metro.md §5.1.
