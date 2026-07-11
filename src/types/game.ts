@@ -11,7 +11,6 @@ export type ReserveItemKind = 'carrier' | 'carriage';
 // drained and played once per frame by useGameLoop.ts — logic itself never touches
 // the DOM/Audio API (core §8 Architecture Constraints).
 export type AudioCueType =
-  | 'passengerDelivered'
   | 'stationSpawn'
   | 'lineDrawn'
   | 'milestone'

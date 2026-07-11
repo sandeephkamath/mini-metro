@@ -9,7 +9,6 @@ export const AUDIO_CONFIG = {
     game: { src: '/audio/music/game.wav', volume: 0.4 },
   },
   sfx: {
-    passengerDelivered: { src: '/audio/sfx/passenger-delivered.wav', volume: 0.6 },
     stationSpawn: { src: '/audio/sfx/station-spawn.wav', volume: 0.5 },
     lineDrawn: { src: '/audio/sfx/line-drawn.wav', volume: 0.45 },
     milestone: { src: '/audio/sfx/milestone.wav', volume: 0.65 },

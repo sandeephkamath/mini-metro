@@ -8,7 +8,6 @@ import { AUDIO_CONFIG, SFX_COOLDOWN_MS, type MusicTrackKey, type SfxKey } from '
 import { loadMusicEnabled, loadSoundEnabled, saveMusicEnabled, saveSoundEnabled } from '../storage/audioSettings';
 
 const CUE_TO_SFX: Record<AudioCueType, SfxKey> = {
-  passengerDelivered: 'passengerDelivered',
   stationSpawn: 'stationSpawn',
   lineDrawn: 'lineDrawn',
   milestone: 'milestone',

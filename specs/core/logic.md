@@ -213,14 +213,13 @@ The game has two theme-neutral audio layers: a continuous **Background Music** t
 
 | Cue | Fires when |
 |-----|-----------|
-| Resource Delivered | A Resource reaches a Node matching its destination type (§3 Delivery) |
 | Node Spawned | A new Node is added to the map (§3 Node lifecycle) |
 | Route Committed | A drag gesture that adds at least one Node to a Route is released (§4) |
 | Milestone Event | A Milestone Event fires, whether it auto-grants a bonus or opens the Choice popup (§3 Milestone Events) |
 | Overflow Risk Started | A Node's Grace Timer starts counting down (§3 Node Overflow) |
 | Game Over | The session ends, by either the Grace Timer expiring with no Continue offered, or a Continue offer being declined (§3 Node Overflow) |
 
-Cues are fire-and-forget: overlapping cues (e.g. several Resources delivered in the same instant) are each allowed to sound rather than being coalesced into one, though a theme may apply a short per-cue cooldown purely to avoid audio clipping/distortion from stacking identical sounds, not to suppress the underlying event. Background Music and Audio Cues each have their own independent player-facing on/off control (theme-defined placement) rather than a single shared mute — a player may want ambient music off while keeping short Audio Cues on, or vice versa. Both are presentation settings only and never change game rules or timing.
+Cues are fire-and-forget: overlapping cues (e.g. several Nodes spawning in the same instant) are each allowed to sound rather than being coalesced into one, though a theme may apply a short per-cue cooldown purely to avoid audio clipping/distortion from stacking identical sounds, not to suppress the underlying event. Background Music and Audio Cues each have their own independent player-facing on/off control (theme-defined placement) rather than a single shared mute — a player may want ambient music off while keeping short Audio Cues on, or vice versa. Both are presentation settings only and never change game rules or timing.
 
 Because browsers require a user gesture before audio can play, Background Music should still attempt to start immediately (muted) when a state is entered, rather than waiting for a gesture first — muted playback is broadly allowed without one. The first gesture, whenever it arrives, then simply unmutes whatever track is already running, so the player hears the correct track for whichever state they're actually in at that moment rather than one they may have already left (e.g. a state's music never actually being heard because the player's first-ever gesture was already the action that moved them to the next state). This muted-then-unmute dance exists only to work around that gesture requirement — a runtime with no such requirement should just start audible Background Music immediately, with nothing to unmute later.
 
