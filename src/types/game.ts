@@ -144,8 +144,8 @@ export interface TutorialState {
   squareId: string;
   passengerId: string | null; // the scripted boarding/delivery passenger (step 2)
   extraStationId: string | null; // the scripted Extend the Line station (step 3, a star)
-  newLineStationAId: string | null; // scripted A New Line stations (step 4) — untouched by any prior Line, so
-  newLineStationBId: string | null; // the drag between them can never accidentally grab an existing end-tab
+  overflowStationId: string | null; // the scripted Overflow station (step 7, a hexagon) — square is already
+  // connected by step 4's new Line by this point, so it can no longer stand in for an unconnected Station
   demoTimer: number; // ms remaining in the overflow demo run (step 6.2)
   prevPauseStations: boolean; // debug spawn toggles restored on exit (TUTORIAL.md §6)
   prevPausePassengers: boolean;

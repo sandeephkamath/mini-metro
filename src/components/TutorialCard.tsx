@@ -5,7 +5,7 @@ import { CONFIG } from '../config/gameConfig';
 // `next` is the advance-button label; null means the step advances on a game event.
 const STEP_CONTENT: Record<TutorialStepId, { text: string; next: string | null }> = {
   firstLine: {
-    text: 'This passenger wants to reach a triangle station. Drag from the circle station to the triangle station to carry it there.',
+    text: 'A passenger wants to reach a triangle station. Drag from the circle station to the triangle station to carry it there.',
     next: null,
   },
   rideWait: {
@@ -13,7 +13,7 @@ const STEP_CONTENT: Record<TutorialStepId, { text: string; next: string | null }
     next: null,
   },
   extendLine: {
-    text: 'Lines can grow, too — drag from the small marker at the end of your line to the new star station to extend it.',
+    text: 'Lines can grow, too — drag from the end of your line to the new star station to extend it.',
     next: null,
   },
   extendLineCard: {
@@ -21,7 +21,7 @@ const STEP_CONTENT: Record<TutorialStepId, { text: string; next: string | null }
     next: 'Next',
   },
   newLine: {
-    text: 'Now try something different: drag from the hexagon station to the new plus station to start a second, independent line.',
+    text: 'Now try something different: drag from the square station to the triangle station to start a second, independent line.',
     next: null,
   },
   newLineCard: {
@@ -37,7 +37,7 @@ const STEP_CONTENT: Record<TutorialStepId, { text: string; next: string | null }
     next: null,
   },
   overflowDemo: {
-    text: 'Uh oh — a crowd is building at the square station…',
+    text: 'Uh oh — a crowd is building at the hexagon station…',
     next: null,
   },
   overflowCard: {
@@ -45,7 +45,7 @@ const STEP_CONTENT: Record<TutorialStepId, { text: string; next: string | null }
     next: 'Next',
   },
   rescueAct: {
-    text: 'Save it! Connect the square station — drag from one of your line’s ends to the square station, or draw a new line to it.',
+    text: 'Save it! Connect the hexagon station — drag from one of your line’s ends to it, or draw a new line to it.',
     next: null,
   },
   rescueWait: {

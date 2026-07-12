@@ -239,18 +239,12 @@ export function GameCanvas() {
 
   // Pulses the HUD Line-unlock swatch the scripted new Line will claim (or just
   // claimed), ties the map lesson to that HUD element (TUTORIAL.md §5 step 4) —
-  // getAvailableLine before the drag, the Station's actual Line id afterward.
-  // newLineCard is reached two ways (step 3 detail): via the dedicated hexagon
-  // pairing (check that Station first) or directly from an accidental new Line
-  // at the star (fall back to it) — whichever is actually connected wins.
+  // getAvailableLine before the drag, the square Station's actual Line id
+  // afterward (the square→triangle pairing is the only way into newLineCard now
+  // — TUTORIAL.md §5 step 3 detail — so no fallback lookup is needed).
   const tutorialHighlightLineId = (() => {
     if (tutorialStep === 'newLine') return getAvailableLine(state)?.id ?? null;
-    if (tutorialStep === 'newLineCard') {
-      for (const id of [state.tutorial?.newLineStationAId, state.tutorial?.extraStationId]) {
-        const lineId = id ? state.stations[id]?.lineIds[0] : undefined;
-        if (lineId) return lineId;
-      }
-    }
+    if (tutorialStep === 'newLineCard') return state.tutorial ? state.stations[state.tutorial.squareId]?.lineIds[0] ?? null : null;
     return null;
   })();
 
@@ -261,6 +255,13 @@ export function GameCanvas() {
   // themselves (TUTORIAL.md §5 steps 5–6) — those steps' whole point is the
   // player using the real Depot buttons and canvas clicks, not a scripted
   // stand-in for either.
+  // Pulses the Depot tray's Train or Carriage icon during the Depot Train /
+  // Depot Carriage steps (TUTORIAL.md §5 steps 5–6) — the only two steps whose
+  // target is a HUD button rather than a canvas Station, so it needs its own
+  // highlight path alongside renderTutorial.ts's Station halo.
+  const tutorialHighlightDepot: 'carrier' | 'carriage' | null =
+    tutorialStep === 'depotPlace' ? 'carrier' : tutorialStep === 'depotCarriage' ? 'carriage' : null;
+
   const tutorialActive = tutorialStep !== null;
   const depotSuspended = tutorialActive && tutorialStep !== 'depotPlace' && tutorialStep !== 'depotCarriage';
 
@@ -371,6 +372,7 @@ export function GameCanvas() {
           adAvailable={adAvailable}
           onRequestBonus={() => { if (!tutorialActive) requestOnDemandBonus(); }}
           tutorialHighlightLineId={tutorialHighlightLineId}
+          tutorialHighlightDepot={tutorialHighlightDepot}
           tutorialActive={tutorialActive}
         />
       )}

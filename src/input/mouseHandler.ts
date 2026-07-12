@@ -9,6 +9,7 @@ import { getTrainAt } from '../logic/trains';
 import { screenToWorld, panCameraByScreenDelta, zoomAtScreenPoint, worldHitRadius } from '../logic/camera';
 import { CONFIG } from '../config/gameConfig';
 import { ALL_SHAPES } from '../logic/shapes';
+import { tutorialAllowedStations, tutorialExtendLineTarget } from '../logic/tutorial';
 
 // Debug popup: one button per shape in a row, each BUTTON_W × BUTTON_H
 const BUTTON_W = 30;
@@ -93,6 +94,41 @@ function clampMenu(state: GameState, x: number, y: number): Vec2 {
   };
 }
 
+// TUTORIAL.md §5 step 3 detail: during the extendLine step, any mousedown that
+// lands near the triangle or star Station captures the drag directly into an
+// extension of the original Line — grabbing the real end-tab handle is no
+// longer required, "no matter what" the click's precision. Returns whether it
+// captured the click; the caller blocks the click either way (TUTORIAL.md §3).
+function tryTutorialForceExtend(state: GameState, world: Vec2): boolean {
+  const target = tutorialExtendLineTarget(state);
+  const t = state.tutorial;
+  if (!target || !t?.extraStationId) return false;
+  const triangle = state.stations[t.triangleId];
+  const star = state.stations[t.extraStationId];
+  if (!triangle || !star) return false;
+
+  const hitR = worldHitRadius(state, CONFIG.STATION_HIT_RADIUS);
+  const dTri = Math.hypot(world.x - triangle.pos.x, world.y - triangle.pos.y);
+  const dStar = Math.hypot(world.x - star.pos.x, world.y - star.pos.y);
+  if (dTri > hitR && dStar > hitR) return false;
+
+  state.drawing.isDrawing = true;
+  state.drawing.startStationId = t.triangleId;
+  state.drawing.insertAfterIndex = null;
+  state.drawing.grabPos = null;
+  state.drawing.mousePos = world;
+  state.drawing.lineId = target.lineId;
+  // Started nearer the star than the triangle: seed the path immediately so a
+  // click-and-release, or a drag away from star, still ends with star joining
+  // the Line — chaining (onMouseMove) only catches Stations the pointer
+  // passes over *after* the drag starts, which never includes the one it
+  // started on.
+  state.drawing.path = dStar <= dTri ? [t.extraStationId] : [];
+  state.drawing.detachCount = 0;
+  state.drawing.extendEnd = target.extendEnd;
+  return true;
+}
+
 // ── Regular mouse handlers ─────────────────────────────────────────────────
 // Screen coordinates (raw canvas pixels) are converted to world coordinates
 // before hitting any game entity, since the camera may be zoomed/panned.
@@ -135,10 +171,24 @@ export function onMouseDown(state: GameState, canvasX: number, canvasY: number):
     return;
   }
 
+  // TUTORIAL.md §5 step 3 detail: extendLine forces every click near the
+  // triangle/star pair into an extension, regardless of handle precision. A
+  // miss here (neither Station nearby) falls through to the restriction below,
+  // same as the other named-pair steps, rather than being blocked outright —
+  // that keeps a genuine blank-space click free to pan the camera.
+  if (state.tutorial?.step === 'extendLine' && tryTutorialForceExtend(state, world)) return;
+
+  // TUTORIAL.md §3: on a step instructing one specific drag, only its two
+  // named Stations can start or extend anything — a click on a real entity
+  // outside that pair does nothing (not even falling back to a camera pan),
+  // but a genuine blank-space click still pans normally.
+  const restrict = tutorialAllowedStations(state);
+
   // Grabbing a line's end tab extends (or shortens) that specific line, even if
   // other lines also terminate at the same station.
   const endpoint = getLineEndpointAt(state, world);
   if (endpoint) {
+    if (restrict && !restrict.has(endpoint.stationId)) return;
     const line = state.lines[endpoint.lineId];
     state.drawing.isDrawing = true;
     state.drawing.startStationId = endpoint.stationId;
@@ -158,6 +208,7 @@ export function onMouseDown(state: GameState, canvasX: number, canvasY: number):
   // no free line the drag previews neutrally and commits nothing.
   const station = getStationAt(state, world, worldHitRadius(state, CONFIG.STATION_HIT_RADIUS));
   if (station) {
+    if (restrict && !restrict.has(station.id)) return;
     state.drawing.isDrawing = true;
     state.drawing.startStationId = station.id;
     state.drawing.insertAfterIndex = null;
@@ -172,6 +223,11 @@ export function onMouseDown(state: GameState, canvasX: number, canvasY: number):
 
   const segment = getSegmentAt(state, world);
   if (segment) {
+    // Mid-line insertion isn't part of any instructed gesture — blocked outright
+    // on a restricted step rather than left to insert into an off-script Line.
+    // A genuine miss (no segment under the cursor) still falls through to
+    // camera panning below — restriction only blocks touching a real entity.
+    if (restrict) return;
     state.drawing.isDrawing = true;
     state.drawing.startStationId = null;
     state.drawing.insertAfterIndex = segment.afterIndex;
@@ -207,7 +263,10 @@ export function onMouseMove(state: GameState, canvasX: number, canvasY: number):
   // No lineId means no free line was available — nothing could commit, so don't chain.
   if (state.drawing.insertAfterIndex === null && state.drawing.lineId) {
     const station = getStationAt(state, state.drawing.mousePos, worldHitRadius(state, CONFIG.STATION_HIT_RADIUS));
-    if (station) chainDrawingStation(state, station.id);
+    // TUTORIAL.md §3: a restricted draw step can only ever chain in its own
+    // two named Stations — anything else the pointer strays over is ignored.
+    const restrict = tutorialAllowedStations(state);
+    if (station && (!restrict || restrict.has(station.id))) chainDrawingStation(state, station.id);
   }
 }
 
@@ -268,7 +327,8 @@ export function onMouseUp(state: GameState, canvasX: number, canvasY: number): v
     // Catch a final station the move events may have missed (fast flicks, touch lift
     // wobble). Append-only: a release near an already-chained station must never
     // undo or detach anything.
-    if (endStation && state.drawing.lineId) {
+    const restrict = tutorialAllowedStations(state);
+    if (endStation && state.drawing.lineId && (!restrict || restrict.has(endStation.id))) {
       const remaining = getRemainingLineStations(state);
       if (!remaining.includes(endStation.id) && !state.drawing.path.includes(endStation.id)) {
         state.drawing.path.push(endStation.id);

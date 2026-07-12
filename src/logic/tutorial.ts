@@ -18,6 +18,36 @@ export function tutorialHoldsClock(state: GameState): boolean {
   return state.tutorial !== null && CLOCK_HELD_STEPS.has(state.tutorial.step);
 }
 
+// The exact station pair a "draw" step instructs (TUTORIAL.md §3) — any mousedown
+// or mid-drag chain touching a station outside this set is ignored during that
+// step (src/input/mouseHandler.ts), so an off-script line can never be drawn
+// instead of the one being taught.
+export function tutorialAllowedStations(state: GameState): Set<string> | null {
+  const t = state.tutorial;
+  if (!t) return null;
+  switch (t.step) {
+    case 'firstLine': return new Set([t.circleId, t.triangleId]);
+    case 'extendLine': return t.extraStationId ? new Set([t.triangleId, t.extraStationId]) : null;
+    case 'newLine': return new Set([t.squareId, t.triangleId]);
+    default: return null;
+  }
+}
+
+// Step 3's forced-extension target (TUTORIAL.md §5 step 3 detail): during the
+// extendLine step, any drag touching the triangle or star station always
+// extends the existing circle→triangle Line from whichever end triangle sits
+// at — never a fresh Line — regardless of whether the player actually grabbed
+// the end-tab handle or the station body. Returns null once there's no
+// original Line to extend (shouldn't happen mid-tutorial) or no star yet.
+export function tutorialExtendLineTarget(state: GameState): { lineId: string; extendEnd: 'front' | 'back' } | null {
+  const t = state.tutorial;
+  if (!t || t.step !== 'extendLine' || !t.extraStationId) return null;
+  const line = Object.values(state.lines).find(l =>
+    l.stationIds.includes(t.circleId) && l.stationIds.includes(t.triangleId));
+  if (!line) return null;
+  return { lineId: line.id, extendEnd: line.stationIds[0] === t.triangleId ? 'front' : 'back' };
+}
+
 // Preconditions per TUTORIAL.md §1: a startable board means no Lines drawn yet
 // and no Station already at risk — i.e. the start of a run.
 export function canStartTutorial(state: GameState): boolean {
@@ -42,8 +72,7 @@ export function startTutorial(state: GameState): void {
     squareId: findStationByShape(state, 'square'),
     passengerId: null,
     extraStationId: null,
-    newLineStationAId: null,
-    newLineStationBId: null,
+    overflowStationId: null,
     demoTimer: 0,
     prevPauseStations: state.debugPauseStations,
     prevPausePassengers: state.debugPausePassengers,
@@ -53,12 +82,17 @@ export function startTutorial(state: GameState): void {
   state.debugPausePassengers = true;
   state.debugAction = null;
   state.debugPlacingStation = false;
-  // Settle the three starting Stations' spawn-in animation (same bug class as
-  // B30, themes/metro.md §10): on a genuinely fresh game the Tutorial's very
+  // Settle the circle and triangle Stations' spawn-in animation (same bug class
+  // as B30, themes/metro.md §10): on a genuinely fresh game the Tutorial's very
   // first step holds the clock at game time ~0, the same instant these
   // Stations were created — without this, their 600ms fade/scale-in freezes on
-  // its first, barely-visible frame for the whole First Line step.
-  for (const id of [state.tutorial.circleId, state.tutorial.triangleId, state.tutorial.squareId]) {
+  // its first, barely-visible frame for the whole First Line step. Deliberately
+  // NOT applied to square: it isn't looked at until step 4, so forcing it
+  // fully-formed here would make it appear before the two Stations the script
+  // actually opens with. Left alone, square starts its own natural fade-in at
+  // the same moment and finishes during step 2 (which runs the clock), well
+  // before it's ever highlighted (TUTORIAL.md §5 note).
+  for (const id of [state.tutorial.circleId, state.tutorial.triangleId]) {
     const station = state.stations[id];
     if (station) station.spawnedAtMs = state.gameTimeMs - CONFIG.STATION_SPAWN_ANIM_MS;
   }
@@ -76,9 +110,9 @@ export function exitTutorial(state: GameState): void {
   if (!t) return;
   // Skip safety: leaving mid-overflow must not hand the player an unavoidable
   // game over seconds later.
-  const square = state.stations[t.squareId];
-  if (square && square.riskTimer !== null) {
-    square.riskTimer = Math.max(square.riskTimer, CONFIG.TUTORIAL_RESCUE_WINDOW_MS);
+  const overflowStation = t.overflowStationId ? state.stations[t.overflowStationId] : null;
+  if (overflowStation && overflowStation.riskTimer !== null) {
+    overflowStation.riskTimer = Math.max(overflowStation.riskTimer, CONFIG.TUTORIAL_RESCUE_WINDOW_MS);
   }
   state.debugPauseStations = t.prevPauseStations;
   state.debugPausePassengers = t.prevPausePassengers;
@@ -129,32 +163,14 @@ function enterStep(state: GameState, step: TutorialStepId): void {
   } else if (step === 'extendLine') {
     // Placed reachable from the triangle Station's Line endpoint, same mechanism
     // as DEBUG.md Add Station (bypasses the unlock gate and spawn-distance rules
-    // — TUTORIAL.md §7).
+    // — TUTORIAL.md §7). This step is only ever entered once (no retry path —
+    // mouseHandler.ts forces every drag touching triangle/star into a genuine
+    // extension, TUTORIAL.md §5 step 3 detail), so no re-entry guard is needed.
     const triangle = state.stations[t.triangleId];
     t.extraStationId = trySpawnStationAt(
       state,
       { x: triangle.pos.x + 200, y: triangle.pos.y - 40 },
       'star',
-    );
-  } else if (step === 'newLine') {
-    // Two fresh Stations with no Line touching either — positioned clear of
-    // circle/triangle/square/star so a drag between them can never accidentally
-    // land on an existing end-tab handle (TUTORIAL.md §5 step 4 detail), unlike
-    // extendLine above, which shares the triangle Station with the first Line.
-    // Kept within the existing starting cluster's vertical spread (roughly
-    // circle/triangle/square's own range) so the camera's auto-fit doesn't
-    // zoom out enough to push these down into the card's screen area — only
-    // widens the view horizontally, to the left of circle.
-    const circle = state.stations[t.circleId];
-    t.newLineStationAId = trySpawnStationAt(
-      state,
-      { x: circle.pos.x - 100, y: circle.pos.y - 40 },
-      'hexagon',
-    );
-    t.newLineStationBId = trySpawnStationAt(
-      state,
-      { x: circle.pos.x - 100, y: circle.pos.y + 120 },
-      'plus',
     );
   } else if (step === 'depotPlace') {
     // Granted directly, not via a live Weekly Upgrade choice (TUTORIAL.md §9).
@@ -163,12 +179,23 @@ function enterStep(state: GameState, step: TutorialStepId): void {
     // Granted directly, not via a live Weekly Upgrade choice (TUTORIAL.md §9).
     state.reserveCarriages = 1;
   } else if (step === 'overflowDemo') {
-    // Fill the square station to capacity — it enters Overflow Risk on the next
-    // running tick, then the demo run lets the player watch the arc shrink.
+    // A fresh Station is injected here rather than reusing square (as earlier
+    // versions did) because square is already connected by step 4's new Line
+    // by this point — it can no longer stand in for "a station nobody's
+    // connected yet" (TUTORIAL.md §5 step 7 detail). Placed reachable from
+    // square, the nearest already-connected Station at this point in the script.
     const square = state.stations[t.squareId];
+    t.overflowStationId = trySpawnStationAt(
+      state,
+      { x: square.pos.x + 160, y: square.pos.y + 40 },
+      'hexagon',
+    );
+    // Fill it to capacity — it enters Overflow Risk on the next running tick,
+    // then the demo run lets the player watch the arc shrink.
+    const overflow = state.stations[t.overflowStationId!];
     let alternate = 0;
-    while (square.passengerQueue.length < square.maxCapacity) {
-      injectPassenger(state, t.squareId, alternate++ % 2 === 0 ? 'circle' : 'triangle');
+    while (overflow.passengerQueue.length < overflow.maxCapacity) {
+      injectPassenger(state, t.overflowStationId!, alternate++ % 2 === 0 ? 'circle' : 'triangle');
     }
     t.demoTimer = CONFIG.TUTORIAL_DEMO_MS;
   }
@@ -220,23 +247,16 @@ export function tickTutorial(state: GameState, dt: number): void {
       }
       break;
     case 'extendLine': {
+      // mouseHandler.ts forces every drag touching triangle/star into a genuine
+      // extension of the original circle→triangle Line (TUTORIAL.md §5 step 3
+      // detail) — the outcome is guaranteed, so this just waits for it to land.
       const extra = t.extraStationId ? state.stations[t.extraStationId] : null;
-      if (extra && extra.lineIds.length > 0) {
-        // Verify the actual outcome instead of asserting one (TUTORIAL.md §5
-        // step 3 detail): the instruction points at the Line's end-tab handle,
-        // but a real click can still land on the Station body and start a
-        // fresh Line instead. Route to whichever explanation is actually true.
-        const original = Object.values(state.lines).find(l =>
-          l.stationIds.includes(t.circleId) && l.stationIds.includes(t.triangleId));
-        const trulyExtended = !!original && extra.lineIds.includes(original.id);
-        enterStep(state, trulyExtended ? 'extendLineCard' : 'newLineCard');
-      }
+      if (extra && extra.lineIds.length > 0) enterStep(state, 'extendLineCard');
       break;
     }
     case 'newLine': {
-      if (!t.newLineStationAId || !t.newLineStationBId) break;
       const connected = Object.values(state.lines).some(l =>
-        l.stationIds.includes(t.newLineStationAId!) && l.stationIds.includes(t.newLineStationBId!));
+        l.stationIds.includes(t.squareId) && l.stationIds.includes(t.triangleId));
       if (connected) enterStep(state, 'newLineCard');
       break;
     }
@@ -251,18 +271,18 @@ export function tickTutorial(state: GameState, dt: number): void {
       if (t.demoTimer <= 0) enterStep(state, 'overflowCard');
       break;
     case 'rescueAct': {
-      const square = state.stations[t.squareId];
-      if (square && square.lineIds.length > 0) {
+      const overflow = t.overflowStationId ? state.stations[t.overflowStationId] : null;
+      if (overflow && overflow.lineIds.length > 0) {
         // Rescue Window (TUTORIAL.md §5 step 7.5): the scripted rescue can't fail
         // on a slow train lap.
-        if (square.riskTimer !== null) square.riskTimer = CONFIG.TUTORIAL_RESCUE_WINDOW_MS;
+        if (overflow.riskTimer !== null) overflow.riskTimer = CONFIG.TUTORIAL_RESCUE_WINDOW_MS;
         enterStep(state, 'rescueWait');
       }
       break;
     }
     case 'rescueWait': {
-      const square = state.stations[t.squareId];
-      if (!square || square.riskTimer === null) enterStep(state, 'averted');
+      const overflow = t.overflowStationId ? state.stations[t.overflowStationId] : null;
+      if (!overflow || overflow.riskTimer === null) enterStep(state, 'averted');
       break;
     }
   }

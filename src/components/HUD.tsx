@@ -36,6 +36,7 @@ interface HUDProps {
   adAvailable: boolean; // core/monetization.md §4 — Ad Provider availability
   onRequestBonus: () => void;
   tutorialHighlightLineId: string | null; // pulses the Line-unlock swatch a scripted new Line will claim (TUTORIAL.md §5 step 4)
+  tutorialHighlightDepot: 'carrier' | 'carriage' | null; // pulses the Depot Train/Carriage icon during those steps (TUTORIAL.md §4, §5 steps 5–6)
   tutorialActive: boolean; // hides the Week label + clock badge for the Tutorial's duration (TUTORIAL.md §4) — they never advance meaningfully and crowd the same screen space as the instruction card
 }
 
@@ -131,7 +132,7 @@ export function HUD({
   reserveCarriers, reserveCarriages, selectedReserveItem,
   onSelectReserveCarrier, onSelectReserveCarriage,
   overflowRiskActive, playerPaused, playerSpeedMultiplier, onPause, onPlayNormal, onFastForward,
-  onDeleteLine, adAvailable, onRequestBonus, tutorialHighlightLineId, tutorialActive,
+  onDeleteLine, adAvailable, onRequestBonus, tutorialHighlightLineId, tutorialHighlightDepot, tutorialActive,
 }: HUDProps) {
   const toastVisible = milestoneAge < 3000 && milestoneMessage;
   const toastOpacity = toastVisible ? Math.min(1, Math.max(0, 1 - (milestoneAge - 2000) / 1000)) : 0;
@@ -287,6 +288,10 @@ export function HUD({
           0% { transform: scale(1); opacity: 0.6; }
           100% { transform: scale(2); opacity: 0; }
         }
+        @keyframes hudDepotHighlightPulse {
+          0%, 100% { box-shadow: 0 0 0 2px rgba(230, 126, 34, 0.85); }
+          50% { box-shadow: 0 0 0 6px rgba(230, 126, 34, 0.35); }
+        }
       `}</style>
       <div style={{
         position: 'absolute',
@@ -358,21 +363,32 @@ export function HUD({
         pointerEvents: 'none',
         zIndex: 10,
       }}>
-        <button
-          data-testid="hud-depot-carrier"
-          onClick={handleCarrierClick}
-          disabled={reserveCarriers === 0 && !adAvailable}
-          style={depotButtonStyle(reserveCarriers, selectedReserveItem === 'carrier', reserveCarriers === 0 && adAvailable)}
-          title={reserveCarriers > 0
-            ? 'Depot Train — click, then click a line to place it'
-            : adAvailable
-              ? 'Watch an ad to get a free Train or Carriage'
-              : undefined}
-        >
-          <TrainIcon color={reserveCarriers > 0 ? '#fff' : reserveCarriers === 0 && adAvailable ? '#bfe4f5' : '#666'} />
-          ×{reserveCarriers}
-          {reserveCarriers === 0 && adAvailable && <AdBonusBadge />}
-        </button>
+        <div style={{ position: 'relative' }}>
+          {tutorialHighlightDepot === 'carrier' && (
+            <div style={{
+              position: 'absolute',
+              inset: -4,
+              borderRadius: 10,
+              animation: 'hudDepotHighlightPulse 1s ease-in-out infinite',
+              pointerEvents: 'none',
+            }} />
+          )}
+          <button
+            data-testid="hud-depot-carrier"
+            onClick={handleCarrierClick}
+            disabled={reserveCarriers === 0 && !adAvailable}
+            style={depotButtonStyle(reserveCarriers, selectedReserveItem === 'carrier', reserveCarriers === 0 && adAvailable)}
+            title={reserveCarriers > 0
+              ? 'Depot Train — click, then click a line to place it'
+              : adAvailable
+                ? 'Watch an ad to get a free Train or Carriage'
+                : undefined}
+          >
+            <TrainIcon color={reserveCarriers > 0 ? '#fff' : reserveCarriers === 0 && adAvailable ? '#bfe4f5' : '#666'} />
+            ×{reserveCarriers}
+            {reserveCarriers === 0 && adAvailable && <AdBonusBadge />}
+          </button>
+        </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {lineSlots.map((slot, i) => {
@@ -426,21 +442,32 @@ export function HUD({
           })}
         </div>
 
-        <button
-          data-testid="hud-depot-carriage"
-          onClick={handleCarriageClick}
-          disabled={reserveCarriages === 0 && !adAvailable}
-          style={depotButtonStyle(reserveCarriages, selectedReserveItem === 'carriage', reserveCarriages === 0 && adAvailable)}
-          title={reserveCarriages > 0
-            ? 'Depot Carriage — click, then click a train to attach it'
-            : adAvailable
-              ? 'Watch an ad to get a free Train or Carriage'
-              : undefined}
-        >
-          <CarriageIcon color={reserveCarriages > 0 ? '#fff' : reserveCarriages === 0 && adAvailable ? '#bfe4f5' : '#666'} />
-          ×{reserveCarriages}
-          {reserveCarriages === 0 && adAvailable && <AdBonusBadge />}
-        </button>
+        <div style={{ position: 'relative' }}>
+          {tutorialHighlightDepot === 'carriage' && (
+            <div style={{
+              position: 'absolute',
+              inset: -4,
+              borderRadius: 10,
+              animation: 'hudDepotHighlightPulse 1s ease-in-out infinite',
+              pointerEvents: 'none',
+            }} />
+          )}
+          <button
+            data-testid="hud-depot-carriage"
+            onClick={handleCarriageClick}
+            disabled={reserveCarriages === 0 && !adAvailable}
+            style={depotButtonStyle(reserveCarriages, selectedReserveItem === 'carriage', reserveCarriages === 0 && adAvailable)}
+            title={reserveCarriages > 0
+              ? 'Depot Carriage — click, then click a train to attach it'
+              : adAvailable
+                ? 'Watch an ad to get a free Train or Carriage'
+                : undefined}
+          >
+            <CarriageIcon color={reserveCarriages > 0 ? '#fff' : reserveCarriages === 0 && adAvailable ? '#bfe4f5' : '#666'} />
+            ×{reserveCarriages}
+            {reserveCarriages === 0 && adAvailable && <AdBonusBadge />}
+          </button>
+        </div>
       </div>
 
       {selectedReserveItem && (
