@@ -4,40 +4,36 @@ import { CONFIG } from '../config/gameConfig';
 // Card content per step (specs/TUTORIAL.md §5 — required content, copy lives here).
 // `next` is the advance-button label; null means the step advances on a game event.
 const STEP_CONTENT: Record<TutorialStepId, { text: string; next: string | null }> = {
-  welcome: {
-    text: 'Welcome! Passengers appear at stations, and each wants to reach a station shaped like the icon they carry. You build the metro that gets them there.',
-    next: 'Next',
-  },
   firstLine: {
-    text: 'Draw your first line: press on the circle station and drag to the triangle station.',
+    text: 'This passenger wants to reach a triangle station. Drag from the circle station to the triangle station to carry it there.',
     next: null,
   },
-  train: {
-    text: 'A train appeared automatically. It shuttles back and forth along your line, stopping at every station.',
-    next: 'Next',
-  },
-  passenger: {
-    text: 'A passenger just arrived at the circle station. The small shape is their destination — this one wants a triangle station. Passengers wait in a queue until a train that can take them arrives.',
-    next: 'Next',
-  },
-  boardingWait: {
-    text: 'Watch — the train will pick them up when it stops at their station.',
+  rideWait: {
+    text: 'A train appeared automatically — watch it pick up your passenger and deliver them for a point.',
     next: null,
-  },
-  boardingCard: {
-    text: 'On board! Passengers only board a train that can actually carry them toward their destination.',
-    next: 'Next',
-  },
-  deliveryWait: {
-    text: 'Now watch them ride to the triangle station.',
-    next: null,
-  },
-  deliveryCard: {
-    text: 'Delivered! Every delivered passenger scores one point — the score at the top right just went up.',
-    next: 'Next',
   },
   extendLine: {
-    text: 'Lines can grow, too. Drag from the end of your line — the small marker at the triangle station — to the new star station to connect it.',
+    text: 'Lines can grow, too — drag from the small marker at the end of your line to the new star station to extend it.',
+    next: null,
+  },
+  extendLineCard: {
+    text: 'Nice — that’s still your first line, just longer. One line, one train, however many stations you add.',
+    next: 'Next',
+  },
+  newLine: {
+    text: 'Now try something different: drag from the hexagon station to the new plus station to start a second, independent line.',
+    next: null,
+  },
+  newLineCard: {
+    text: 'That’s a new line — it runs its own train, independent of your first, and just claimed one of your line colors. More unlock as your city grows.',
+    next: 'Next',
+  },
+  depotPlace: {
+    text: 'Every 5 weeks a Weekly Upgrade offers a new train or carriage. Here’s a new train: click the train icon at the bottom, then click your line to place it.',
+    next: null,
+  },
+  depotCarriage: {
+    text: 'Carriages add capacity to a train already running. Click the carriage icon, then click a train on the map to attach it.',
     next: null,
   },
   overflowDemo: {
@@ -59,10 +55,6 @@ const STEP_CONTENT: Record<TutorialStepId, { text: string; next: string | null }
   averted: {
     text: 'Crisis averted. The ring vanishes the moment a station drops back below capacity. Keep every station connected and flowing.',
     next: 'Next',
-  },
-  depotPlace: {
-    text: 'Every 5 weeks a Weekly Upgrade offers a new train or carriage like this one. Click the train icon at the bottom, then click your line to place it.',
-    next: null,
   },
   wrapup: {
     text: 'That’s the core loop! From here: weeks pass and new stations keep appearing, and extra lines unlock as the city grows.',

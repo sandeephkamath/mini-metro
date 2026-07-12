@@ -72,14 +72,21 @@ export function tick(state: GameState, dt: number): void {
   // is reached. That desync freezes weekNumber one short forever once the (still-exact)
   // milestone check pauses the clock before the (now-late) week check ever fires again —
   // see themes/metro.md §11 B12.
-  if (state.gameTimeMs >= state.nextWeekTime) {
-    state.weekNumber++;
-    state.nextWeekTime += CONFIG.WEEK_DURATION_MS;
-  }
+  // Week/Milestone progression is meaningless on the Tutorial's scripted,
+  // disposable board — suppressed for its entire duration (not just per-step
+  // held/paused, specs/TUTORIAL.md §2), so a player lingering on a running step
+  // can never silently rack up real weeks or trigger a live Weekly Upgrade
+  // Choice popup mid-script.
+  if (!state.tutorial) {
+    if (state.gameTimeMs >= state.nextWeekTime) {
+      state.weekNumber++;
+      state.nextWeekTime += CONFIG.WEEK_DURATION_MS;
+    }
 
-  if (state.gameTimeMs >= state.nextMilestoneTime) {
-    state.level++;
-    state.nextMilestoneTime += CONFIG.WEEK_DURATION_MS * CONFIG.MILESTONE_EVENT_WEEKS;
-    fireMilestoneEvent(state);
+    if (state.gameTimeMs >= state.nextMilestoneTime) {
+      state.level++;
+      state.nextMilestoneTime += CONFIG.WEEK_DURATION_MS * CONFIG.MILESTONE_EVENT_WEEKS;
+      fireMilestoneEvent(state);
+    }
   }
 }

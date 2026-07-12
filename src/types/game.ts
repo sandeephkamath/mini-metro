@@ -30,21 +30,19 @@ export interface AdFlowState {
 // Scripted tutorial steps in order (specs/TUTORIAL.md §5). "Wait" steps run the
 // clock until a game event fires; the rest hold the clock while a card is shown.
 export type TutorialStepId =
-  | 'welcome'
   | 'firstLine'
-  | 'train'
-  | 'passenger'
-  | 'boardingWait'
-  | 'boardingCard'
-  | 'deliveryWait'
-  | 'deliveryCard'
+  | 'rideWait'
   | 'extendLine'
+  | 'extendLineCard'
+  | 'newLine'
+  | 'newLineCard'
+  | 'depotPlace'
+  | 'depotCarriage'
   | 'overflowDemo'
   | 'overflowCard'
   | 'rescueAct'
   | 'rescueWait'
   | 'averted'
-  | 'depotPlace'
   | 'wrapup';
 
 export interface Vec2 {
@@ -144,9 +142,11 @@ export interface TutorialState {
   circleId: string;
   triangleId: string;
   squareId: string;
-  passengerId: string | null; // the scripted boarding/delivery passenger (steps 4-6)
-  extraStationId: string | null; // the scripted Extend the Line station (step 7)
-  demoTimer: number; // ms remaining in the overflow demo run (step 8.2)
+  passengerId: string | null; // the scripted boarding/delivery passenger (step 2)
+  extraStationId: string | null; // the scripted Extend the Line station (step 3, a star)
+  newLineStationAId: string | null; // scripted A New Line stations (step 4) — untouched by any prior Line, so
+  newLineStationBId: string | null; // the drag between them can never accidentally grab an existing end-tab
+  demoTimer: number; // ms remaining in the overflow demo run (step 6.2)
   prevPauseStations: boolean; // debug spawn toggles restored on exit (TUTORIAL.md §6)
   prevPausePassengers: boolean;
 }

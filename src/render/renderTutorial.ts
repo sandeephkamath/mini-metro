@@ -1,5 +1,6 @@
 import type { GameState, Station, Vec2 } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
+import { getLineEndpoints } from '../logic/lines';
 
 // Tutorial highlights + gesture hint (specs/TUTORIAL.md §4). Drawn in world space
 // above the normal game layers, below the debug overlay. Driven by wall time (the
@@ -9,8 +10,11 @@ function highlightTargets(state: GameState): Station[] {
   const t = state.tutorial!;
   const ids =
     t.step === 'firstLine' ? [t.circleId, t.triangleId]
-    : t.step === 'passenger' ? [t.circleId]
     : t.step === 'extendLine' ? [t.triangleId, ...(t.extraStationId ? [t.extraStationId] : [])]
+    : t.step === 'newLine' ? [
+        ...(t.newLineStationAId ? [t.newLineStationAId] : []),
+        ...(t.newLineStationBId ? [t.newLineStationBId] : []),
+      ]
     : t.step === 'rescueAct' ? [t.squareId]
     : [];
   return ids.map(id => state.stations[id]).filter((s): s is Station => !!s);
@@ -25,8 +29,18 @@ function hintPath(state: GameState): { from: Vec2; to: Vec2 } | null {
     return from && to ? { from: from.pos, to: to.pos } : null;
   }
   if (t.step === 'extendLine') {
-    const from = state.stations[t.triangleId];
     const to = t.extraStationId ? state.stations[t.extraStationId] : null;
+    if (!to) return null;
+    // Point at the Line's actual end-tab handle, not the Station center — this
+    // is genuinely the spot to grab to extend rather than start a new Line
+    // (TUTORIAL.md §5 step 3 detail), so the hint should show exactly that.
+    const endpoint = getLineEndpoints(state).find(ep => ep.stationId === t.triangleId);
+    const from = endpoint ? endpoint.handlePos : state.stations[t.triangleId]?.pos;
+    return from ? { from, to: to.pos } : null;
+  }
+  if (t.step === 'newLine') {
+    const from = t.newLineStationAId ? state.stations[t.newLineStationAId] : null;
+    const to = t.newLineStationBId ? state.stations[t.newLineStationBId] : null;
     return from && to ? { from: from.pos, to: to.pos } : null;
   }
   if (t.step === 'rescueAct') {

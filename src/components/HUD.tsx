@@ -35,6 +35,8 @@ interface HUDProps {
   onDeleteLine: (lineId: string) => void;
   adAvailable: boolean; // core/monetization.md §4 — Ad Provider availability
   onRequestBonus: () => void;
+  tutorialHighlightLineId: string | null; // pulses the Line-unlock swatch a scripted new Line will claim (TUTORIAL.md §5 step 4)
+  tutorialActive: boolean; // hides the Week label + clock badge for the Tutorial's duration (TUTORIAL.md §4) — they never advance meaningfully and crowd the same screen space as the instruction card
 }
 
 // Small person glyph shown beside the score so it reads as "Passengers
@@ -129,7 +131,7 @@ export function HUD({
   reserveCarriers, reserveCarriages, selectedReserveItem,
   onSelectReserveCarrier, onSelectReserveCarriage,
   overflowRiskActive, playerPaused, playerSpeedMultiplier, onPause, onPlayNormal, onFastForward,
-  onDeleteLine, adAvailable, onRequestBonus,
+  onDeleteLine, adAvailable, onRequestBonus, tutorialHighlightLineId, tutorialActive,
 }: HUDProps) {
   const toastVisible = milestoneAge < 3000 && milestoneMessage;
   const toastOpacity = toastVisible ? Math.min(1, Math.max(0, 1 - (milestoneAge - 2000) / 1000)) : 0;
@@ -280,6 +282,12 @@ export function HUD({
 
   return (
     <>
+      <style>{`
+        @keyframes hudLineSwatchPulse {
+          0% { transform: scale(1); opacity: 0.6; }
+          100% { transform: scale(2); opacity: 0; }
+        }
+      `}</style>
       <div style={{
         position: 'absolute',
         top: 0,
@@ -295,28 +303,30 @@ export function HUD({
         pointerEvents: 'none',
         zIndex: 10,
       }}>
-        <div style={{
-          position: 'absolute', left: '50%', transform: 'translateX(-50%)',
-          display: 'flex', alignItems: 'center', gap: 8,
-        }}>
-          <span data-testid="hud-week">Week {weekNumber}</span>
-          {creativeMode && (
-            <span
-              data-testid="hud-creative-mode-badge"
-              title="Node Overflow can no longer end this session"
-              style={{
-                fontSize: '10px',
-                letterSpacing: '0.5px',
-                background: CONFIG.UI_INK_COLOR,
-                color: '#fff',
-                borderRadius: '10px',
-                padding: '2px 8px',
-              }}
-            >
-              CREATIVE MODE
-            </span>
-          )}
-        </div>
+        {!tutorialActive && (
+          <div style={{
+            position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span data-testid="hud-week">Week {weekNumber}</span>
+            {creativeMode && (
+              <span
+                data-testid="hud-creative-mode-badge"
+                title="Node Overflow can no longer end this session"
+                style={{
+                  fontSize: '10px',
+                  letterSpacing: '0.5px',
+                  background: CONFIG.UI_INK_COLOR,
+                  color: '#fff',
+                  borderRadius: '10px',
+                  padding: '2px 8px',
+                }}
+              >
+                CREATIVE MODE
+              </span>
+            )}
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           {CONFIG.PLAYER_SPEED_CONTROLS_ENABLED && (
             <SpeedControls
@@ -327,7 +337,7 @@ export function HUD({
               onFastForward={onFastForward}
             />
           )}
-          <ClockBadge weekProgress={weekProgress} overflowRiskActive={overflowRiskActive} />
+          {!tutorialActive && <ClockBadge weekProgress={weekProgress} overflowRiskActive={overflowRiskActive} />}
           <div title="Passengers delivered" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <PassengerIcon color={INK} />
             <span data-testid="hud-score" style={{ fontSize: '22px', fontWeight: 'bold' }}>{score}</span>
@@ -371,36 +381,46 @@ export function HUD({
             }
             const holding = holdingLineIds.has(slot.id);
             return (
-              <div
-                key={i}
-                data-testid={`hud-line-swatch-${slot.id}`}
-                onMouseDown={() => startHold(slot.id, slot.hasStations)}
-                onMouseUp={() => cancelHold(slot.id)}
-                onMouseLeave={() => cancelHold(slot.id)}
-                onTouchStart={() => startHold(slot.id, slot.hasStations)}
-                onTouchEnd={() => cancelHold(slot.id)}
-                onTouchCancel={() => cancelHold(slot.id)}
-                title={slot.hasStations ? 'Hold to delete this line' : undefined}
-                style={{
-                  width: holding ? 34 : 20,
-                  height: holding ? 34 : 20,
-                  borderRadius: '50%',
-                  background: holding ? '#e74c3c' : slot.color,
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  transition: `width ${DELETE_HOLD_MS}ms linear, height ${DELETE_HOLD_MS}ms linear, background ${DELETE_HOLD_MS}ms linear`,
-                  cursor: slot.hasStations ? 'pointer' : 'default',
-                  pointerEvents: 'auto',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  userSelect: 'none',
-                  WebkitUserSelect: 'none',
-                  WebkitTouchCallout: 'none',
-                  touchAction: 'none',
-                }}
-              >
-                {holding && <span style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', lineHeight: 1 }}>×</span>}
+              <div key={i} style={{ position: 'relative', width: holding ? 34 : 20, height: holding ? 34 : 20, flexShrink: 0 }}>
+                {tutorialHighlightLineId === slot.id && (
+                  <div style={{
+                    position: 'absolute',
+                    inset: -4,
+                    borderRadius: '50%',
+                    border: '2px solid #e67e22',
+                    animation: 'hudLineSwatchPulse 1.4s ease-out infinite',
+                    pointerEvents: 'none',
+                  }} />
+                )}
+                <div
+                  data-testid={`hud-line-swatch-${slot.id}`}
+                  onMouseDown={() => startHold(slot.id, slot.hasStations)}
+                  onMouseUp={() => cancelHold(slot.id)}
+                  onMouseLeave={() => cancelHold(slot.id)}
+                  onTouchStart={() => startHold(slot.id, slot.hasStations)}
+                  onTouchEnd={() => cancelHold(slot.id)}
+                  onTouchCancel={() => cancelHold(slot.id)}
+                  title={slot.hasStations ? 'Hold to delete this line' : undefined}
+                  style={{
+                    width: holding ? 34 : 20,
+                    height: holding ? 34 : 20,
+                    borderRadius: '50%',
+                    background: holding ? '#e74c3c' : slot.color,
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    transition: `width ${DELETE_HOLD_MS}ms linear, height ${DELETE_HOLD_MS}ms linear, background ${DELETE_HOLD_MS}ms linear`,
+                    cursor: slot.hasStations ? 'pointer' : 'default',
+                    pointerEvents: 'auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                    WebkitTouchCallout: 'none',
+                    touchAction: 'none',
+                  }}
+                >
+                  {holding && <span style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', lineHeight: 1 }}>×</span>}
+                </div>
               </div>
             );
           })}

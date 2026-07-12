@@ -13,7 +13,7 @@ import { useAudio } from '../hooks/useAudio';
 import { isMusicEnabled, isSoundEnabled, toggleMusic, toggleSound } from '../audio/audioManager';
 import { hasSeenMilestoneChoiceHint, markMilestoneChoiceHintSeen } from '../storage/ftueHints';
 import { resolveMilestoneChoice } from '../logic/milestone';
-import { removeLine } from '../logic/lines';
+import { removeLine, getAvailableLine } from '../logic/lines';
 import { advanceTutorial, exitTutorial } from '../logic/tutorial';
 import { logGameEvent } from '../firebase/analytics';
 import { HUD } from './HUD';
@@ -237,14 +237,32 @@ export function GameCanvas() {
   // as fresh as the ~10Hz syncReactState tick that already drives a re-render here.
   const overflowRiskActive = Object.values(state.stations).some(s => s.riskTimer !== null);
 
+  // Pulses the HUD Line-unlock swatch the scripted new Line will claim (or just
+  // claimed), ties the map lesson to that HUD element (TUTORIAL.md §5 step 4) —
+  // getAvailableLine before the drag, the Station's actual Line id afterward.
+  // newLineCard is reached two ways (step 3 detail): via the dedicated hexagon
+  // pairing (check that Station first) or directly from an accidental new Line
+  // at the star (fall back to it) — whichever is actually connected wins.
+  const tutorialHighlightLineId = (() => {
+    if (tutorialStep === 'newLine') return getAvailableLine(state)?.id ?? null;
+    if (tutorialStep === 'newLineCard') {
+      for (const id of [state.tutorial?.newLineStationAId, state.tutorial?.extraStationId]) {
+        const lineId = id ? state.stations[id]?.lineIds[0] : undefined;
+        if (lineId) return lineId;
+      }
+    }
+    return null;
+  })();
+
   // The tutorial owns the clock and the board's shape while active — the HUD's
   // speed controls, depot placement, and line deletion are suspended so a stray
   // click can't derail a scripted step (specs/TUTORIAL.md §3). Depot placement is
-  // the one exception, carved out for the depotPlace step itself (TUTORIAL.md §5
-  // step 10) — that step's whole point is the player using the real Depot button
-  // and canvas click, not a scripted stand-in for either.
+  // the one exception, carved out for the depotPlace/depotCarriage steps
+  // themselves (TUTORIAL.md §5 steps 5–6) — those steps' whole point is the
+  // player using the real Depot buttons and canvas clicks, not a scripted
+  // stand-in for either.
   const tutorialActive = tutorialStep !== null;
-  const depotSuspended = tutorialActive && tutorialStep !== 'depotPlace';
+  const depotSuspended = tutorialActive && tutorialStep !== 'depotPlace' && tutorialStep !== 'depotCarriage';
 
   function selectReserveCarrier() {
     if (depotSuspended) return;
@@ -352,6 +370,8 @@ export function GameCanvas() {
           onDeleteLine={deleteLine}
           adAvailable={adAvailable}
           onRequestBonus={() => { if (!tutorialActive) requestOnDemandBonus(); }}
+          tutorialHighlightLineId={tutorialHighlightLineId}
+          tutorialActive={tutorialActive}
         />
       )}
 
