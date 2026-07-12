@@ -111,22 +111,24 @@ export function GameOverScreen({
             </div>
             {pictureRevealSegments && <PictureReveal segments={pictureRevealSegments} />}
           </div>
-          <button
-            onClick={onContinueCreative}
-            style={{
-              marginTop: 10,
-              background: 'transparent',
-              color: CONFIG.UI_INK_COLOR,
-              border: `1px solid ${CONFIG.UI_INK_COLOR}`,
-              borderRadius: 8,
-              padding: '10px 18px',
-              fontSize: 13,
-              cursor: 'pointer',
-              fontFamily: 'monospace',
-            }}
-          >
-            Continue in Creative Mode
-          </button>
+          {CONFIG.CREATIVE_MODE_CONTINUE_ENABLED && (
+            <button
+              onClick={onContinueCreative}
+              style={{
+                marginTop: 10,
+                background: 'transparent',
+                color: CONFIG.UI_INK_COLOR,
+                border: `1px solid ${CONFIG.UI_INK_COLOR}`,
+                borderRadius: 8,
+                padding: '10px 18px',
+                fontSize: 13,
+                cursor: 'pointer',
+                fontFamily: 'monospace',
+              }}
+            >
+              Continue in Creative Mode
+            </button>
+          )}
         </div>
       </div>
       {confirmingRestart && (

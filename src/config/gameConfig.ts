@@ -192,6 +192,11 @@ export const CONFIG = {
   // build-time flag, not a player setting. Off by default; flip to true to show the control.
   PLAYER_SPEED_CONTROLS_ENABLED: false,
 
+  // Game Over screen's "Continue in Creative Mode" button (core/logic.md §3, themes/metro.md §5) —
+  // build-time/remote-config flag, not a player setting. Off by default; remotely switchable
+  // via the Remote Config Overrides document (themes/metro.md §5.1) without a client release.
+  CREATIVE_MODE_CONTINUE_ENABLED: false,
+
   SHAPE_COLORS: {
     circle:   '#e74c3c',
     triangle: '#3498db',
