@@ -1,6 +1,6 @@
-import type { GameState } from '../types/game';
+import type { GameState, Vec2 } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
-import { computeTrainAngle } from '../logic/trains';
+import { sampleTrailingPose } from '../logic/trains';
 import { traceShapePath } from './shapePaths';
 
 function darken(hex: string, amount = 0.3): string {
@@ -16,17 +16,12 @@ export function renderTrains(ctx: CanvasRenderingContext2D, state: GameState): v
     if (!line || line.stationIds.length < 2) continue;
 
     ctx.save();
-    ctx.translate(train.pos.x, train.pos.y);
-    ctx.rotate(computeTrainAngle(train, line, state));
 
     // Spawn-in fade/scale — matches the Station spawn treatment (themes/metro.md §7
     // item 10). Game-time driven, so it freezes with the Game Clock.
     const spawnT = Math.max(0, Math.min(1, (state.gameTimeMs - train.spawnedAtMs) / CONFIG.TRAIN_SPAWN_ANIM_MS));
-    if (spawnT < 1) {
-      ctx.globalAlpha = 0.2 + 0.8 * spawnT;
-      const s = 0.4 + 0.6 * spawnT;
-      ctx.scale(s, s);
-    }
+    const spawnAlpha = spawnT < 1 ? 0.2 + 0.8 * spawnT : 1;
+    const spawnScale = spawnT < 1 ? 0.4 + 0.6 * spawnT : 1;
 
     const w = CONFIG.TRAIN_WIDTH;
     const h = CONFIG.TRAIN_HEIGHT;
@@ -37,34 +32,46 @@ export function renderTrains(ctx: CanvasRenderingContext2D, state: GameState): v
     const capacities: number[] = [CONFIG.TRAIN_INITIAL_CAPACITY];
     for (let i = 1; i < train.carriageCount; i++) capacities.push(CONFIG.CARRIAGE_CAPACITY_BONUS);
 
+    // World-space pose (position + facing angle) of each carriage, trailing the lead unit
+    // along the actual track path — bending through curves/elbows/station corners instead
+    // of rigidly extending in a straight line off the lead's current heading.
+    const poses: { pos: Vec2; angle: number }[] = [];
+    for (let c = 0; c < train.carriageCount; c++) {
+      const { pos, tangent } = sampleTrailingPose(train, line, state, c * (w + gap));
+      poses.push({ pos, angle: Math.atan2(tangent.y, tangent.x) });
+    }
+
     let passengerCursor = 0;
     for (let c = 0; c < train.carriageCount; c++) {
-      const cx = -c * (w + gap);
       // Attach-in fade/scale, scoped to just this carriage (themes/metro.md §7 item 10)
       // — index 0 is the base train, already covered by the whole-train spawn fade above.
       const attachT = c === 0 ? 1 : Math.max(0, Math.min(1,
         (state.gameTimeMs - train.carriageAttachedAtMs[c]) / CONFIG.CARRIAGE_ATTACH_ANIM_MS));
 
       if (c > 0) {
-        // Link to the previous carriage — fades in alongside the new carriage
+        // Link to the previous carriage, drawn in world space between the two carriages'
+        // own box edges so it stays taut through a bend even when they sit at different angles.
+        const prev = poses[c - 1];
+        const cur = poses[c];
+        const prevBack: Vec2 = { x: prev.pos.x - Math.cos(prev.angle) * (w / 2), y: prev.pos.y - Math.sin(prev.angle) * (w / 2) };
+        const curFront: Vec2 = { x: cur.pos.x + Math.cos(cur.angle) * (w / 2), y: cur.pos.y + Math.sin(cur.angle) * (w / 2) };
         ctx.save();
         ctx.globalAlpha = attachT;
         ctx.strokeStyle = darken(line.color, 0.1);
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(cx + w / 2, 0);
-        ctx.lineTo(cx + w / 2 + gap, 0);
+        ctx.moveTo(prevBack.x, prevBack.y);
+        ctx.lineTo(curFront.x, curFront.y);
         ctx.stroke();
         ctx.restore();
       }
 
       ctx.save();
-      ctx.translate(cx, 0);
-      if (attachT < 1) {
-        ctx.globalAlpha = 0.2 + 0.8 * attachT;
-        const s = 0.4 + 0.6 * attachT;
-        ctx.scale(s, s);
-      }
+      ctx.translate(poses[c].pos.x, poses[c].pos.y);
+      ctx.rotate(poses[c].angle);
+      ctx.globalAlpha = attachT < 1 ? 0.2 + 0.8 * attachT : spawnAlpha;
+      const s = attachT < 1 ? 0.4 + 0.6 * attachT : spawnScale;
+      if (s !== 1) ctx.scale(s, s);
 
       ctx.fillStyle = darken(line.color);
       ctx.strokeStyle = line.color;

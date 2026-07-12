@@ -77,6 +77,56 @@ export function computeTrainAngle(train: Train, line: MetroLine, state: GameStat
   return Math.atan2(sample.tangent.y, sample.tangent.x);
 }
 
+// Pose (position + facing tangent) at arc-length `back` behind the Train's current position,
+// walking backward across station boundaries — and through their elbows — as needed. Used to
+// place trailing Carriages so a linked consist bends through the same track geometry the lead
+// unit does, rather than rigidly trailing in a straight line off the lead's current heading
+// (themes/metro.md §7 item 10).
+export function sampleTrailingPose(train: Train, line: MetroLine, state: GameState, back: number): { pos: Vec2; tangent: Vec2 } {
+  let targetIndex = train.targetStationIndex;
+  let direction = train.direction;
+  let progress = train.progress;
+  let fallbackPos = train.pos;
+  let fallbackTangent: Vec2 = { x: 1, y: 0 };
+
+  while (true) {
+    const prevIndex = targetIndex - direction;
+    if (prevIndex < 0 || prevIndex >= line.stationIds.length) {
+      // Ran off the start of the line before consuming all of `back` — clamp there.
+      return { pos: fallbackPos, tangent: fallbackTangent };
+    }
+
+    const lowIndex = Math.min(prevIndex, targetIndex);
+    const highIndex = Math.max(prevIndex, targetIndex);
+    const a = state.stations[line.stationIds[lowIndex]]?.pos;
+    const b = state.stations[line.stationIds[highIndex]]?.pos;
+    if (!a || !b) return { pos: fallbackPos, tangent: fallbackTangent };
+
+    const shape = buildSegmentShape(a, b, CONFIG.LINE_BEND_RADIUS, getSegmentElbow(line, lowIndex));
+    // Distance traveled into this segment from wherever the train departed it, independent
+    // of direction (shape.pointAt(0)/(1) map to lowIndex/highIndex, not departure/arrival).
+    const travelled = progress * shape.length - back;
+
+    if (travelled >= 0) {
+      const rawT = direction === 1 ? travelled / shape.length : 1 - travelled / shape.length;
+      const tangent = shape.tangentAt(rawT);
+      if (direction === -1) { tangent.x = -tangent.x; tangent.y = -tangent.y; }
+      return { pos: shape.pointAt(rawT), tangent };
+    }
+
+    // Not far enough back yet — consume this whole segment and continue into the one before it.
+    back = -travelled;
+    const depRawT = direction === 1 ? 0 : 1;
+    const depTangent = shape.tangentAt(depRawT);
+    if (direction === -1) { depTangent.x = -depTangent.x; depTangent.y = -depTangent.y; }
+    fallbackPos = shape.pointAt(depRawT);
+    fallbackTangent = depTangent;
+
+    targetIndex = prevIndex;
+    progress = 1;
+  }
+}
+
 // A passenger should board only if the train can deliver them within one transfer:
 // either a future stop IS their destination, or a future stop has a connecting line
 // that directly contains their destination. Unbounded BFS causes passengers to
