@@ -10,8 +10,8 @@ import { computeTrainPos } from './trains';
 // spawn-in fade/scale animation is keyed to game time (renderStations.ts) — held
 // here it would never progress past its just-spawned, barely-visible first frame.
 const CLOCK_HELD_STEPS = new Set<TutorialStepId>([
-  'firstLine', 'extendLineCard', 'newLineCard', 'depotPlace', 'depotCarriage',
-  'overflowCard', 'rescueAct', 'averted', 'wrapup',
+  'firstLine', 'newLineCard', 'depotPlace', 'depotCarriage',
+  'overflowCard', 'wrapup',
 ]);
 
 export function tutorialHoldsClock(state: GameState): boolean {
@@ -72,7 +72,6 @@ export function startTutorial(state: GameState): void {
     squareId: findStationByShape(state, 'square'),
     passengerId: null,
     extraStationId: null,
-    overflowStationId: null,
     demoTimer: 0,
     prevPauseStations: state.debugPauseStations,
     prevPausePassengers: state.debugPausePassengers,
@@ -108,12 +107,6 @@ export function startTutorial(state: GameState): void {
 export function exitTutorial(state: GameState): void {
   const t = state.tutorial;
   if (!t) return;
-  // Skip safety: leaving mid-overflow must not hand the player an unavoidable
-  // game over seconds later.
-  const overflowStation = t.overflowStationId ? state.stations[t.overflowStationId] : null;
-  if (overflowStation && overflowStation.riskTimer !== null) {
-    overflowStation.riskTimer = Math.max(overflowStation.riskTimer, CONFIG.TUTORIAL_RESCUE_WINDOW_MS);
-  }
   state.debugPauseStations = t.prevPauseStations;
   state.debugPausePassengers = t.prevPausePassengers;
   state.debugSpeed = 1;
@@ -136,6 +129,26 @@ function injectPassenger(state: GameState, stationId: string, destinationShape: 
     queuedAtMs: settled ? state.gameTimeMs - CONFIG.PASSENGER_QUEUE_ANIM_MS : state.gameTimeMs,
   });
   return id;
+}
+
+// A Train's spawn-in fade/scale (and a Carriage's attach fade) is keyed to game
+// time, same as the Station/Passenger animations settled elsewhere in this file
+// (TUTORIAL.md's "Note on Trains and held-clock steps") — left alone it freezes
+// on its first, barely-visible frame for as long as the clock stays held after
+// the Train appears. Unlike Stations/Passengers, a Train can appear *during* an
+// already-held step (a Depot placement) rather than only at a step's start, so
+// this is checked every tick the clock is held rather than once on entry.
+function settleTrainAnimations(state: GameState): void {
+  for (const train of Object.values(state.trains)) {
+    if (state.gameTimeMs - train.spawnedAtMs < CONFIG.TRAIN_SPAWN_ANIM_MS) {
+      train.spawnedAtMs = state.gameTimeMs - CONFIG.TRAIN_SPAWN_ANIM_MS;
+    }
+    for (let i = 0; i < train.carriageAttachedAtMs.length; i++) {
+      if (state.gameTimeMs - train.carriageAttachedAtMs[i] < CONFIG.CARRIAGE_ATTACH_ANIM_MS) {
+        train.carriageAttachedAtMs[i] = state.gameTimeMs - CONFIG.CARRIAGE_ATTACH_ANIM_MS;
+      }
+    }
+  }
 }
 
 function enterStep(state: GameState, step: TutorialStepId): void {
@@ -179,23 +192,16 @@ function enterStep(state: GameState, step: TutorialStepId): void {
     // Granted directly, not via a live Weekly Upgrade choice (TUTORIAL.md §9).
     state.reserveCarriages = 1;
   } else if (step === 'overflowDemo') {
-    // A fresh Station is injected here rather than reusing square (as earlier
-    // versions did) because square is already connected by step 4's new Line
-    // by this point — it can no longer stand in for "a station nobody's
-    // connected yet" (TUTORIAL.md §5 step 7 detail). Placed reachable from
-    // square, the nearest already-connected Station at this point in the script.
+    // No injection — reuses the existing square Station (TUTORIAL.md §5 step 7
+    // detail). This step no longer asks the player to rescue anything, so it no
+    // longer needs "a Station nobody's connected yet" the way earlier versions
+    // did; square being already connected since step 4 is fine.
     const square = state.stations[t.squareId];
-    t.overflowStationId = trySpawnStationAt(
-      state,
-      { x: square.pos.x + 160, y: square.pos.y + 40 },
-      'hexagon',
-    );
     // Fill it to capacity — it enters Overflow Risk on the next running tick,
     // then the demo run lets the player watch the arc shrink.
-    const overflow = state.stations[t.overflowStationId!];
     let alternate = 0;
-    while (overflow.passengerQueue.length < overflow.maxCapacity) {
-      injectPassenger(state, t.overflowStationId!, alternate++ % 2 === 0 ? 'circle' : 'triangle');
+    while (square.passengerQueue.length < square.maxCapacity) {
+      injectPassenger(state, t.squareId, alternate++ % 2 === 0 ? 'circle' : 'triangle');
     }
     t.demoTimer = CONFIG.TUTORIAL_DEMO_MS;
   }
@@ -206,10 +212,8 @@ export function advanceTutorial(state: GameState): void {
   const t = state.tutorial;
   if (!t) return;
   switch (t.step) {
-    case 'extendLineCard': enterStep(state, 'newLine'); break;
     case 'newLineCard': enterStep(state, 'depotPlace'); break;
-    case 'overflowCard': enterStep(state, 'rescueAct'); break;
-    case 'averted': enterStep(state, 'wrapup'); break;
+    case 'overflowCard': enterStep(state, 'wrapup'); break;
     case 'wrapup': exitTutorial(state); break;
   }
 }
@@ -223,10 +227,12 @@ function passengerInAnyQueue(state: GameState, passengerId: string): boolean {
 }
 
 // Event-driven step advancement, checked every frame (including while the clock
-// is held — the firstLine/rescueAct conditions are met by input, not by ticks).
+// is held — the firstLine condition is met by input, not by ticks).
 export function tickTutorial(state: GameState, dt: number): void {
   const t = state.tutorial;
   if (!t) return;
+
+  if (tutorialHoldsClock(state)) settleTrainAnimations(state);
 
   switch (t.step) {
     case 'firstLine': {
@@ -250,8 +256,10 @@ export function tickTutorial(state: GameState, dt: number): void {
       // mouseHandler.ts forces every drag touching triangle/star into a genuine
       // extension of the original circle→triangle Line (TUTORIAL.md §5 step 3
       // detail) — the outcome is guaranteed, so this just waits for it to land.
+      // No confirmatory card: the setup card already said everything there is to
+      // say, so this advances straight into "A New Line" the instant it lands.
       const extra = t.extraStationId ? state.stations[t.extraStationId] : null;
-      if (extra && extra.lineIds.length > 0) enterStep(state, 'extendLineCard');
+      if (extra && extra.lineIds.length > 0) enterStep(state, 'newLine');
       break;
     }
     case 'newLine': {
@@ -270,20 +278,5 @@ export function tickTutorial(state: GameState, dt: number): void {
       t.demoTimer -= dt;
       if (t.demoTimer <= 0) enterStep(state, 'overflowCard');
       break;
-    case 'rescueAct': {
-      const overflow = t.overflowStationId ? state.stations[t.overflowStationId] : null;
-      if (overflow && overflow.lineIds.length > 0) {
-        // Rescue Window (TUTORIAL.md §5 step 7.5): the scripted rescue can't fail
-        // on a slow train lap.
-        if (overflow.riskTimer !== null) overflow.riskTimer = CONFIG.TUTORIAL_RESCUE_WINDOW_MS;
-        enterStep(state, 'rescueWait');
-      }
-      break;
-    }
-    case 'rescueWait': {
-      const overflow = t.overflowStationId ? state.stations[t.overflowStationId] : null;
-      if (!overflow || overflow.riskTimer === null) enterStep(state, 'averted');
-      break;
-    }
   }
 }

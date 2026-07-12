@@ -16,10 +16,6 @@ const STEP_CONTENT: Record<TutorialStepId, { text: string; next: string | null }
     text: 'Lines can grow, too — drag from the end of your line to the new star station to extend it.',
     next: null,
   },
-  extendLineCard: {
-    text: 'Nice — that’s still your first line, just longer. One line, one train, however many stations you add.',
-    next: 'Next',
-  },
   newLine: {
     text: 'Now try something different: drag from the square station to the triangle station to start a second, independent line.',
     next: null,
@@ -37,23 +33,11 @@ const STEP_CONTENT: Record<TutorialStepId, { text: string; next: string | null }
     next: null,
   },
   overflowDemo: {
-    text: 'Uh oh — a crowd is building at the hexagon station…',
+    text: 'Uh oh — a crowd is building at the square station…',
     next: null,
   },
   overflowCard: {
     text: 'That station is overflowing. The red ring is a countdown: if it runs out while the station is still over capacity, the game ends. This is the only way to lose.',
-    next: 'Next',
-  },
-  rescueAct: {
-    text: 'Save it! Connect the hexagon station — drag from one of your line’s ends to it, or draw a new line to it.',
-    next: null,
-  },
-  rescueWait: {
-    text: 'Help is on the way — the train will pick up the crowd.',
-    next: null,
-  },
-  averted: {
-    text: 'Crisis averted. The ring vanishes the moment a station drops back below capacity. Keep every station connected and flowing.',
     next: 'Next',
   },
   wrapup: {

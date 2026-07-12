@@ -183,7 +183,6 @@ export const CONFIG = {
   // off by default (specs/testing.md) via the test-only config-override channel in
   // main.tsx, so flows get a clean board instead of the scripted onboarding.
   AUTO_TUTORIAL_ENABLED: true,
-  TUTORIAL_RESCUE_WINDOW_MS: 30000, // Risk Timer granted at rescue commit / on skip-safety exit
   TUTORIAL_DEMO_MS: 2000, // how long the clock runs so the player sees the risk arc shrink
   TUTORIAL_PULSE_MS: 1000, // highlight halo pulse period (wall-time driven)
   TUTORIAL_HINT_LOOP_MS: 1500, // gesture-hint dot traversal time (wall-time driven)

@@ -12,7 +12,6 @@ function highlightTargets(state: GameState): Station[] {
     t.step === 'firstLine' ? [t.circleId, t.triangleId]
     : t.step === 'extendLine' ? [t.triangleId, ...(t.extraStationId ? [t.extraStationId] : [])]
     : t.step === 'newLine' ? [t.squareId, t.triangleId]
-    : t.step === 'rescueAct' ? (t.overflowStationId ? [t.overflowStationId] : [])
     : [];
   return ids.map(id => state.stations[id]).filter((s): s is Station => !!s);
 }
@@ -39,23 +38,6 @@ function hintPath(state: GameState): { from: Vec2; to: Vec2 } | null {
     const from = state.stations[t.squareId];
     const to = state.stations[t.triangleId];
     return from && to ? { from: from.pos, to: to.pos } : null;
-  }
-  if (t.step === 'rescueAct') {
-    const overflow = t.overflowStationId ? state.stations[t.overflowStationId] : null;
-    if (!overflow) return null;
-    // Trace from the nearest station that's already on a line, so the hint shows
-    // a rescue the player can actually perform.
-    let nearest: Station | null = null;
-    let nearestDist = Infinity;
-    for (const s of Object.values(state.stations)) {
-      if (s.id === overflow.id || s.lineIds.length === 0) continue;
-      const d = Math.hypot(s.pos.x - overflow.pos.x, s.pos.y - overflow.pos.y);
-      if (d < nearestDist) {
-        nearest = s;
-        nearestDist = d;
-      }
-    }
-    return nearest ? { from: nearest.pos, to: overflow.pos } : null;
   }
   return null;
 }

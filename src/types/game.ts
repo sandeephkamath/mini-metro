@@ -33,16 +33,12 @@ export type TutorialStepId =
   | 'firstLine'
   | 'rideWait'
   | 'extendLine'
-  | 'extendLineCard'
   | 'newLine'
   | 'newLineCard'
   | 'depotPlace'
   | 'depotCarriage'
   | 'overflowDemo'
   | 'overflowCard'
-  | 'rescueAct'
-  | 'rescueWait'
-  | 'averted'
   | 'wrapup';
 
 export interface Vec2 {
@@ -144,9 +140,7 @@ export interface TutorialState {
   squareId: string;
   passengerId: string | null; // the scripted boarding/delivery passenger (step 2)
   extraStationId: string | null; // the scripted Extend the Line station (step 3, a star)
-  overflowStationId: string | null; // the scripted Overflow station (step 7, a hexagon) — square is already
-  // connected by step 4's new Line by this point, so it can no longer stand in for an unconnected Station
-  demoTimer: number; // ms remaining in the overflow demo run (step 6.2)
+  demoTimer: number; // ms remaining in the overflow demo run (step 7.2)
   prevPauseStations: boolean; // debug spawn toggles restored on exit (TUTORIAL.md §6)
   prevPausePassengers: boolean;
 }
