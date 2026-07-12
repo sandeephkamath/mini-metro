@@ -8,7 +8,7 @@ See also `specs/research/mini_metro_original_analysis.md` — gameplay analysis 
 
 ## Planned for Production
 
-Items expected to land before or shortly after a real public release.
+Items expected to land before or shortly after a real public release. Every other item that was here (Monetization's ad "+" affordance, Analytics' Crashlytics, Mobile/Responsive's background-accurate Game Clock and the Android production keystore, Onboarding/UX's hidden-by-default speed controls, and the two tutorial gaps) landed 2026-07-12 — see the matching entries under Reference below. Collectibles is deliberately left here, out of scope for that pass.
 
 ### Collectibles
 
@@ -16,19 +16,6 @@ Items expected to land before or shortly after a real public release.
 - **Firestore document shape, decided 2026-07-11**: mirrors `PictureCityData` directly (`themes/metro.md` §9.3.1) — no separate encoding invented. **Real dependency, still open**: uploading real documents to the live `pictures` collection (and deploying a matching public-read rule in `firestore.rules`) needs Firebase console/CLI write access this session didn't have (see [[stale_remote_config_snapshot]] for the same access wall hit elsewhere) — left for the user to do whenever the live-fetch module above gets built.
 - The Collectibles Screen's "locked" treatment for upcoming, not-yet-current Pictures (blurred render vs. a generic silhouette/"???" placeholder, `home_screen.md` § Collectibles Screen) was explicitly left open until the rendering pipeline existed to judge the real look against — that pipeline is now live, so this decision is unblocked and ready to make.
 
-### Mobile / Responsive
-
-#### Android Packaging (decided 2026-07-09: Capacitor)
-
-Game ships as an Android app via **Capacitor** — wraps the existing Vite build in a native WebView shell, reuses `src/render/` and all game logic untouched, produces a real Play Store APK/AAB. Web app remains the fully supported, undiverged primary target; the `android/` native project is a packaging layer on top, not a fork.
-
-App ID: `com.lovoctech.trainpuzzle`. Display name: "Train Puzzle".
-
-Ruled out: full native Android (Kotlin/Java) rewrite, Trusted Web Activity, and PWA-only install — not feasible/not being considered. Also ruled out over Capacitor: React Native + `react-native-webview` (functionally equivalent, extra RN overhead for no gain) and React Native + native rendering e.g. `react-native-skia` (requires rewriting `src/render/` entirely and maintaining two divergent renderers going forward). Revisit only if a concrete reason to prefer React Native shows up later (native perf requirement, RN plugin ecosystem need, business reason to standardize on RN) — not preemptively.
-
-Real dependency: an Android Studio / Android SDK install is required to actually build or run the `.apk` locally (Capacitor's Gradle wrapper needs it); scaffolding the `android/` project itself does not.
-
-**Still open**: only a stable *debug* keystore exists so far — CI (`.github/workflows/android-apk.yml`) now signs every build with the same one (`themes/metro.md` §11 B28) specifically so its SHA-1 stays registered with Play Games Services, but that's a debug-signed APK, not something Play Store will accept for a real release. A **production/release keystore** (generated once, backed up somewhere durable, never checked into the repo) plus a matching `signingConfig` in `android/app/build.gradle` and a real Play Console upload key is still needed before this can ship as an actual Play Store release rather than a sideloaded/internal-testing debug build.
 
 ---
 
@@ -151,6 +138,18 @@ Historical context and fully-resolved items, kept for continuity. Not backlog �
 ### Mobile / Responsive
 
 - **Implemented 2026-07-12**: the Game Clock now keeps advancing while the tab/app is backgrounded, catching up by the exact real elapsed wall-clock duration on resume, no cap (`core/logic.md` §6). `useGameLoop.ts` no longer resets its delta-time baseline on `visibilitychange` — RAF's own timestamp is already wall-clock-accurate once that reset is removed, so no separate `Date.now()`-based timing was needed. Since `tick()` still caps any single call to `CONFIG.MAX_DT` (100ms, an existing frame-drop safeguard unrelated to backgrounding), a large gap is drained through a loop of capped steps rather than one call that would've silently discarded everything past the first 100ms.
+
+#### Android Packaging (decided 2026-07-09: Capacitor)
+
+Game ships as an Android app via **Capacitor** — wraps the existing Vite build in a native WebView shell, reuses `src/render/` and all game logic untouched, produces a real Play Store APK/AAB. Web app remains the fully supported, undiverged primary target; the `android/` native project is a packaging layer on top, not a fork.
+
+App ID: `com.lovoctech.trainpuzzle`. Display name: "Train Puzzle".
+
+Ruled out: full native Android (Kotlin/Java) rewrite, Trusted Web Activity, and PWA-only install — not feasible/not being considered. Also ruled out over Capacitor: React Native + `react-native-webview` (functionally equivalent, extra RN overhead for no gain) and React Native + native rendering e.g. `react-native-skia` (requires rewriting `src/render/` entirely and maintaining two divergent renderers going forward). Revisit only if a concrete reason to prefer React Native shows up later (native perf requirement, RN plugin ecosystem need, business reason to standardize on RN) — not preemptively.
+
+Real dependency: an Android Studio / Android SDK install is required to actually build or run the `.apk` locally (Capacitor's Gradle wrapper needs it); scaffolding the `android/` project itself does not.
+
+**Implemented 2026-07-12**: a production/release keystore (`android/release.jks`, gitignored, generated via `keytool`, 2048-bit RSA, 10000-day validity) plus a matching `signingConfig` in `android/app/build.gradle`, reading store/key path/passwords from a new gitignored `android/keystore.properties` (`android/keystore.properties.example` documents the shape, same pattern as `local.properties.example`) — falls back to no signingConfig at all (an unsigned but still-buildable release) if that file is absent, same fail-gracefully posture as the AdMob/Play Games values. Verified end-to-end: `./gradlew assembleRelease` succeeds and `apksigner verify --print-certs` on the resulting APK confirms it's signed with the new keystore's certificate, not the debug one. CI (`.github/workflows/android-apk.yml`) is deliberately untouched — still `assembleDebug`-only, still signed with the stable debug keystore for Play Games SHA-1 continuity (`themes/metro.md` §11 B28); standing up a release CI job and an actual Play Console upload key is a separate, not-yet-done step. The real keystore file and its password were generated locally and are not committed anywhere — the user is responsible for backing both up somewhere durable outside the repo (a password manager attachment or secure cloud storage); losing them means the app can never be updated under the same Play Store listing again.
 
 Touch input and responsive sizing are implemented (`useMouseInput.ts`, `GameCanvas.tsx` — see `themes/metro.md` §6 Camera Controls / §6.1 Responsive Presentation for the full rules):
 - Single-finger touch is a full equivalent of the mouse for drawing/extending Lines and panning.

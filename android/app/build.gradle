@@ -20,6 +20,19 @@ def admobAppIdRelease = localProps.getProperty('ADMOB_APP_ID', 'ca-app-pub-39402
 def playGamesAppId = localProps.getProperty('PLAY_GAMES_APP_ID', '')
 def playGamesWebClientId = localProps.getProperty('PLAY_GAMES_WEB_CLIENT_ID', '')
 
+// Production release signing (memo.md "Planned for Production" — Android Packaging).
+// Same gitignored-properties-file pattern as local.properties above. Absent on a
+// fresh clone (or anywhere the real keystore hasn't been provisioned), in which case
+// no release signingConfig is applied at all — assembleRelease still succeeds, it
+// just produces an unsigned release build rather than failing, same fail-gracefully
+// posture as the AdMob/Play Games values above.
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file('keystore.properties')
+def hasKeystoreConfig = keystorePropsFile.exists()
+if (hasKeystoreConfig) {
+    keystorePropsFile.withReader('UTF-8') { reader -> keystoreProps.load(reader) }
+}
+
 android {
     namespace = "com.lovoctech.trainpuzzle"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -41,6 +54,16 @@ android {
     buildFeatures {
         buildConfig = true
     }
+    signingConfigs {
+        if (hasKeystoreConfig) {
+            release {
+                storeFile rootProject.file(keystoreProps.getProperty('storeFile'))
+                storePassword keystoreProps.getProperty('storePassword')
+                keyAlias keystoreProps.getProperty('keyAlias')
+                keyPassword keystoreProps.getProperty('keyPassword')
+            }
+        }
+    }
     buildTypes {
         // AdMob App ID (themes/metro.md §4.2) — declared natively via a manifest
         // placeholder per build type, since it can't be a Vite env var. Debug always
@@ -52,6 +75,9 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             manifestPlaceholders += [admobAppId: admobAppIdRelease]
+            if (hasKeystoreConfig) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
