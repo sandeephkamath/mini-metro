@@ -28,14 +28,15 @@ The tutorial changes no game rules. Like debug mode, it only uses control mechan
 - **Clock control** — pauses and resumes game time via the same mechanism as core §6 Game Clock. The tutorial owns the clock while active.
 - **Spawn control** — on entry, both Station and Passenger auto-spawn are forced off (same mechanism as `DEBUG.md` Spawn Controls). On exit, both toggles are restored to whatever state they had before the tutorial started.
 - **Passenger injection** — scripted Passengers are added by the same mechanism as `DEBUG.md` Add Passenger.
-- Passengers delivered during the tutorial **score normally** — the board state the tutorial builds (Lines drawn, deliveries made) is real and persists after exit.
+- **Station injection** — the one extra Station the Extend the Line step (below) needs is added by the same mechanism as `DEBUG.md` Add Station.
+- Every interaction is a real use of the actual game mechanism — nothing about boarding, delivery, drawing, or Depot placement is faked or simulated. But per §6 Exit, the entire board this builds up is discarded the moment the tutorial ends, on every exit path alike, so none of it carries into the real session that follows.
 
-**Single stated exception**: the Rescue Window in step 7 (below) overrides one Station's Risk Timer so the scripted rescue can never fail. This is a tutorial-only concession and the spec calls it out where it applies.
+**Single stated exception**: the Rescue Window in the Overflow step (below) overrides one Station's Risk Timer so the scripted rescue can never fail. This is a tutorial-only concession and the spec calls it out where it applies.
 
 ## 3. Input While the Tutorial Is Active
 
 - **Line drawing is fully enabled** — it is the interaction being taught. Debug mode's click-capture (click-to-add-passenger, `A` placement mode) is **suspended** so drags draw Lines instead of opening debug popups.
-- All debug keys (`S`, `P`, `A`, `0`–`3`) and the `D` toggle are suspended. The HUD Pause/Play/Fast-Forward controls are suspended too — the tutorial owns the clock.
+- All debug keys (`S`, `P`, `A`, `0`–`3`) and the `D` toggle are suspended. The HUD Pause/Play/Fast-Forward controls are suspended too — the tutorial owns the clock. The Depot tray's Train/Carriage buttons are suspended as well, **except during the Depot Train step** (§5 step 10) — that step's whole point is the player using the real Depot button and canvas click, the same mechanism as normal gameplay, not a scripted stand-in for either.
 - Camera pan and zoom remain available (core §5).
 - **`Escape`, or the Skip control shown on every card, exits the tutorial immediately** (see §6 Exit).
 
@@ -47,7 +48,7 @@ Three visual elements, all drawn above the normal game layers (below the debug o
 |---------|----------|
 | **Instruction card** | A small panel at the bottom-center of the canvas (clear of the starting-Station cluster). Shows the current step's text, a **Next** button on steps that advance by click, and a persistent **Skip** control. While a card that pauses the clock is up, the pause is total per core §6 — every timer frozen. |
 | **Station highlight** | A pulsing halo around each Station the current step wants the player to look at or act on. Removed the moment the step advances. |
-| **Gesture hint** | On the draw steps (2 and 7), a looping animated arrow traces the expected drag path from the source Station to the target Station, repeating until the player starts a drag. This is the visual drag demonstration `memo.md` §FTUE notes is missing. |
+| **Gesture hint** | On the draw steps (First Line, Extend the Line, and the Overflow rescue), a looping animated arrow traces the expected drag path from the source Station to the target Station, repeating until the player starts a drag. This is the visual drag demonstration `memo.md` §FTUE notes is missing. |
 
 Highlight pulse and gesture-hint animation run on wall time, not game time — they must keep moving while the clock is paused (unlike the game's own animations, which freeze per `themes/metro.md` §7).
 
@@ -63,11 +64,13 @@ Steps run strictly in order. "Clock" is the state the tutorial holds game time i
 | 4 | A Passenger | Paused | Inject one Passenger at the circle Station with destination **triangle**. Highlight the circle Station. | The small shape is the passenger's destination: this one wants any triangle station. Passengers wait in a queue until a train that can take them arrives. | Next (clock resumes) |
 | 5 | Boarding | Running → paused on event | — | The moment the scripted Passenger boards, pause and explain: passengers board a train only if it can actually take them toward their destination. | Next (clock resumes) |
 | 6 | Delivery | Running → paused on event | — | The moment the scripted Passenger is delivered at the triangle Station, pause and explain: delivered, +1 point — the score in the HUD just went up. | Next |
-| 7 | Overflow | See below | Inject Passengers at the square Station until its queue reaches capacity, putting it at risk. | See step 7 detail below. | The square Station leaves Overflow Risk (queue back below capacity) |
-| 8 | Crisis Averted | Paused | — | The ring vanished: a station recovers the moment its queue drops below capacity. Keep every station connected and flowing. | Next |
-| 9 | Wrap-Up | Paused | — | Briefly name what wasn't shown hands-on: weeks pass and more stations keep appearing; every 5 weeks a Weekly Upgrade offers a new train or carriage; new lines unlock as the city grows; the pause/fast-forward buttons are always available. | Done → exit (§6) |
+| 7 | Extend the Line | Running | Inject one extra Station (a star, `themes/metro.md` §2 shapes) near the triangle Station, reachable from the existing Line's end. Highlight the triangle and new Stations; gesture hint traces triangle → new Station. Clock runs (not held) so the new Station's spawn-in animation actually plays instead of freezing on its first, barely-visible frame. | "Lines can grow, too — drag from the end of your line to connect another station." | The new Station is on a Line (extended from the existing one, or a fresh Line to it — either counts) |
+| 8 | Overflow | See below | Inject Passengers at the square Station until its queue reaches capacity, putting it at risk. | See step 8 detail below. | The square Station leaves Overflow Risk (queue back below capacity) |
+| 9 | Crisis Averted | Paused | — | The ring vanished: a station recovers the moment its queue drops below capacity. Keep every station connected and flowing. | Next |
+| 10 | Depot Train | Paused | Grant one Reserve Train (`reserveCarriers = 1`), as if just won from a Weekly Upgrade. | "Every 5 weeks a Weekly Upgrade offers a new train or carriage. Click the train icon at the bottom, then click a line to place it." | The Reserve Train is placed on a Line (Reserve count returns to 0) |
+| 11 | Wrap-Up | Paused | — | Briefly name what wasn't shown hands-on: weeks pass and more stations keep appearing; new lines unlock as the city grows. | Done → exit (§6) |
 
-### Step 7 detail — Overflow and the Risk Timer
+### Step 8 detail — Overflow and the Risk Timer
 
 This is the "time running out" lesson, sequenced so the player both *sees* the countdown and *performs* the rescue:
 
@@ -81,15 +84,14 @@ If a Weekly Upgrade fires during any running phase (possible if the tutorial was
 
 ## 6. Exit — Completion or Skip
 
-On **Done** (step 9) or **Skip/Escape** (any step):
+On **Done** (step 11) or **Skip/Escape** (any step):
 
-- Both auto-spawn toggles are restored to their pre-tutorial states.
-- All tutorial visuals (cards, highlights, gesture hints) are removed.
-- Clock control returns to normal: the clock resumes at 1× and the debug speed keys / HUD controls work again per `DEBUG.md` Speed Control precedence.
-- The board keeps everything real that happened: Lines drawn, Passengers injected, points scored.
-- **Skip safety**: if the player skips during step 7 or 8 while the square Station is still at risk, its Risk Timer is set to the Rescue Window on the way out — skipping the tutorial must not hand the player an unavoidable game over seconds later.
+- **Skip safety runs first**: if the player skips during the Overflow or Crisis Averted steps while the square Station is still at risk, its Risk Timer is set to the Rescue Window before anything else below — skipping the tutorial must not hand the player an unavoidable game over seconds later, even for the instant it takes the reset immediately after to land.
+- The entire board resets to the exact same clean baseline a normal fresh game starts from: every Station/Line/Train/Passenger/Reserve count/Score/the Game Clock itself, all discarded — as if a brand new game had just been started, on this exit path or any other (Done, Skip, Escape alike). Nothing the tutorial built up (the drawn Lines, the extra Station, any points scored, the placed Depot Train) carries into the session that follows. Only meta-progression (Best Weeks Survived, Picture Collection progress, Leaderboard identity, audio settings) is unaffected, since none of it lives in this per-session state to begin with (`core/meta_progression.md` §6).
+- All tutorial visuals (cards, highlights, gesture hints) are removed as part of the same reset.
+- Clock control returns to normal on the fresh board: the clock runs at 1× and the debug speed keys / HUD controls work again per `DEBUG.md` Speed Control precedence.
 
-The board itself is stateless between runs: triggering the Tutorial again on a fresh board (per §1 preconditions) runs the whole script from step 1 regardless of trigger source. What *is* now persisted is whether this browser has ever seen it at all — see §8 — which governs only the auto-run entry point; the debug `T` key ignores that flag entirely.
+The board itself is stateless between runs: triggering the Tutorial again (per §1 preconditions) runs the whole script from step 1 regardless of trigger source — trivially true now that every exit already resets to the same fresh-game baseline the preconditions require. What *is* persisted is whether this browser has ever seen it at all — see §8 — which governs only the auto-run entry point; the debug `T` key ignores that flag entirely.
 
 ## 7. Configuration Values
 
@@ -99,9 +101,11 @@ Kept inline here (like `DEBUG.md`'s key tables) rather than in `themes/metro.md`
 |-----------|-------|-------|
 | Trigger key | `T` | Debug mode on, phase `playing`, §1 preconditions met |
 | Scripted boarding Passenger | 1, at circle Station, destination triangle | Step 4 |
-| Overflow injection | Fill square Station queue to capacity | Step 7; capacity per `themes/metro.md` §5 |
-| Overflow Demo interval | 2 000 ms | How long the clock runs so the player sees the arc shrink (step 7.2) |
-| Rescue Window | 30 000 ms | Risk Timer value granted at rescue commit (step 7.5) and on skip-safety exit (§6) |
+| Extend-the-Line Station | 1 star-shaped Station, placed reachable from the triangle Station | Step 7; bypasses the normal unlock gate and spawn-distance rules, same as `DEBUG.md` Add Station |
+| Overflow injection | Fill square Station queue to capacity | Step 8; capacity per `themes/metro.md` §5 |
+| Overflow Demo interval | 2 000 ms | How long the clock runs so the player sees the arc shrink (step 8.2) |
+| Rescue Window | 30 000 ms | Risk Timer value granted at rescue commit (step 8.5) and on skip-safety exit (§6) |
+| Scripted Reserve Train | 1 | Step 10, granted directly (not via a live Weekly Upgrade choice) |
 | Card position | Bottom-center of canvas | Clear of the starting-Station cluster |
 | Highlight pulse period | 1 000 ms | Wall-time driven (§4) |
 | Gesture hint loop | 1 500 ms per traversal | Wall-time driven; hidden once a drag starts (§4) |
@@ -116,7 +120,7 @@ Kept inline here (like `DEBUG.md`'s key tables) rather than in `themes/metro.md`
 
 ## 9. Post-Tutorial Contextual Hints
 
-The scripted Tutorial (§5) only ever *describes* two events in passing (Wrap-Up, step 9) rather than walking the player through them live: a real Weekly Upgrade choice, and a Line unlocking. This section adds two small, separate, one-time hints that fire the first time each of those actually happens live — independent of whether the Tutorial ever ran, was skipped, or hasn't been seen by this browser at all.
+Two moments the scripted Tutorial still never walks the player through live: a real Weekly Upgrade choice (step 10 grants a Reserve Train directly, without the actual choice popup), and a Line unlocking. This section adds two small, separate, one-time hints that fire the first time each of those actually happens live — independent of whether the Tutorial ever ran, was skipped, or hasn't been seen by this browser at all.
 
 - **First Weekly Upgrade Choice hint**: the first time the free Milestone Event Choice popup (`core/logic.md` §3 Milestone Events, not the ad-gated Reserve bonus choice — §2) is ever shown to this browser, it carries one extra explanatory line beneath its normal subtitle, e.g. "This happens every few weeks — pick whichever helps more right now." Every later Milestone Choice, and every ad-gated bonus choice (same popup, reused), shows the normal subtitle only.
 - **First Line unlock hint**: the first time any Line beyond the three starting ones unlocks (`core/progression.md` §4), a brief toast appears (same position/style/duration as the existing Weekly-Upgrade-bonus toast, but this is a separate message) naming what happened, e.g. "A new line just unlocked — draw it like the others." Every later unlock is silent, same as today.

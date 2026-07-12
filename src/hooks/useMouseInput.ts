@@ -17,15 +17,21 @@ interface UseMouseInputOptions {
   // lives in the React-level useLeaderboard hook, outside the mutable GameState
   // this hook otherwise operates on, so it's a callback rather than a ref mutation.
   onDebugLeaderboardSignIn?: () => void;
+  // Fired after Escape's exitTutorial() cleanup below (TUTORIAL.md §6) — the actual
+  // board reset can only happen at the hook level that owns stateRef's assignment
+  // (useGameState.ts's finishTutorial()), same reasoning as onDebugLeaderboardSignIn.
+  onTutorialExit?: () => void;
 }
 
-export function useMouseInput({ canvasRef, stateRef, rotatedRef, onDebugLeaderboardSignIn }: UseMouseInputOptions) {
+export function useMouseInput({ canvasRef, stateRef, rotatedRef, onDebugLeaderboardSignIn, onTutorialExit }: UseMouseInputOptions) {
   // A ref, not a dependency of the effect below — keeps the native listeners'
   // identity stable across renders (they must not re-attach on every parent
   // re-render, matching the existing rotatedRef pattern) even though this
   // callback's own identity may change each render.
   const onDebugLeaderboardSignInRef = useRef(onDebugLeaderboardSignIn);
   onDebugLeaderboardSignInRef.current = onDebugLeaderboardSignIn;
+  const onTutorialExitRef = useRef(onTutorialExit);
+  onTutorialExitRef.current = onTutorialExit;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -81,7 +87,11 @@ export function useMouseInput({ canvasRef, stateRef, rotatedRef, onDebugLeaderbo
       // While the tutorial runs, Escape skips it and every other key (including
       // the D toggle and all debug keys) is suspended — specs/TUTORIAL.md §3.
       if (s.tutorial) {
-        if (e.key === 'Escape') exitTutorial(s);
+        if (e.key === 'Escape') {
+          exitTutorial(s);
+          onTutorialExitRef.current?.();
+          logGameEvent('tutorial_exited', { outcome: 'skipped' });
+        }
         return;
       }
       if (e.key === 'Escape' && s.selectedReserveItem) {

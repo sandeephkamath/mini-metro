@@ -283,6 +283,24 @@ export function useGameState() {
     logGameEvent('game_start');
   }
 
+  // Called once the Tutorial has exited — Skip, Escape, or natural Wrap-Up
+  // completion alike (TUTORIAL.md §6) — after the pure exitTutorial()/
+  // advanceTutorial() cleanup has already run on the outgoing state. Resets the
+  // board to the exact same baseline startGame() produces, minus the auto-tutorial
+  // branch (the Tutorial already ran this session). Only this hook can reassign
+  // stateRef.current wholesale — src/logic/tutorial.ts must stay pure.
+  function finishTutorial() {
+    stateRef.current = createInitialState();
+    stateRef.current.phase = 'playing';
+    setPhase('playing');
+    resetReactState();
+    sessionEndRecordedRef.current = false;
+    setPictureRevealSegments(null);
+    setIsNewBest(false);
+    setFinalWeeksSurvived(null);
+    setOverflowStationShape(null);
+  }
+
   function goHome() {
     stateRef.current = createInitialState();
     setPhase('home');
@@ -310,7 +328,7 @@ export function useGameState() {
     score, phase, creativeMode, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending, selectedReserveItem,
     playerPaused, playerSpeedMultiplier, tutorialStep, metaProgression, pictureRevealSegments, isNewBest, finalWeeksSurvived,
     overflowStationShape, adFlow, adAvailable,
-    startGame, goHome, continueInCreativeMode, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
+    startGame, goHome, continueInCreativeMode, finishTutorial, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
     requestOnDemandBonus, acceptAdOffer, declineAdOffer, completeAdPlayback, resolveAdBonusChoice,
   };
 }

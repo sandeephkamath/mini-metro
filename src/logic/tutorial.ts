@@ -1,12 +1,16 @@
 import type { GameState, StationShape, TutorialStepId } from '../types/game';
 import { CONFIG } from '../config/gameConfig';
+import { trySpawnStationAt } from './stations';
 
 // Steps that hold the Game Clock while their card is up (specs/TUTORIAL.md §5).
 // The "wait" steps and the overflow demo run the clock so the player watches
 // the game act; everything else freezes time via the same mechanism as pause.
+// extendLine also runs (not held): it injects a new Station, whose spawn-in
+// fade/scale animation is keyed to game time (renderStations.ts) — held here it
+// would never progress past its just-spawned, barely-visible first frame.
 const CLOCK_HELD_STEPS = new Set<TutorialStepId>([
   'welcome', 'firstLine', 'passenger', 'boardingCard', 'deliveryCard',
-  'overflowCard', 'rescueAct', 'averted', 'wrapup',
+  'overflowCard', 'rescueAct', 'averted', 'depotPlace', 'wrapup',
 ]);
 
 export function tutorialHoldsClock(state: GameState): boolean {
@@ -36,6 +40,7 @@ export function startTutorial(state: GameState): void {
     triangleId: findStationByShape(state, 'triangle'),
     squareId: findStationByShape(state, 'square'),
     passengerId: null,
+    extraStationId: null,
     demoTimer: 0,
     prevPauseStations: state.debugPauseStations,
     prevPausePassengers: state.debugPausePassengers,
@@ -82,6 +87,19 @@ function enterStep(state: GameState, step: TutorialStepId): void {
   t.step = step;
   if (step === 'passenger') {
     t.passengerId = injectPassenger(state, t.circleId, 'triangle');
+  } else if (step === 'extendLine') {
+    // Placed reachable from the triangle Station's Line endpoint, same mechanism
+    // as DEBUG.md Add Station (bypasses the unlock gate and spawn-distance rules
+    // — TUTORIAL.md §7).
+    const triangle = state.stations[t.triangleId];
+    t.extraStationId = trySpawnStationAt(
+      state,
+      { x: triangle.pos.x + 200, y: triangle.pos.y - 40 },
+      'star',
+    );
+  } else if (step === 'depotPlace') {
+    // Granted directly, not via a live Weekly Upgrade choice (TUTORIAL.md §9).
+    state.reserveCarriers = 1;
   } else if (step === 'overflowDemo') {
     // Fill the square station to capacity — it enters Overflow Risk on the next
     // running tick, then the demo run lets the player watch the arc shrink.
@@ -103,9 +121,9 @@ export function advanceTutorial(state: GameState): void {
     case 'train': enterStep(state, 'passenger'); break;
     case 'passenger': enterStep(state, 'boardingWait'); break;
     case 'boardingCard': enterStep(state, 'deliveryWait'); break;
-    case 'deliveryCard': enterStep(state, 'overflowDemo'); break;
+    case 'deliveryCard': enterStep(state, 'extendLine'); break;
     case 'overflowCard': enterStep(state, 'rescueAct'); break;
-    case 'averted': enterStep(state, 'wrapup'); break;
+    case 'averted': enterStep(state, 'depotPlace'); break;
     case 'wrapup': exitTutorial(state); break;
   }
 }
@@ -139,6 +157,11 @@ export function tickTutorial(state: GameState, dt: number): void {
         enterStep(state, 'deliveryCard');
       }
       break;
+    case 'extendLine': {
+      const extra = t.extraStationId ? state.stations[t.extraStationId] : null;
+      if (extra && extra.lineIds.length > 0) enterStep(state, 'overflowDemo');
+      break;
+    }
     case 'overflowDemo':
       t.demoTimer -= dt;
       if (t.demoTimer <= 0) enterStep(state, 'overflowCard');
@@ -158,5 +181,8 @@ export function tickTutorial(state: GameState, dt: number): void {
       if (!square || square.riskTimer === null) enterStep(state, 'averted');
       break;
     }
+    case 'depotPlace':
+      if (state.reserveCarriers === 0) enterStep(state, 'wrapup');
+      break;
   }
 }

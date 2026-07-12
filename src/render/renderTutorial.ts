@@ -10,6 +10,7 @@ function highlightTargets(state: GameState): Station[] {
   const ids =
     t.step === 'firstLine' ? [t.circleId, t.triangleId]
     : t.step === 'passenger' ? [t.circleId]
+    : t.step === 'extendLine' ? [t.triangleId, ...(t.extraStationId ? [t.extraStationId] : [])]
     : t.step === 'rescueAct' ? [t.squareId]
     : [];
   return ids.map(id => state.stations[id]).filter((s): s is Station => !!s);
@@ -21,6 +22,11 @@ function hintPath(state: GameState): { from: Vec2; to: Vec2 } | null {
   if (t.step === 'firstLine') {
     const from = state.stations[t.circleId];
     const to = state.stations[t.triangleId];
+    return from && to ? { from: from.pos, to: to.pos } : null;
+  }
+  if (t.step === 'extendLine') {
+    const from = state.stations[t.triangleId];
+    const to = t.extraStationId ? state.stations[t.extraStationId] : null;
     return from && to ? { from: from.pos, to: to.pos } : null;
   }
   if (t.step === 'rescueAct') {

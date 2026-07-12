@@ -36,6 +36,10 @@ const STEP_CONTENT: Record<TutorialStepId, { text: string; next: string | null }
     text: 'Delivered! Every delivered passenger scores one point — the score at the top right just went up.',
     next: 'Next',
   },
+  extendLine: {
+    text: 'Lines can grow, too. Drag from the end of your line — the small marker at the triangle station — to the new star station to connect it.',
+    next: null,
+  },
   overflowDemo: {
     text: 'Uh oh — a crowd is building at the square station…',
     next: null,
@@ -56,8 +60,12 @@ const STEP_CONTENT: Record<TutorialStepId, { text: string; next: string | null }
     text: 'Crisis averted. The ring vanishes the moment a station drops back below capacity. Keep every station connected and flowing.',
     next: 'Next',
   },
+  depotPlace: {
+    text: 'Every 5 weeks a Weekly Upgrade offers a new train or carriage like this one. Click the train icon at the bottom, then click your line to place it.',
+    next: null,
+  },
   wrapup: {
-    text: 'That’s the core loop! From here: weeks pass and new stations keep appearing, every 5 weeks a Weekly Upgrade offers a new train, carriage or more time, extra lines unlock as the city grows — and the pause / fast-forward buttons are always there when things get busy.',
+    text: 'That’s the core loop! From here: weeks pass and new stations keep appearing, and extra lines unlock as the city grows.',
     next: 'Done',
   },
 };

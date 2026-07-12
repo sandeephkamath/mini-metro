@@ -107,11 +107,14 @@ export function trySpawnStation(state: GameState): void {
   }
 }
 
-// Debug-only: place a station at exact position, bypassing distance constraints
-export function trySpawnStationAt(state: GameState, pos: Vec2, shape: StationShape): void {
+// Debug-only: place a station at exact position, bypassing distance constraints.
+// Returns the new station's id (used by the Tutorial's extend-line step to track
+// which station it just injected — TUTORIAL.md §5).
+export function trySpawnStationAt(state: GameState, pos: Vec2, shape: StationShape): string {
   const id = `s${++state.nextIds.station}`;
   const label = nextLabel(state, shape);
   state.stations[id] = { id, label, shape, pos, passengerQueue: [], maxCapacity: CONFIG.STATION_INITIAL_CAPACITY, lineIds: [], riskTimer: null, spawnedAtMs: state.gameTimeMs };
+  return id;
 }
 
 // Returns the *nearest* Station within radius (not just the first one found) — with

@@ -34,7 +34,7 @@ export function GameCanvas() {
     stateRef, score, phase, creativeMode, weekNumber, level, weekProgress, reserveCarriers, reserveCarriages, milestoneChoicePending,
     selectedReserveItem, playerPaused, playerSpeedMultiplier, tutorialStep, metaProgression, pictureRevealSegments, isNewBest,
     finalWeeksSurvived, overflowStationShape, adFlow, adAvailable,
-    startGame, goHome, continueInCreativeMode, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
+    startGame, goHome, continueInCreativeMode, finishTutorial, syncReactState, setSelectedReserveItem, setPlayerPaused, setPlayerSpeedMultiplier,
     requestOnDemandBonus, acceptAdOffer, declineAdOffer, completeAdPlayback, resolveAdBonusChoice,
   } = useGameState();
 
@@ -102,7 +102,7 @@ export function GameCanvas() {
   // React state — the native touch/mouse listeners need the current value
   // synchronously without re-attaching on every resize). See themes/metro.md §6.1.
   const rotatedRef = useRef(false);
-  useMouseInput({ canvasRef, stateRef, rotatedRef, onDebugLeaderboardSignIn: leaderboard.signIn });
+  useMouseInput({ canvasRef, stateRef, rotatedRef, onDebugLeaderboardSignIn: leaderboard.signIn, onTutorialExit: finishTutorial });
 
   // Submits this session's score and resolves its rank the moment the game ends
   // (core/meta_progression.md §7 — "the same moment Best Weeks Survived is
@@ -239,15 +239,19 @@ export function GameCanvas() {
 
   // The tutorial owns the clock and the board's shape while active — the HUD's
   // speed controls, depot placement, and line deletion are suspended so a stray
-  // click can't derail a scripted step (specs/TUTORIAL.md §3).
+  // click can't derail a scripted step (specs/TUTORIAL.md §3). Depot placement is
+  // the one exception, carved out for the depotPlace step itself (TUTORIAL.md §5
+  // step 10) — that step's whole point is the player using the real Depot button
+  // and canvas click, not a scripted stand-in for either.
   const tutorialActive = tutorialStep !== null;
+  const depotSuspended = tutorialActive && tutorialStep !== 'depotPlace';
 
   function selectReserveCarrier() {
-    if (tutorialActive) return;
+    if (depotSuspended) return;
     setSelectedReserveItem(selectedReserveItem === 'carrier' ? null : 'carrier');
   }
   function selectReserveCarriage() {
-    if (tutorialActive) return;
+    if (depotSuspended) return;
     setSelectedReserveItem(selectedReserveItem === 'carriage' ? null : 'carriage');
   }
   function chooseMilestoneBonus(kind: MilestoneBonusKind) {
@@ -259,18 +263,30 @@ export function GameCanvas() {
     removeLine(state, lineId);
   }
   // syncReactState right after mutating so the card swaps instantly instead of
-  // waiting out the ~10Hz sync tick.
+  // waiting out the ~10Hz sync tick. Once the Tutorial has actually exited (Skip,
+  // or Next on the final Wrap-Up step), finishTutorial() additionally resets the
+  // whole board to a fresh baseline (TUTORIAL.md §6) — advanceTutorial/exitTutorial
+  // above still run first for their own pure-state cleanup, but the reset replaces
+  // stateRef.current wholesale afterward, so syncReactState() would be redundant.
   function tutorialNext() {
     const wasWrapup = state.tutorial?.step === 'wrapup';
     advanceTutorial(state);
-    syncReactState();
-    if (wasWrapup) logGameEvent('tutorial_exited', { outcome: 'completed' });
+    if (wasWrapup) {
+      finishTutorial();
+      logGameEvent('tutorial_exited', { outcome: 'completed' });
+    } else {
+      syncReactState();
+    }
   }
   function tutorialSkip() {
     const wasActive = state.tutorial !== null;
     exitTutorial(state);
-    syncReactState();
-    if (wasActive) logGameEvent('tutorial_exited', { outcome: 'skipped' });
+    if (wasActive) {
+      finishTutorial();
+      logGameEvent('tutorial_exited', { outcome: 'skipped' });
+    } else {
+      syncReactState();
+    }
   }
 
   // Outer box is sized to the actual on-screen footprint (rotated: width/height

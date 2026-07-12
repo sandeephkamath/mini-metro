@@ -38,11 +38,13 @@ export type TutorialStepId =
   | 'boardingCard'
   | 'deliveryWait'
   | 'deliveryCard'
+  | 'extendLine'
   | 'overflowDemo'
   | 'overflowCard'
   | 'rescueAct'
   | 'rescueWait'
   | 'averted'
+  | 'depotPlace'
   | 'wrapup';
 
 export interface Vec2 {
@@ -143,7 +145,8 @@ export interface TutorialState {
   triangleId: string;
   squareId: string;
   passengerId: string | null; // the scripted boarding/delivery passenger (steps 4-6)
-  demoTimer: number; // ms remaining in the overflow demo run (step 7.2)
+  extraStationId: string | null; // the scripted Extend the Line station (step 7)
+  demoTimer: number; // ms remaining in the overflow demo run (step 8.2)
   prevPauseStations: boolean; // debug spawn toggles restored on exit (TUTORIAL.md §6)
   prevPausePassengers: boolean;
 }
